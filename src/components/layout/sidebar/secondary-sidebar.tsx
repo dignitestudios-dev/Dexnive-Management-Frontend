@@ -12,7 +12,8 @@ export function SecondarySidebar() {
   const { isAdmin } = useAuth();
   const pathname = usePathname();
   
-  const isTeamRoute = pathname?.startsWith("/dashboard/users") || pathname?.startsWith("/dashboard/departments") || pathname?.startsWith("/dashboard/divisions");
+  const isTeamRoute = pathname?.startsWith("/dashboard/users");
+  const isOrgRoute = pathname?.startsWith("/dashboard/departments") || pathname?.startsWith("/dashboard/divisions");
   const isProjectsRoute = pathname?.startsWith("/dashboard/projects");
 
   return (
@@ -35,6 +36,16 @@ export function SecondarySidebar() {
             </div>
             <div className="flex flex-col gap-0.5">
               <SidebarItem icon={<Users className="w-4 h-4" />} label="All Users" href="/dashboard/users" active={pathname === "/dashboard/users"} />
+              <SidebarItem icon={<FileText className="w-4 h-4" />} label="Missing Entries" href="/dashboard/users/missing-entries" active={pathname === "/dashboard/users/missing-entries"} />
+              <SidebarItem icon={<History className="w-4 h-4" />} label="All Worklogs" href="/dashboard/users/all-worklogs" active={pathname === "/dashboard/users/all-worklogs"} />
+            </div>
+          </div>
+        ) : isOrgRoute && isAdmin ? (
+          <div className="mb-6">
+            <div className="px-3 mb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center justify-between group">
+              <span>Organization</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
               <SidebarItem icon={<Building2 className="w-4 h-4" />} label="Departments" href="/dashboard/departments" active={pathname === "/dashboard/departments"} />
               <SidebarItem icon={<Building2 className="w-4 h-4" />} label="Divisions" href="/dashboard/divisions" active={pathname === "/dashboard/divisions"} />
             </div>

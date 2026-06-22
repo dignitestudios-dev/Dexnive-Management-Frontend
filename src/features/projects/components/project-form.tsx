@@ -38,7 +38,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
         name: initialData.name,
         code: initialData.code,
         description: initialData.description || "",
-        division: typeof initialData.division === "object" ? (initialData.division as any)._id : (initialData.division || ""),
+        division: (initialData.division && typeof initialData.division === "object") ? (initialData.division as any)._id : (initialData.division || ""),
         projectType: initialData.projectType,
         status: initialData.status,
         budgetedHours: initialData.budgetedHours ? initialData.budgetedHours.toString() : "",
@@ -116,7 +116,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
               value={formData.code} 
               onChange={(e) => setFormData(p => ({...p, code: e.target.value}))} 
               placeholder="e.g. WR-01"
-              maxLength={20}
+              maxLength={10}
               className="h-9 bg-white uppercase"
             />
           </div>
@@ -136,7 +136,13 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
             <label className="text-xs font-medium text-gray-700">Division</label>
             <Select value={formData.division} onValueChange={(val: any) => setFormData(p => ({...p, division: val || ""}))}>
               <SelectTrigger className="h-9 bg-white text-xs">
-                <SelectValue placeholder="Select division..." />
+                <SelectValue placeholder="Select division...">
+                  {formData.division && formData.division !== "none" 
+                    ? divisions.find((d) => d._id === formData.division)?.name 
+                    : formData.division === "none" 
+                      ? "None" 
+                      : ""}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none" className="text-xs italic text-gray-500">None</SelectItem>

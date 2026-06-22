@@ -29,3 +29,8 @@ export async function updateProject(payload: UpdateProjectPayload): Promise<{ da
 export async function deleteProject(id: string): Promise<void> {
   await axiosInstance.delete(`/projects/${id}`);
 }
+
+export async function getProjectStats(id: string): Promise<{ data: Project }> {
+  const { data } = await axiosInstance.get<{ data: Project }>(`/projects/${id}/stats`);
+  return data;
+}

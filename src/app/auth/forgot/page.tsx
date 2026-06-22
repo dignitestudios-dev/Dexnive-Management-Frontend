@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
               id="email" 
               type="email" 
               placeholder="name@company.com" 
-              error={!!form.formState.errors.email}
+              className={form.formState.errors.email ? "border-red-500" : ""}
               {...form.register("email")} 
             />
             {form.formState.errors.email && (

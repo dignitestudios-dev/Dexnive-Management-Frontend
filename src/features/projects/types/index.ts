@@ -24,6 +24,7 @@ export interface Project {
   totalNonBillableHours?: number;
   totalOvertimeHours?: number;
   totalHours?: number;
+  budgetUsedPercent?: number | null;
 }
 
 export interface GetProjectsParams {

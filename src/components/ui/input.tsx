@@ -3,23 +3,13 @@ import { Input as InputPrimitive } from "@base-ui/react/input"
 
 import { cn } from "@/lib/utils"
 
-export interface InputProps extends React.ComponentProps<"input"> {
-  error?: boolean;
-}
-
-function Input({ className, type, error, ...props }: InputProps) {
+function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (
     <InputPrimitive
       type={type}
       data-slot="input"
       className={cn(
-        "flex h-8 w-full min-w-0 rounded-md border border-gray-200 bg-gray-50/50 px-2 py-1.5 text-sm text-gray-900 shadow-sm transition-all duration-200 outline-none",
-        "file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-gray-900",
-        "placeholder:text-gray-400",
-        "hover:border-gray-300 hover:bg-white",
-        "focus-visible:border-primary-500 focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-primary-500/15",
-        "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-100",
-        error && "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/15 hover:border-red-500",
+        "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
         className
       )}
       {...props}

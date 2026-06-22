@@ -20,11 +20,11 @@ import { useUpdateUserMutation } from "@/features/users/api/users.mutations";
 import { useGetRolesQuery, useGetDepartmentsQuery } from "@/features/users/api/options.queries";
 
 const updateUserSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, "Name is required").max(20, "Name cannot exceed 20 characters"),
   password: z.string().refine((val) => val === "" || /^\S+$/.test(val), {
     message: "Password must not contain spaces",
   }).optional(),
-  employeeCode: z.string().min(1, "Employee Code is required"),
+  employeeCode: z.string().regex(/^\d{1,8}$/, "Employee Code must be a number with up to 8 digits"),
   role: z.string().min(1, "Role is required"),
   department: z.string().min(1, "Department is required"),
   isLead: z.boolean(),
@@ -168,6 +168,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
               <Input
                 id="name"
                 placeholder="John Doe"
+                maxLength={20}
                 {...register("name")}
                 className={errors.name ? "border-red-500" : ""}
               />
@@ -190,8 +191,13 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
               <Label htmlFor="employeeCode">Employee Code</Label>
               <Input
                 id="employeeCode"
-                placeholder="EMP-1001"
-                {...register("employeeCode")}
+                placeholder="1001"
+                maxLength={8}
+                {...register("employeeCode", {
+                  onChange: (e) => {
+                    e.target.value = e.target.value.replace(/\D/g, "");
+                  }
+                })}
                 className={errors.employeeCode ? "border-red-500" : ""}
               />
               {errors.employeeCode && <p className="text-sm text-red-500">{errors.employeeCode.message}</p>}

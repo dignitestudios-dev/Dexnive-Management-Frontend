@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Plus, Search, Loader2, Pencil, Eye, CheckCircle2, XCircle, Filter, X } from "lucide-react";
+import { Plus, Search, Loader2, Pencil, Eye, CheckCircle2, XCircle, Filter, X, Copy, Trash2, UserX, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +10,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { useInfiniteUsersQuery } from "@/features/users/api/users.queries";
 import { useGetRolesQuery, useGetDepartmentsQuery } from "@/features/users/api/options.queries";
+import { useUpdateUserMutation } from "@/features/users/api/users.mutations";
+import { useGetSummaryQuery } from "@/features/worklogs/api/worklogs.queries";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useRouter } from "next-nprogress-bar";
@@ -38,6 +40,29 @@ function getRoleBadgeColor(roleName: string) {
   if (name === "lead") return "bg-blue-100 text-blue-800 border-blue-200";
   if (name === "manager") return "bg-amber-100 text-amber-800 border-amber-200";
   return "bg-gray-100 text-gray-800 border-gray-200";
+}
+
+function UserEmail({ email }: { email: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigator.clipboard.writeText(email);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div className="flex items-center gap-1.5 mt-0.5" onClick={(e) => e.stopPropagation()}>
+      <p className="text-xs text-gray-500 truncate" title={email}>{email}</p>
+      <button 
+        onClick={handleCopy}
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700 focus:outline-none"
+        title="Copy email"
+      >
+        {copied ? <CheckCircle2 className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+      </button>
+    </div>
+  );
 }
 
 function UsersPageContent() {
@@ -121,6 +146,18 @@ function UsersPageContent() {
 
   const users = data?.pages.flatMap((page) => page.data) || [];
 
+  const { data: summaryResponse, isLoading: isLoadingSummary } = useGetSummaryQuery({});
+  
+  const overallStats = React.useMemo(() => {
+    if (!summaryResponse?.data) return { logged: 0, billable: 0, nonBillable: 0, overtime: 0 };
+    return summaryResponse.data.reduce((acc, curr) => ({
+      logged: acc.logged + curr.totalLoggedHours,
+      billable: acc.billable + curr.totalBillableHours,
+      nonBillable: acc.nonBillable + curr.totalNonBillableHours,
+      overtime: acc.overtime + curr.totalOvertimeHours
+    }), { logged: 0, billable: 0, nonBillable: 0, overtime: 0 });
+  }, [summaryResponse]);
+
   // Intersection Observer for Infinite Scroll
   const observerTarget = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -143,6 +180,42 @@ function UsersPageContent() {
   // Dialog State
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    type: "delete" | "toggleActive";
+    user: any | null;
+  }>({ isOpen: false, type: "delete", user: null });
+
+  const updateUserMutation = useUpdateUserMutation();
+
+  const handleToggleActive = (user: any) => {
+    setConfirmDialog({ isOpen: true, type: "toggleActive", user });
+  };
+
+  const handleDelete = (user: any) => {
+    setConfirmDialog({ isOpen: true, type: "delete", user });
+  };
+
+  const confirmAction = () => {
+    if (!confirmDialog.user) return;
+    
+    if (confirmDialog.type === "delete") {
+      updateUserMutation.mutate({
+        userId: confirmDialog.user._id,
+        isDeleted: true
+      }, {
+        onSuccess: () => setConfirmDialog(prev => ({ ...prev, isOpen: false }))
+      });
+    } else {
+      updateUserMutation.mutate({
+        userId: confirmDialog.user._id,
+        deactivateDate: confirmDialog.user.deactivateDate ? null : new Date().toISOString()
+      }, {
+        onSuccess: () => setConfirmDialog(prev => ({ ...prev, isOpen: false }))
+      });
+    }
+  };
 
   const openDetails = (user: any) => {
     setSelectedUser(user);
@@ -168,6 +241,33 @@ function UsersPageContent() {
             Add User
           </Button>
         </Link>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="rounded-xl border-gray-200/60 shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Logged</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1">{overallStats.logged.toFixed(1)}h</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-xl border-gray-200/60 shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Billable</p>
+            <p className="text-2xl font-bold text-emerald-700 mt-1">{overallStats.billable.toFixed(1)}h</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-xl border-gray-200/60 shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Non-Billable</p>
+            <p className="text-2xl font-bold text-amber-700 mt-1">{overallStats.nonBillable.toFixed(1)}h</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-xl border-gray-200/60 shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider">Overtime</p>
+            <p className="text-2xl font-bold text-purple-700 mt-1">{overallStats.overtime.toFixed(1)}h</p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -344,10 +444,10 @@ function UsersPageContent() {
                                   <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider">Lead</span>
                                 )}
                               </div>
-                              <p className="text-xs text-gray-500 truncate" title={user.email}>{user.email}</p>
+                              <UserEmail email={user.email} />
                             </div>
-                            <div title={user.isDeleted ? "Inactive" : "Active"} className="mt-1 flex-shrink-0">
-                              {user.isDeleted ? (
+                            <div title={user.deactivateDate ? "Inactive" : "Active"} className="mt-1 flex-shrink-0">
+                              {user.deactivateDate ? (
                                 <span className="flex w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
                               ) : (
                                 <span className="flex w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
@@ -368,25 +468,34 @@ function UsersPageContent() {
                         </CardContent>
                       </Card>
                     </ContextMenuTrigger>
-                    <ContextMenuContent className="w-56 p-1.5">
-                      <ContextMenuItem onClick={() => openDetails(user)} className="gap-3 py-2.5">
-                        <div className="flex items-center justify-center w-6 h-6 rounded-md bg-gray-50 border border-gray-100 group-hover/context-menu-item:bg-white transition-colors">
-                          <Eye className="w-3.5 h-3.5 text-gray-500 group-hover/context-menu-item:text-primary-600" />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-gray-900">View Profile</span>
-                          <span className="text-xs text-gray-500">See full employee details</span>
-                        </div>
+                    <ContextMenuContent className="w-48 p-1">
+                      <ContextMenuItem onClick={() => openDetails(user)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+                        <Eye className="w-3.5 h-3.5 text-gray-500" />
+                        <span>View Profile</span>
                       </ContextMenuItem>
-                      <ContextMenuSeparator className="my-1.5" />
-                      <ContextMenuItem onClick={() => router.push(`/dashboard/users/${user._id}/edit`)} className="gap-3 py-2.5">
-                        <div className="flex items-center justify-center w-6 h-6 rounded-md bg-gray-50 border border-gray-100 group-hover/context-menu-item:bg-white transition-colors">
-                          <Pencil className="w-3.5 h-3.5 text-gray-500 group-hover/context-menu-item:text-primary-600" />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-gray-900">Edit User</span>
-                          <span className="text-xs text-gray-500">Modify permissions & role</span>
-                        </div>
+                      <ContextMenuSeparator className="my-1" />
+                      <ContextMenuItem onClick={() => router.push(`/dashboard/users/missing-entries?user=${user._id}`)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+                        <Filter className="w-3.5 h-3.5 text-gray-500" />
+                        <span>Missing Entries</span>
+                      </ContextMenuItem>
+                      <ContextMenuSeparator className="my-1" />
+                      <ContextMenuItem onClick={() => router.push(`/dashboard/users/${user._id}/edit`)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+                        <Pencil className="w-3.5 h-3.5 text-gray-500" />
+                        <span>Edit User</span>
+                      </ContextMenuItem>
+                      <ContextMenuSeparator className="my-1" />
+                      <ContextMenuItem onClick={() => handleToggleActive(user)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+                        {user.deactivateDate ? (
+                          <UserCheck className="w-3.5 h-3.5 text-green-600" />
+                        ) : (
+                          <UserX className="w-3.5 h-3.5 text-amber-600" />
+                        )}
+                        <span>{user.deactivateDate ? "Activate User" : "Deactivate User"}</span>
+                      </ContextMenuItem>
+                      <ContextMenuSeparator className="my-1" />
+                      <ContextMenuItem onClick={() => handleDelete(user)} className="flex items-center gap-2 py-1.5 text-xs text-red-600 hover:text-red-700 focus:text-red-700">
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete User</span>
                       </ContextMenuItem>
                     </ContextMenuContent>
                   </ContextMenu>
@@ -424,7 +533,7 @@ function UsersPageContent() {
                         <span className="px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider">Lead</span>
                       )}
                     </div>
-                    {selectedUser.isDeleted ? (
+                    {selectedUser.deactivateDate ? (
                       <XCircle className="w-5 h-5 text-red-500" />
                     ) : (
                       <CheckCircle2 className="w-5 h-5 text-green-500" />
@@ -479,6 +588,38 @@ function UsersPageContent() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, isOpen: open }))}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {confirmDialog.type === "delete" ? "Delete User" : 
+               confirmDialog.user?.deactivateDate ? "Activate User" : "Deactivate User"}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmDialog.type === "delete" 
+                ? "Are you sure you want to permanently delete this user? This action cannot be undone." 
+                : confirmDialog.user?.deactivateDate 
+                  ? "Are you sure you want to reactivate this user? They will regain access to the platform." 
+                  : "Are you sure you want to deactivate this user? They will temporarily lose access to the platform."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 pt-4 border-t mt-2 border-gray-100">
+            <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}>
+              Cancel
+            </Button>
+            <Button 
+              className={confirmDialog.type === "delete" ? "bg-red-600 hover:bg-red-700 text-white" : ""}
+              onClick={confirmAction}
+              disabled={updateUserMutation.isPending}
+            >
+              {updateUserMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Confirm
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

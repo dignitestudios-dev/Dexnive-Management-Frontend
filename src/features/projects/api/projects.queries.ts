@@ -1,5 +1,5 @@
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import { getProjects, getProjectById } from "./projects.service";
+import { getProjects, getProjectById, getProjectStats } from "./projects.service";
 import { GetProjectsParams } from "../types";
 
 export const projectsKeys = {
@@ -36,6 +36,14 @@ export function useGetProjectByIdQuery(id: string) {
   return useQuery({
     queryKey: projectsKeys.detail(id),
     queryFn: () => getProjectById(id),
+    enabled: !!id,
+  });
+}
+
+export function useGetProjectStatsQuery(id: string) {
+  return useQuery({
+    queryKey: [...projectsKeys.detail(id), "stats"],
+    queryFn: () => getProjectStats(id),
     enabled: !!id,
   });
 }

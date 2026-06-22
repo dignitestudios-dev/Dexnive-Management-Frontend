@@ -2,13 +2,13 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { Plus, Loader2, Pencil, Trash2, Search, Briefcase, MoreVertical } from "lucide-react";
+import { Plus, Loader2, Pencil, Trash2, Search, Briefcase, MoreVertical, Eye, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { useGetProjectsQuery } from "@/features/projects/api/projects.queries";
+import { useGetProjectsQuery, useGetProjectStatsQuery } from "@/features/projects/api/projects.queries";
 import { useDeleteProjectMutation } from "@/features/projects/api/projects.mutations";
 import { useGetDivisionsQuery } from "@/features/divisions/api/divisions.queries";
 import { useRouter } from "next-nprogress-bar";
@@ -52,6 +52,10 @@ export default function ProjectsPage() {
   // Dialogs state
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [projectToView, setProjectToView] = useState<Project | null>(null);
+  const [statsProjectId, setStatsProjectId] = useState<string | null>(null);
+
+  const { data: statsData, isLoading: isStatsLoading } = useGetProjectStatsQuery(statsProjectId || "");
+  const projectStats = statsData?.data;
 
   const confirmDelete = () => {
     if (projectToDelete) {
@@ -175,66 +179,70 @@ export default function ProjectsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {projects.map((proj) => (
-                <div 
-                  key={proj._id} 
-                  className="bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all group overflow-hidden flex flex-col cursor-pointer"
-                  onClick={() => setProjectToView(proj)}
-                >
-                  <div className="p-4 flex-1 flex flex-col gap-3">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-semibold text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded border border-primary-100 uppercase">
-                            {proj.code}
-                          </span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                            proj.status === 'active' ? 'bg-green-100 text-green-700' :
-                            proj.status === 'on-hold' ? 'bg-amber-100 text-amber-700' :
-                            proj.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {proj.status}
-                          </span>
+                <ContextMenu key={proj._id}>
+                  <ContextMenuTrigger>
+                    <div 
+                      className="bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all group overflow-hidden flex flex-col cursor-context-menu h-[210px]"
+                    >
+                      <div className="p-4 flex-1 flex flex-col gap-3">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-semibold text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded border border-primary-100 uppercase">
+                                {proj.code}
+                              </span>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                                proj.status === 'active' ? 'bg-green-100 text-green-700' :
+                                proj.status === 'on-hold' ? 'bg-amber-100 text-amber-700' :
+                                proj.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {proj.status}
+                              </span>
+                            </div>
+                            <h3 className="font-semibold text-gray-900 line-clamp-2" title={proj.name}>{proj.name}</h3>
+                          </div>
                         </div>
-                        <h3 className="font-semibold text-gray-900 line-clamp-2" title={proj.name}>{proj.name}</h3>
+                        {proj.description && (
+                          <p className="text-xs text-gray-500 line-clamp-2">{proj.description}</p>
+                        )}
                       </div>
-                      <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-gray-900 focus-visible:ring-0">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-32">
-                            <DropdownMenuItem onClick={() => router.push(`/dashboard/projects/${proj._id}/edit`)}>
-                              <Pencil className="w-4 h-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600" onClick={() => setProjectToDelete(proj._id)}>
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      <div className="bg-gray-50 p-3 border-t border-gray-100 flex justify-between items-center">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Type</span>
+                          <span className="text-xs text-gray-700 font-medium capitalize">{proj.projectType}</span>
+                        </div>
+                        {proj.budgetedHours !== undefined && proj.budgetedHours !== null && (
+                          <div className="flex flex-col items-end">
+                            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Budget</span>
+                            <span className="text-xs text-gray-700 font-medium">{proj.budgetedHours}h</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    {proj.description && (
-                      <p className="text-xs text-gray-500 line-clamp-2">{proj.description}</p>
-                    )}
-                  </div>
-                  <div className="bg-gray-50 p-3 border-t border-gray-100 flex justify-between items-center">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Type</span>
-                      <span className="text-xs text-gray-700 font-medium capitalize">{proj.projectType}</span>
-                    </div>
-                    {proj.budgetedHours !== undefined && proj.budgetedHours !== null && (
-                      <div className="flex flex-col items-end">
-                        <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Budget</span>
-                        <span className="text-xs text-gray-700 font-medium">{proj.budgetedHours}h</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="w-48 p-1">
+                    <ContextMenuItem onClick={() => setProjectToView(proj)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+                      <Eye className="w-3.5 h-3.5 text-gray-500" />
+                      <span>View Details</span>
+                    </ContextMenuItem>
+                    <ContextMenuSeparator className="my-1" />
+                    <ContextMenuItem onClick={() => setStatsProjectId(proj._id)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+                      <BarChart2 className="w-3.5 h-3.5 text-gray-500" />
+                      <span>View Stats</span>
+                    </ContextMenuItem>
+                    <ContextMenuSeparator className="my-1" />
+                    <ContextMenuItem onClick={() => router.push(`/dashboard/projects/${proj._id}/edit`)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+                      <Pencil className="w-3.5 h-3.5 text-gray-500" />
+                      <span>Edit Project</span>
+                    </ContextMenuItem>
+                    <ContextMenuSeparator className="my-1" />
+                    <ContextMenuItem onClick={() => setProjectToDelete(proj._id)} className="flex items-center gap-2 py-1.5 text-xs text-red-600 hover:text-red-700 focus:text-red-700">
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete Project</span>
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
               ))}
             </div>
           )}
@@ -301,11 +309,11 @@ export default function ProjectsPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
                 <div>
                   <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Division</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {typeof projectToView.division === "object" ? (projectToView.division as Division).name : (projectToView.division || "N/A")}
+                    {(projectToView.division && typeof projectToView.division === "object") ? (projectToView.division as Division).name : (projectToView.division || "N/A")}
                   </p>
                 </div>
                 <div>
@@ -338,6 +346,70 @@ export default function ProjectsPage() {
                 Edit Project
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* View Project Stats Dialog */}
+      <Dialog open={!!statsProjectId} onOpenChange={(open) => !open && setStatsProjectId(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart2 className="w-5 h-5 text-primary-600" />
+              Project Stats
+            </DialogTitle>
+          </DialogHeader>
+          
+          {isStatsLoading ? (
+            <div className="py-12 flex justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+            </div>
+          ) : projectStats ? (
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Total Billable</p>
+                  <p className="text-sm font-medium text-green-700">{projectStats.totalBillableHours || 0}h</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Total Non-Billable</p>
+                  <p className="text-sm font-medium text-amber-700">{projectStats.totalNonBillableHours || 0}h</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Total Overtime</p>
+                  <p className="text-sm font-medium text-purple-700">{projectStats.totalOvertimeHours || 0}h</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Total Hours</p>
+                  <p className="text-sm font-medium text-blue-700">{projectStats.totalHours || 0}h</p>
+                </div>
+                {projectStats.budgetedHours !== null && projectStats.budgetedHours !== undefined && (
+                  <>
+                    <div className="col-span-2 border-t border-gray-200 mt-2 pt-3">
+                      <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Budget Usage</p>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                        <div 
+                          className={`h-2.5 rounded-full ${
+                            (projectStats.budgetUsedPercent || 0) > 100 ? 'bg-red-500' : 'bg-primary-500'
+                          }`} 
+                          style={{ width: `${Math.min(projectStats.budgetUsedPercent || 0, 100)}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1.5 text-right font-medium">
+                        {projectStats.budgetUsedPercent}% of {projectStats.budgetedHours}h used
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="py-12 text-center text-gray-500">
+              Failed to load stats.
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatsProjectId(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

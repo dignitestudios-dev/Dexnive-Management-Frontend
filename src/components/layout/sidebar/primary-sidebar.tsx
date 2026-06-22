@@ -8,7 +8,8 @@ import {
   Bell, 
   Search,
   Plus,
-  Briefcase
+  Briefcase,
+  Building2
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
@@ -17,7 +18,8 @@ export function PrimarySidebar() {
   const { isAdmin } = useAuth();
   const pathname = usePathname();
   
-  const isTeamActive = pathname?.startsWith("/dashboard/users") || pathname?.startsWith("/dashboard/departments") || pathname?.startsWith("/dashboard/divisions");
+  const isTeamActive = pathname?.startsWith("/dashboard/users");
+  const isOrgActive = pathname?.startsWith("/dashboard/departments") || pathname?.startsWith("/dashboard/divisions");
   const isProjectsActive = pathname?.startsWith("/dashboard/projects");
 
   return (
@@ -37,6 +39,7 @@ export function PrimarySidebar() {
             <NavItem icon={<CheckSquare className="w-5 h-5" />} tooltip="My Tasks" />
             <NavItem icon={<Bell className="w-5 h-5" />} tooltip="Notifications" />
             <NavItem icon={<Users className="w-5 h-5" />} tooltip="Team" active={isTeamActive} href="/dashboard/users" />
+            <NavItem icon={<Building2 className="w-5 h-5" />} tooltip="Organization" active={isOrgActive} href="/dashboard/departments" />
             <NavItem icon={<Briefcase className="w-5 h-5" />} tooltip="Projects" active={isProjectsActive} href="/dashboard/projects" />
           </>
         )}

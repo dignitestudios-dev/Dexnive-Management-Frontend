@@ -60,4 +60,6 @@ export interface CreateUserPayload {
 
 export interface UpdateUserPayload extends Partial<CreateUserPayload> {
   userId: string;
+  isDeleted?: boolean;
+  deactivateDate?: string | null;
 }

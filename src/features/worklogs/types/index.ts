@@ -1,0 +1,83 @@
+export interface GetMissingEntriesParams {
+  user?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface MissingEntry {
+  shiftDate: string;
+}
+
+export interface MissingEntriesResponse {
+  message: string;
+  data: MissingEntry[];
+}
+
+export interface WorklogQueryParams {
+  startDate?: string;
+  endDate?: string;
+  user?: string;
+  project?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface WorklogSummaryParams {
+  startDate?: string;
+  endDate?: string;
+  user?: string;
+  department?: string;
+}
+
+export interface WorklogSummary {
+  user: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  totalLoggedMinutes: number;
+  totalBillableMinutes: number;
+  totalNonBillableMinutes: number;
+  totalOvertimeMinutes: number;
+  daysSubmitted: number;
+  totalLoggedHours: number;
+  totalBillableHours: number;
+  totalNonBillableHours: number;
+  totalOvertimeHours: number;
+  utilizationPercent: number;
+}
+
+export interface WorklogSummaryResponse {
+  message: string;
+  data: WorklogSummary[];
+}
+
+export interface WorklogSubmission {
+  _id: string;
+  user?: {
+    _id: string;
+    name: string;
+    email: string;
+    employeeCode?: string;
+  };
+  shiftDate: string;
+  status: string;
+  totalLoggedMinutes: number;
+  totalBillableMinutes: number;
+  totalNonBillableMinutes: number;
+  totalOvertimeMinutes: number;
+  submittedAt?: string;
+  entries?: any[];
+}
+
+export interface WorklogsResponse {
+  message: string;
+  data: WorklogSubmission[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}

@@ -17,7 +17,7 @@ import { useGetRolesQuery, useGetDepartmentsQuery } from "@/features/users/api/o
 
 // Password regex exactly like the user requested: \S+ (no spaces)
 const createUserSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, "Name is required").max(20, "Name cannot exceed 20 characters"),
   email: z.string().email("Invalid email address"),
   password: z
     .string()
@@ -27,7 +27,7 @@ const createUserSchema = z.object({
     .regex(/[a-z]/, "Must contain at least one lowercase letter")
     .regex(/[0-9]/, "Must contain at least one number")
     .regex(/[^A-Za-z0-9]/, "Must contain at least one special character"),
-  employeeCode: z.string().min(1, "Employee Code is required"),
+  employeeCode: z.string().regex(/^\d{1,8}$/, "Employee Code must be a number with up to 8 digits"),
   role: z.string().min(1, "Role is required"),
   department: z.string().min(1, "Department is required"),
   joiningDate: z.string().min(1, "Joining Date is required"),
@@ -62,6 +62,15 @@ export default function CreateUserPage() {
 
   const onSubmit = (data: CreateUserFormValues) => {
     setError("");
+
+    if (data.isLead) {
+      const selectedRole = roles.find((r: any) => r._id === data.role);
+      if (selectedRole && selectedRole.name.toLowerCase() !== "admin") {
+        setError("Only an admin can be assigned as a Team Lead.");
+        return;
+      }
+    }
+
     createUserMutation.mutate(data, {
       onSuccess: () => {
         router.push("/dashboard/users");
@@ -104,6 +113,7 @@ export default function CreateUserPage() {
               <Input
                 id="name"
                 placeholder="John Doe"
+                maxLength={20}
                 {...register("name")}
                 className={errors.name ? "border-red-500" : ""}
               />
@@ -138,8 +148,13 @@ export default function CreateUserPage() {
               <Label htmlFor="employeeCode">Employee Code</Label>
               <Input
                 id="employeeCode"
-                placeholder="EMP-1001"
-                {...register("employeeCode")}
+                placeholder="1001"
+                maxLength={8}
+                {...register("employeeCode", {
+                  onChange: (e) => {
+                    e.target.value = e.target.value.replace(/\D/g, "");
+                  }
+                })}
                 className={errors.employeeCode ? "border-red-500" : ""}
               />
               {errors.employeeCode && <p className="text-sm text-red-500">{errors.employeeCode.message}</p>}
