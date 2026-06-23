@@ -9,7 +9,8 @@ import {
   UserPlus,
   Layers,
   CalendarPlus,
-  Zap
+  Zap,
+  CalendarDays
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
@@ -50,6 +51,7 @@ export function PrimarySidebar() {
             <NavItem icon={<Briefcase className="w-5 h-5" />} tooltip="Projects" active={isProjectsActive} href="/dashboard/projects" />
           </>
         )}
+        <NavItem icon={<CalendarDays className="w-5 h-5" />} tooltip="My Timesheet" active={pathname === '/dashboard/my-timesheet'} href="/dashboard/my-timesheet" />
       </nav>
 
       {/* Bottom Actions */}
@@ -58,15 +60,15 @@ export function PrimarySidebar() {
           <>
             <DropdownMenu>
               <DropdownMenuTrigger render={
-                <button className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white flex items-center justify-center shadow-lg shadow-primary-500/20 focus:outline-none transition-all duration-300 hover:scale-105 group relative">
+                <button className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white flex items-center justify-center shadow-lg shadow-primary-500/20 focus:outline-none transition-colors group relative">
                   <div className="absolute inset-0 rounded-xl bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <Plus className="w-5 h-5" />
                 </button>
               } />
-              <DropdownMenuContent align="end" side="right" sideOffset={16} className="w-72 bg-white/95 backdrop-blur-xl border border-gray-200 shadow-xl shadow-gray-200/50 rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+              <DropdownMenuContent align="end" side="right" sideOffset={16} className="w-72 bg-white border border-gray-200 shadow-xl shadow-gray-200/50 rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
                 
                 <div className="px-3 py-3 flex items-center gap-2 mb-1">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center border border-gray-100">
+                  <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center border border-primary-100">
                     <Zap className="w-4 h-4 text-primary-500" />
                   </div>
                   <div>
@@ -77,8 +79,8 @@ export function PrimarySidebar() {
 
                 <div className="space-y-1">
                   <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-pointer rounded-xl hover:bg-gray-50 focus:bg-gray-50 transition-all duration-300 group outline-none" onClick={() => router.push('/dashboard/projects/create')}>
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white group-hover:shadow-md group-hover:shadow-blue-500/20 transition-all duration-300">
-                      <Briefcase className="w-5 h-5 transition-transform group-hover:scale-110" />
+                    <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 group-hover:bg-primary-500 group-hover:text-white transition-colors duration-300">
+                      <Briefcase className="w-5 h-5" />
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-semibold text-gray-700 group-hover:text-gray-900 transition-colors">New Project</span>
@@ -87,8 +89,8 @@ export function PrimarySidebar() {
                   </DropdownMenuItem>
 
                   <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-pointer rounded-xl hover:bg-gray-50 focus:bg-gray-50 transition-all duration-300 group outline-none" onClick={() => router.push('/dashboard/users/create')}>
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-md group-hover:shadow-emerald-500/20 transition-all duration-300">
-                      <UserPlus className="w-5 h-5 transition-transform group-hover:scale-110" />
+                    <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 group-hover:bg-primary-500 group-hover:text-white transition-colors duration-300">
+                      <UserPlus className="w-5 h-5" />
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-semibold text-gray-700 group-hover:text-gray-900 transition-colors">Add User</span>
@@ -97,8 +99,8 @@ export function PrimarySidebar() {
                   </DropdownMenuItem>
 
                   <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-pointer rounded-xl hover:bg-gray-50 focus:bg-gray-50 transition-all duration-300 group outline-none" onClick={() => router.push('/dashboard/departments?add=true')}>
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-white group-hover:shadow-md group-hover:shadow-amber-500/20 transition-all duration-300">
-                      <Building2 className="w-5 h-5 transition-transform group-hover:scale-110" />
+                    <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 group-hover:bg-primary-500 group-hover:text-white transition-colors duration-300">
+                      <Building2 className="w-5 h-5" />
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-semibold text-gray-700 group-hover:text-gray-900 transition-colors">New Department</span>
@@ -107,8 +109,8 @@ export function PrimarySidebar() {
                   </DropdownMenuItem>
 
                   <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-pointer rounded-xl hover:bg-gray-50 focus:bg-gray-50 transition-all duration-300 group outline-none" onClick={() => router.push('/dashboard/divisions?add=true')}>
-                    <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-500 group-hover:bg-purple-500 group-hover:text-white group-hover:shadow-md group-hover:shadow-purple-500/20 transition-all duration-300">
-                      <Layers className="w-5 h-5 transition-transform group-hover:scale-110" />
+                    <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 group-hover:bg-primary-500 group-hover:text-white transition-colors duration-300">
+                      <Layers className="w-5 h-5" />
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-semibold text-gray-700 group-hover:text-gray-900 transition-colors">New Division</span>
@@ -117,8 +119,8 @@ export function PrimarySidebar() {
                   </DropdownMenuItem>
 
                   <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-pointer rounded-xl hover:bg-gray-50 focus:bg-gray-50 transition-all duration-300 group outline-none" onClick={() => router.push('/dashboard/users/holidays?add=true')}>
-                    <div className="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500 group-hover:bg-pink-500 group-hover:text-white group-hover:shadow-md group-hover:shadow-pink-500/20 transition-all duration-300">
-                      <CalendarPlus className="w-5 h-5 transition-transform group-hover:scale-110" />
+                    <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 group-hover:bg-primary-500 group-hover:text-white transition-colors duration-300">
+                      <CalendarPlus className="w-5 h-5" />
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-semibold text-gray-700 group-hover:text-gray-900 transition-colors">Add Holiday</span>

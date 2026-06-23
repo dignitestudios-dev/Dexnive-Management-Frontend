@@ -53,6 +53,17 @@ export interface WorklogSummaryResponse {
   data: WorklogSummary[];
 }
 
+export interface WorklogEntry {
+  _id: string;
+  project: string | { _id: string; name: string };
+  loggedMinutes: number;
+  billableMinutes: number;
+  nonBillableMinutes: number;
+  overtimeMinutes: number;
+  description?: string;
+  reasonAllocations: { reason: string; minutes: number }[];
+}
+
 export interface WorklogSubmission {
   _id: string;
   user?: {
@@ -68,7 +79,7 @@ export interface WorklogSubmission {
   totalNonBillableMinutes: number;
   totalOvertimeMinutes: number;
   submittedAt?: string;
-  entries?: any[];
+  entries?: WorklogEntry[];
 }
 
 export interface WorklogsResponse {
@@ -80,4 +91,30 @@ export interface WorklogsResponse {
     limit: number;
     pages: number;
   };
+}
+
+export interface WorklogEntryPayload {
+  project: string;
+  minutes: number;
+  description?: string;
+}
+
+export interface SaveDraftPayload {
+  shiftDate: string;
+  entries: WorklogEntryPayload[];
+}
+
+export interface ReasonAllocation {
+  reason: string;
+  minutes: number;
+}
+
+export interface SubmitWorklogPayload {
+  shiftDate: string;
+  reasonAllocations: Record<string, ReasonAllocation[]>;
+}
+
+export interface SingleWorklogResponse {
+  message: string;
+  data: WorklogSubmission;
 }

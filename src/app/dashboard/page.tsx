@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { DailyWorklog } from "@/features/worklogs/components/daily-worklog";
 
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth();
@@ -9,20 +10,24 @@ export default function DashboardPage() {
     <div className="p-8">
       <div className="max-w-4xl">
         <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-          Good morning{user?.name ? `, ${user.name}` : ""}!
+          {(() => {
+            const hour = new Date().getHours();
+            if (hour < 12) return "Good Morning";
+            if (hour < 17) return "Good Afternoon";
+            if (hour < 21) return "Good Evening";
+            return "Good Night";
+          })()}{user?.name ? `, ${user.name}` : ""}!
         </h1>
         <p className="text-gray-500 mb-8">
           Here is what's happening in your workspace today.
         </p>
 
-        <div className="bg-primary-50 rounded-xl p-6 border border-primary-100 mb-8">
-          <h2 className="text-lg font-medium text-primary-900 mb-1">Your Role: {isAdmin ? "Admin / Lead" : "Employee"}</h2>
-          <p className="text-sm text-primary-700">
-            {isAdmin 
-              ? "You have complete access to manage all teams, settings, and logs."
-              : "You can log your daily tasks and view your own entry history."}
-          </p>
-        </div>
+        {/* Daily Worklog Section */}
+        {!isAdmin && (
+          <div className="mb-8">
+            <DailyWorklog />
+          </div>
+        )}
 
         {/* Placeholder for content widgets */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

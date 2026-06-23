@@ -286,7 +286,7 @@ function UsersPageContent() {
     } else {
       updateUserMutation.mutate({
         userId: confirmDialog.user._id,
-        deactivateDate: confirmDialog.user.deactivateDate ? "" : new Date().toISOString()
+        deactivateDate: confirmDialog.user.deactivateDate ? null : new Date().toISOString()
       }, {
         onSuccess: () => setConfirmDialog(prev => ({ ...prev, isOpen: false }))
       });

@@ -433,7 +433,7 @@ function ProjectsPageContent() {
 
       {/* View Project Timeline Dialog */}
       <Dialog open={!!timelineProjectId} onOpenChange={(open) => !open && setTimelineProjectId(null)}>
-        <DialogContent className="w-[95vw] max-w-7xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-7xl sm:max-w-7xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary-600" />

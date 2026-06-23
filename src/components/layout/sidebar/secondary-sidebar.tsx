@@ -15,6 +15,7 @@ export function SecondarySidebar() {
   const isTeamRoute = pathname?.startsWith("/dashboard/users");
   const isOrgRoute = pathname?.startsWith("/dashboard/departments") || pathname?.startsWith("/dashboard/divisions");
   const isProjectsRoute = pathname?.startsWith("/dashboard/projects");
+  const isSettingsRoute = pathname?.startsWith("/dashboard/settings");
 
   return (
     <div className="flex flex-col h-full w-[260px] bg-gray-50 border-r border-gray-200 flex-shrink-0 z-10">
@@ -59,6 +60,16 @@ export function SecondarySidebar() {
             <div className="flex flex-col gap-0.5">
               <SidebarItem icon={<Briefcase className="w-4 h-4" />} label="All Projects" href="/dashboard/projects" active={pathname === "/dashboard/projects"} />
               <SidebarItem icon={<DollarSign className="w-4 h-4" />} label="Rates" href="/dashboard/projects/rates" active={pathname === "/dashboard/projects/rates"} />
+            </div>
+          </div>
+        ) : isSettingsRoute && isAdmin ? (
+          <div className="mb-6">
+            <div className="px-3 mb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center justify-between group">
+              <span>Settings</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <SidebarItem icon={<Shield className="w-4 h-4" />} label="Security" href="/dashboard/settings" active={pathname === "/dashboard/settings"} />
+              <SidebarItem icon={<FileText className="w-4 h-4" />} label="Non-Billable Reasons" href="/dashboard/settings/reasons" active={pathname === "/dashboard/settings/reasons"} />
             </div>
           </div>
         ) : (

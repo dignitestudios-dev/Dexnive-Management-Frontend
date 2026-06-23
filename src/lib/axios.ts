@@ -36,7 +36,7 @@ axiosInstance.interceptors.response.use(
     }
 
     const data = error.response?.data;
-    let message = data?.message ?? error.message;
+    let message = data?.message || error.message || "An unexpected error occurred";
 
     // Extract specific validation error messages if Unprocessable Entity
     if (error.response?.status === 422 || data?.message === "Unprocessable Entity") {
@@ -53,6 +53,9 @@ axiosInstance.interceptors.response.use(
 
     // Override the generic axios error message with the backend message
     error.message = message;
+    if (error.response && error.response.data) {
+      error.response.data.message = message;
+    }
 
     return Promise.reject(error);
   }

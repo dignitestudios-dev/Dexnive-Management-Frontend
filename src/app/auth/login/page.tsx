@@ -36,7 +36,7 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         {error && (
           <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md border border-red-100">
-            {error.message || "Failed to login. Please check your credentials."}
+            {(error as any)?.response?.data?.message || error.message || "Failed to login. Please check your credentials."}
           </div>
         )}
 
