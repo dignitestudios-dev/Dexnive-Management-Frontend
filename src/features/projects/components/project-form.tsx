@@ -9,6 +9,7 @@ import { useCreateProjectMutation, useUpdateProjectMutation } from "@/features/p
 import { useGetDivisionsQuery } from "@/features/divisions/api/divisions.queries";
 import { toast } from "sonner";
 import { Project, ProjectStatus, ProjectType } from "@/features/projects/types";
+import { Loader } from "@/components/ui/loader";
 
 interface ProjectFormProps {
   initialData?: Project | null;
@@ -236,7 +237,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
           className="rounded-md h-9 text-xs"
           disabled={createMutation.isPending || updateMutation.isPending}
         >
-          {(createMutation.isPending || updateMutation.isPending) ? "Saving..." : (initialData ? "Save Project" : "Create Project")}
+          {(createMutation.isPending || updateMutation.isPending) ? <Loader className="w-5 h-5 text-current" /> : (initialData ? "Save Project" : "Create Project")}
         </Button>
       </div>
     </div>

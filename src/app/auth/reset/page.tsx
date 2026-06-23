@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { LockKeyhole, CheckCircle2, Eye, EyeOff, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { Loader } from "@/components/ui/loader";
 import { useState, useEffect } from "react";
 import { cn } from "@/utils/cn";
 
@@ -71,8 +72,7 @@ export default function ResetPasswordPage() {
                     id="new-password" 
                     type={showPassword ? "text" : "password"} 
                     placeholder="••••••••" 
-                    className="pr-10"
-                    error={!!form.formState.errors.password}
+                    className={form.formState.errors.password ? "border-red-500 pr-10" : "pr-10"}
                     {...form.register("password")} 
                   />
                   <button
@@ -109,8 +109,7 @@ export default function ResetPasswordPage() {
                     id="confirm-password" 
                     type={showConfirmPassword ? "text" : "password"} 
                     placeholder="••••••••" 
-                    className="pr-10"
-                    error={!!form.formState.errors.confirmPassword}
+                    className={form.formState.errors.confirmPassword ? "border-red-500 pr-10" : "pr-10"}
                     {...form.register("confirmPassword")} 
                   />
                   <button
@@ -130,10 +129,9 @@ export default function ResetPasswordPage() {
               <Button 
                 type="submit" 
                 className="mt-4 w-full" 
-                isLoading={isPending || form.formState.isSubmitting} 
                 disabled={!form.formState.isValid || isPending || form.formState.isSubmitting}
               >
-                Update Password
+                {(isPending || form.formState.isSubmitting) ? <Loader className="w-5 h-5 text-current" /> : "Update Password"}
               </Button>
             </form>
           </motion.div>

@@ -12,6 +12,7 @@ export function Header() {
   const { data: myUserData } = useGetMyUserQuery();
   const user = myUserData?.data || localUser;
   const [showDropdown, setShowDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -76,12 +77,24 @@ export function Header() {
           </div>
           <input
             type="text"
-            className="block w-64 pl-9 pr-3 py-1.5 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm transition-all"
+            className="block w-64 pl-9 pr-8 py-1.5 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm transition-all"
             placeholder="Search tasks, docs..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
-            <span className="text-xs text-gray-400 border border-gray-200 rounded px-1.5 bg-white">⌘K</span>
-          </div>
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-2 pr-2 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          ) : (
+            <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
+              <span className="text-xs text-gray-400 border border-gray-200 rounded px-1.5 bg-white">⌘K</span>
+            </div>
+          )}
         </div>
 
         <div className="w-px h-5 bg-gray-200" />

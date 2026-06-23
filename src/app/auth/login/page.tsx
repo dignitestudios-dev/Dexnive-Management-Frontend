@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { LogIn, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-
+import { Loader } from "@/components/ui/loader";
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { form, onSubmit, isPending, error } = useLogin();
@@ -46,7 +46,7 @@ export default function LoginPage() {
             id="email" 
             type="email" 
             placeholder="name@company.com" 
-            error={!!errors.email}
+            className={errors.email ? "border-red-500" : ""}
             {...register("email")} 
           />
           {errors.email && (
@@ -66,8 +66,7 @@ export default function LoginPage() {
               id="password" 
               type={showPassword ? "text" : "password"} 
               placeholder="••••••••" 
-              className="pr-10"
-              error={!!errors.password}
+              className={errors.password ? "border-red-500 pr-10" : "pr-10"}
               {...register("password")} 
             />
             <button
@@ -84,8 +83,8 @@ export default function LoginPage() {
           )}
         </div>
 
-        <Button type="submit" className="mt-2 w-full" isLoading={isPending}>
-          Sign in
+        <Button type="submit" className="mt-2 w-full" disabled={isPending}>
+          {isPending ? <Loader className="w-5 h-5 text-current" /> : "Sign in"}
         </Button>
       </form>
     </motion.div>

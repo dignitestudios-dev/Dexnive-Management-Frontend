@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { ShieldCheck, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { Loader } from "@/components/ui/loader";
 import { OTPInput } from "@/components/ui/otp-input";
 import { Controller } from "react-hook-form";
 
@@ -67,8 +68,8 @@ export default function VerifyOTPPage() {
             )}
           </div>
 
-          <Button type="submit" className="mt-2 w-full" isLoading={isPending}>
-            Verify & Continue
+          <Button type="submit" className="mt-2 w-full" disabled={isPending}>
+            {isPending ? <Loader className="w-5 h-5 text-current" /> : "Verify & Continue"}
           </Button>
           
           <Link prefetch={false} href="/auth/login" className="text-center mt-2">

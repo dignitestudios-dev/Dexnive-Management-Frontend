@@ -1,22 +1,28 @@
 import Link from "next/link";
 import Image from "next/image";
 import { 
-  Home, 
-  CheckSquare, 
   Users, 
   Settings, 
-  Bell, 
-  Search,
   Plus,
   Briefcase,
   Building2
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { useRouter } from "next-nprogress-bar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function PrimarySidebar() {
   const { isAdmin } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   
   const isTeamActive = pathname?.startsWith("/dashboard/users");
   const isOrgActive = pathname?.startsWith("/dashboard/departments") || pathname?.startsWith("/dashboard/divisions");
@@ -33,11 +39,8 @@ export function PrimarySidebar() {
 
       {/* Primary Global Navigation */}
       <nav className="flex flex-col gap-3 w-full items-center mt-2 flex-1">
-        <NavItem icon={<Home className="w-5 h-5" />} tooltip="Home" active={pathname === "/dashboard"} href="/dashboard" />
         {isAdmin && (
           <>
-            <NavItem icon={<CheckSquare className="w-5 h-5" />} tooltip="My Tasks" />
-            <NavItem icon={<Bell className="w-5 h-5" />} tooltip="Notifications" />
             <NavItem icon={<Users className="w-5 h-5" />} tooltip="Team" active={isTeamActive} href="/dashboard/users" />
             <NavItem icon={<Building2 className="w-5 h-5" />} tooltip="Organization" active={isOrgActive} href="/dashboard/departments" />
             <NavItem icon={<Briefcase className="w-5 h-5" />} tooltip="Projects" active={isProjectsActive} href="/dashboard/projects" />
@@ -49,12 +52,29 @@ export function PrimarySidebar() {
       <div className="flex flex-col gap-3 w-full items-center mb-2">
         {isAdmin && (
           <>
-            <button className="w-10 h-10 rounded-xl bg-gray-800 hover:bg-gray-700 hover:text-white flex items-center justify-center transition-colors">
-              <Search className="w-5 h-5" />
-            </button>
-            <button className="w-10 h-10 rounded-xl bg-primary hover:bg-primary-600 text-white flex items-center justify-center transition-colors shadow-sm">
-              <Plus className="w-5 h-5" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger render={
+                <button className="w-10 h-10 rounded-xl bg-primary hover:bg-primary-600 text-white flex items-center justify-center transition-colors shadow-sm focus:outline-none">
+                  <Plus className="w-5 h-5" />
+                </button>
+              } />
+              <DropdownMenuContent align="end" side="right" sideOffset={10} className="w-48 bg-gray-900 text-gray-200 border-gray-800 z-50">
+                <div className="px-2 py-1.5 text-sm font-medium text-gray-400">Quick Actions</div>
+                <DropdownMenuSeparator className="bg-gray-800" />
+                <DropdownMenuItem className="cursor-pointer hover:bg-gray-800 focus:bg-gray-800 focus:text-white focus:bg-gray-800 transition-colors" onClick={() => router.push('/dashboard/projects/create')}>
+                  Create Project
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer hover:bg-gray-800 focus:bg-gray-800 focus:text-white focus:bg-gray-800 transition-colors" onClick={() => router.push('/dashboard/users/create')}>
+                  Create User
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer hover:bg-gray-800 focus:bg-gray-800 focus:text-white focus:bg-gray-800 transition-colors" onClick={() => router.push('/dashboard/departments?add=true')}>
+                  Create Department
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer hover:bg-gray-800 focus:bg-gray-800 focus:text-white focus:bg-gray-800 transition-colors" onClick={() => router.push('/dashboard/divisions?add=true')}>
+                  Create Division
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <div className="w-8 h-px bg-gray-800 my-2" />
           </>
         )}

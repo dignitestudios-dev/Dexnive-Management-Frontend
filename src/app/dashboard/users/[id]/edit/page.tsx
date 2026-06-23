@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -18,6 +18,7 @@ import * as z from "zod";
 import { useGetUserByIdQuery } from "@/features/users/api/users.queries";
 import { useUpdateUserMutation } from "@/features/users/api/users.mutations";
 import { useGetRolesQuery, useGetDepartmentsQuery } from "@/features/users/api/options.queries";
+import { Loader } from "@/components/ui/loader";
 
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").max(20, "Name cannot exceed 20 characters"),
@@ -114,7 +115,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
   if (isLoadingUser) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh]">
-        <Loader2 className="w-10 h-10 animate-spin text-primary-500" />
+        <Loader className="w-10 h-10 text-primary" />
         <p className="mt-4 text-gray-500 font-medium">Loading user details...</p>
       </div>
     );
@@ -311,7 +312,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
             >
               {updateUserMutation.isPending ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader className="w-4 h-4 mr-2 " />
                   Saving...
                 </>
               ) : (

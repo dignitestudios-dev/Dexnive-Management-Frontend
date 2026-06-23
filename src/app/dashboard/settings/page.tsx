@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LockKeyhole, CheckCircle2, Eye, EyeOff, X } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import { useState, useEffect } from "react";
 import { cn } from "@/utils/cn";
 
@@ -118,8 +119,7 @@ export default function SettingsPage() {
                   id="new-password" 
                   type={showPassword ? "text" : "password"} 
                   placeholder="••••••••" 
-                  className="pr-10"
-                  error={!!form.formState.errors.password}
+                  className={form.formState.errors.password ? "border-red-500 pr-10" : "pr-10"}
                   {...form.register("password")} 
                 />
                 <button
@@ -155,8 +155,7 @@ export default function SettingsPage() {
                   id="confirm-password" 
                   type={showConfirmPassword ? "text" : "password"} 
                   placeholder="••••••••" 
-                  className="pr-10"
-                  error={!!form.formState.errors.confirmPassword}
+                  className={form.formState.errors.confirmPassword ? "border-red-500 pr-10" : "pr-10"}
                   {...form.register("confirmPassword")} 
                 />
                 <button
@@ -176,10 +175,9 @@ export default function SettingsPage() {
             <Button 
               type="submit" 
               className="mt-2 w-full" 
-              isLoading={updatePasswordMutation.isPending} 
               disabled={!form.formState.isValid || updatePasswordMutation.isPending}
             >
-              Update Password
+              {updatePasswordMutation.isPending ? <Loader className="w-5 h-5 text-current" /> : "Update Password"}
             </Button>
           </form>
         </div>

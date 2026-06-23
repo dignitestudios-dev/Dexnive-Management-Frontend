@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Plus, Search, Loader2, Pencil, Eye, CheckCircle2, XCircle, Filter, X, Copy, Trash2, UserX, UserCheck } from "lucide-react";
+import { Plus, Search, Pencil, Eye, CheckCircle2, XCircle, Filter, X, Copy, Trash2, UserX, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,6 +15,7 @@ import { useGetSummaryQuery } from "@/features/worklogs/api/worklogs.queries";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useRouter } from "next-nprogress-bar";
+import { Loader } from "@/components/ui/loader";
 import {
   Card,
   CardContent,
@@ -282,8 +283,17 @@ function UsersPageContent() {
                 placeholder="Search..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 rounded-md bg-white w-full h-9 shadow-sm"
+                className="pl-10 rounded-md bg-white w-full h-9 shadow-sm pr-10"
               />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
             <Popover open={isFilterOpen} onOpenChange={handleOpenFilter}>
               <PopoverTrigger className={cn("inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input rounded-md px-4 py-2 h-9 gap-2 shadow-sm", activeFilterCount > 0 ? "bg-purple-600 hover:bg-purple-700 text-white border-0" : "bg-white hover:bg-accent hover:text-accent-foreground")}>
@@ -414,7 +424,7 @@ function UsersPageContent() {
         <div className="p-6 bg-gray-50/30">
           {isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+              <Loader className="w-8 h-8 text-primary" />
               <p className="text-gray-500 mt-4">Loading team members...</p>
             </div>
           ) : isError ? (
@@ -508,7 +518,7 @@ function UsersPageContent() {
           <div ref={observerTarget} className="py-4 mt-4 flex justify-center">
             {isFetchingNextPage && (
               <div className="flex items-center gap-2 text-gray-500">
-                <Loader2 className="w-5 h-5 animate-spin text-primary-500" />
+                <Loader className="w-5 h-5 text-primary" />
                 <span className="text-sm">Loading more...</span>
               </div>
             )}
@@ -616,8 +626,7 @@ function UsersPageContent() {
               onClick={confirmAction}
               disabled={updateUserMutation.isPending}
             >
-              {updateUserMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Confirm
+              {updateUserMutation.isPending ? <Loader className="w-4 h-4 mr-2 " /> : "Confirm"}
             </Button>
           </div>
         </DialogContent>
@@ -630,7 +639,7 @@ export default function UsersPage() {
   return (
     <React.Suspense fallback={
       <div className="flex h-[60vh] w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+        <Loader className="h-8 w-8 text-primary" />
       </div>
     }>
       <UsersPageContent />

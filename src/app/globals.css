@@ -98,8 +98,8 @@ body {
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: var(--color-primary-500);
+  --primary-foreground: #ffffff;
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -133,8 +133,8 @@ body {
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: var(--color-primary-400);
+  --primary-foreground: #ffffff;
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -169,5 +169,41 @@ body {
   }
   html {
     @apply font-sans;
+  }
+}/* Custom Loader */
+.dexnive-loader {
+  width: 1.5em;
+  height: 1.5em;
+  transform-origin: center;
+  animation: rotate4 2s linear infinite;
+}
+
+.dexnive-loader circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 4;
+  stroke-dasharray: 1, 200;
+  stroke-dashoffset: 0;
+  stroke-linecap: round;
+  animation: dash4 1.5s ease-in-out infinite;
+}
+
+@keyframes rotate4 {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dash4 {
+  0% {
+    stroke-dasharray: 1, 200;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90, 200;
+    stroke-dashoffset: -35px;
+  }
+  100% {
+    stroke-dashoffset: -125px;
   }
 }

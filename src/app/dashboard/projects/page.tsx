@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { Plus, Loader2, Pencil, Trash2, Search, Briefcase, MoreVertical, Eye, BarChart2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Briefcase, MoreVertical, Eye, BarChart2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,6 +15,7 @@ import { useRouter } from "next-nprogress-bar";
 import { toast } from "sonner";
 import { Project, ProjectStatus, ProjectType } from "@/features/projects/types";
 import { Division } from "@/features/divisions/types";
+import { Loader } from "@/components/ui/loader";
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -51,7 +52,6 @@ export default function ProjectsPage() {
 
   // Dialogs state
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
-  const [projectToView, setProjectToView] = useState<Project | null>(null);
   const [statsProjectId, setStatsProjectId] = useState<string | null>(null);
 
   const { data: statsData, isLoading: isStatsLoading } = useGetProjectStatsQuery(statsProjectId || "");
@@ -94,8 +94,17 @@ export default function ProjectsPage() {
               placeholder="Search projects..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 rounded-md bg-white w-full h-9 shadow-sm"
+              className="pl-10 rounded-md bg-white w-full h-9 shadow-sm pr-10"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           <div className="flex gap-2 w-full sm:w-auto overflow-x-auto">
@@ -170,7 +179,7 @@ export default function ProjectsPage() {
         <div className="p-6 bg-gray-50/30">
           {isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+              <Loader className="w-8 h-8 text-primary" />
             </div>
           ) : projects.length === 0 ? (
             <div className="py-12 text-center text-gray-500">
@@ -192,9 +201,9 @@ export default function ProjectsPage() {
                                 {proj.code}
                               </span>
                               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                                proj.status === 'active' ? 'bg-green-100 text-green-700' :
-                                proj.status === 'on-hold' ? 'bg-amber-100 text-amber-700' :
-                                proj.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                                proj.status?.toLowerCase() === 'active' ? 'bg-green-100 text-green-700' :
+                                proj.status?.toLowerCase() === 'on-hold' ? 'bg-amber-100 text-amber-700' :
+                                proj.status?.toLowerCase() === 'completed' ? 'bg-blue-100 text-blue-700' :
                                 'bg-gray-100 text-gray-700'
                               }`}>
                                 {proj.status}
@@ -222,7 +231,7 @@ export default function ProjectsPage() {
                     </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="w-48 p-1">
-                    <ContextMenuItem onClick={() => setProjectToView(proj)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+                    <ContextMenuItem onClick={() => router.push(`/dashboard/projects/${proj._id}`)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
                       <Eye className="w-3.5 h-3.5 text-gray-500" />
                       <span>View Details</span>
                     </ContextMenuItem>
@@ -261,94 +270,12 @@ export default function ProjectsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setProjectToDelete(null)}>Cancel</Button>
             <Button variant="destructive" onClick={confirmDelete} disabled={deleteMutation.isPending}>
-              {deleteMutation.isPending ? "Deleting..." : "Delete Project"}
+              {deleteMutation.isPending ? <Loader className="w-5 h-5 text-current" /> : "Delete Project"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* View Project Details Dialog */}
-      <Dialog open={!!projectToView} onOpenChange={(open) => !open && setProjectToView(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-primary-600" />
-              Project Details
-            </DialogTitle>
-          </DialogHeader>
-          
-          {projectToView && (
-            <div className="space-y-6 py-4">
-              <div className="flex justify-between items-start gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-semibold text-primary-600 bg-primary-50 px-2 py-1 rounded border border-primary-100 uppercase">
-                      {projectToView.code}
-                    </span>
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${
-                      projectToView.status === 'active' ? 'bg-green-100 text-green-700' :
-                      projectToView.status === 'on-hold' ? 'bg-amber-100 text-amber-700' :
-                      projectToView.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      {projectToView.status}
-                    </span>
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900">{projectToView.name}</h2>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Type</span>
-                  <span className="text-sm text-gray-900 capitalize">{projectToView.projectType}</span>
-                </div>
-              </div>
-
-              {projectToView.description && (
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-1">Description</h3>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{projectToView.description}</p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                <div>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Division</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {(projectToView.division && typeof projectToView.division === "object") ? (projectToView.division as Division).name : (projectToView.division || "N/A")}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Budgeted Hours</p>
-                  <p className="text-sm font-medium text-gray-900">{projectToView.budgetedHours || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Est. Start</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {projectToView.estimatedStartDate ? new Date(projectToView.estimatedStartDate).toLocaleDateString() : "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Est. End</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {projectToView.estimatedEndDate ? new Date(projectToView.estimatedEndDate).toLocaleDateString() : "N/A"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setProjectToView(null)}>Close</Button>
-            {projectToView && (
-              <Button onClick={() => {
-                setProjectToView(null);
-                router.push(`/dashboard/projects/${projectToView._id}/edit`);
-              }}>
-                Edit Project
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       {/* View Project Stats Dialog */}
       <Dialog open={!!statsProjectId} onOpenChange={(open) => !open && setStatsProjectId(null)}>
         <DialogContent className="max-w-md">
@@ -361,7 +288,7 @@ export default function ProjectsPage() {
           
           {isStatsLoading ? (
             <div className="py-12 flex justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+              <Loader className="w-8 h-8 text-primary" />
             </div>
           ) : projectStats ? (
             <div className="space-y-6 py-4">

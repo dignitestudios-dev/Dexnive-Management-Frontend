@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "sonner";
 
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
@@ -38,11 +39,19 @@ axiosInstance.interceptors.response.use(
     let message = data?.message ?? error.message;
 
     // Extract specific validation error messages if Unprocessable Entity
-    if (data?.message === "Unprocessable Entity" && Array.isArray(data?.error)) {
-      message = data.error.map((err: { message: string; path: string }) => err.message).join(", ");
+    if (error.response?.status === 422 || data?.message === "Unprocessable Entity") {
+      if (Array.isArray(data?.error)) {
+        message = data.error.map((err: { message: string; path: string }) => err.message).join(", ");
+        if (data) data.message = message; // Mutate the data message so components read the joined string
+      }
+      
+      // Show global toast for Unprocessable Entity
+      if (typeof window !== "undefined") {
+        toast.error(message);
+      }
     }
 
-    return Promise.reject(new Error(message));
+    return Promise.reject(error);
   }
 );
 

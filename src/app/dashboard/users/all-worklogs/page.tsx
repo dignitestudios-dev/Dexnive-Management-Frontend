@@ -81,11 +81,9 @@ export default function AllWorklogsPage() {
             <p className="text-sm text-gray-500 mt-1">View and filter submitted worklogs across all users</p>
           </div>
           <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2 h-9">
-                <Filter className="w-4 h-4" />
-                Filters
-              </Button>
+            <DialogTrigger render={<Button variant="outline" className="gap-2 h-9" />}>
+              <Filter className="w-4 h-4" />
+              Filters
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
@@ -95,18 +93,18 @@ export default function AllWorklogsPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">User</label>
                   <Popover open={userComboOpen} onOpenChange={setUserComboOpen}>
-                    <PopoverTrigger asChild>
+                    <PopoverTrigger render={
                       <Button
                         variant="outline"
                         role="combobox"
                         aria-expanded={userComboOpen}
                         className="w-full justify-between h-10 font-normal text-sm bg-white"
-                      >
+                      />
+                    }>
                         {draftFilters.user && draftFilters.user !== "all"
                           ? usersData?.data.find((user) => user._id === draftFilters.user)?.name
                           : "All Users"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[450px] p-0 z-[100]" align="start">
                       <Command>
@@ -159,7 +157,7 @@ export default function AllWorklogsPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">Project</label>
                   <Popover open={projectComboOpen} onOpenChange={setProjectComboOpen}>
-                    <PopoverTrigger asChild>
+                    <PopoverTrigger render={
                       <Button
                         variant="outline"
                         role="combobox"
@@ -171,7 +169,7 @@ export default function AllWorklogsPage() {
                           : "All Projects"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
-                    </PopoverTrigger>
+                    } />
                     <PopoverContent className="w-[450px] p-0 z-[100]" align="start">
                       <Command>
                         <CommandInput placeholder="Search project by name..." className="h-9" />
@@ -222,7 +220,7 @@ export default function AllWorklogsPage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">Status</label>
-                  <Select value={draftFilters.status} onValueChange={(val) => setDraftFilters(p => ({ ...p, status: val }))}>
+                  <Select value={draftFilters.status} onValueChange={(val) => setDraftFilters(p => ({ ...p, status: val || "" }))}>
                     <SelectTrigger className="bg-white h-10">
                       <SelectValue placeholder="All Status" />
                     </SelectTrigger>

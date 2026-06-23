@@ -7,13 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, } from "lucide-react";
 import Link from "next/link";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useCreateUserMutation } from "@/features/users/api/users.mutations";
 import { useGetRolesQuery, useGetDepartmentsQuery } from "@/features/users/api/options.queries";
+import { Loader } from "@/components/ui/loader";
 
 // Password regex exactly like the user requested: \S+ (no spaces)
 const createUserSchema = z.object({
@@ -252,7 +253,7 @@ export default function CreateUserPage() {
             >
               {createUserMutation.isPending ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader className="w-4 h-4 mr-2 " />
                   Creating...
                 </>
               ) : (

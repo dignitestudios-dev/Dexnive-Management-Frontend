@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState } from "react";
-import { Plus, Loader2, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGetDivisionsQuery } from "@/features/divisions/api/divisions.queries";
@@ -14,7 +14,15 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from "@/components/ui/context-menu";
 import { toast } from "sonner";
+import { Loader } from "@/components/ui/loader";
 
 export default function DivisionsPage() {
   const [search, setSearch] = useState("");
@@ -24,6 +32,9 @@ export default function DivisionsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDiv, setEditingDiv] = useState<{ _id: string; name: string } | null>(null);
   const [name, setName] = useState("");
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingDivId, setDeletingDivId] = useState<string | null>(null);
 
   const createMutation = useCreateDivisionMutation();
   const updateMutation = useUpdateDivisionMutation();
@@ -69,9 +80,18 @@ export default function DivisionsPage() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this division?")) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => toast.success("Division deleted successfully"),
+    setDeletingDivId(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (deletingDivId) {
+      deleteMutation.mutate(deletingDivId, {
+        onSuccess: () => {
+          toast.success("Division deleted successfully");
+          setIsDeleteDialogOpen(false);
+          setDeletingDivId(null);
+        },
         onError: () => toast.error("Failed to delete division")
       });
     }
@@ -108,7 +128,7 @@ export default function DivisionsPage() {
         <div className="p-6 bg-gray-50/30">
           {isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+              <Loader className="w-8 h-8 text-primary" />
             </div>
           ) : divisions.length === 0 ? (
             <div className="py-12 text-center text-gray-500">
@@ -117,26 +137,33 @@ export default function DivisionsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {divisions.map((div) => (
-                <div key={div._id} className="bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all group overflow-hidden">
-                  <div className="p-5 flex flex-col gap-3">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 truncate" title={div.name}>{div.name}</h3>
-                        <p className="text-xs text-gray-500 truncate mt-0.5">
-                          Created {div.createdAt ? new Date(div.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }) : "N/A"}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(div)} className="h-7 w-7 text-gray-500 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 rounded">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(div._id)} className="h-7 w-7 text-gray-500 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                <ContextMenu key={div._id}>
+                  <ContextMenuTrigger render={<div />}>
+                    <div className="bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all group overflow-hidden cursor-context-menu">
+                      <div className="p-5 flex flex-col gap-3">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 truncate" title={div.name}>{div.name}</h3>
+                            <p className="text-xs text-gray-500 truncate mt-0.5">
+                              Created {div.createdAt ? new Date(div.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }) : "N/A"}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="w-48 p-1">
+                    <ContextMenuItem onClick={() => handleOpenDialog(div)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+                      <Pencil className="w-3.5 h-3.5 text-gray-500" />
+                      <span>Edit Division</span>
+                    </ContextMenuItem>
+                    <ContextMenuSeparator className="my-1" />
+                    <ContextMenuItem onClick={() => handleDelete(div._id)} className="flex items-center gap-2 py-1.5 text-xs text-red-600 hover:text-red-700 focus:text-red-700">
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
               ))}
             </div>
           )}
@@ -166,7 +193,28 @@ export default function DivisionsPage() {
               className="rounded-md bg-primary hover:bg-primary-600 text-white"
               disabled={createMutation.isPending || updateMutation.isPending}
             >
-              {(createMutation.isPending || updateMutation.isPending) ? "Saving..." : "Save"}
+              {(createMutation.isPending || updateMutation.isPending) ? <Loader className="w-5 h-5 text-current" /> : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-lg p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-red-600">Delete Division</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600">Are you sure you want to delete this division? This action cannot be undone.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="rounded-md">Cancel</Button>
+            <Button 
+              onClick={confirmDelete} 
+              className="rounded-md bg-red-600 hover:bg-red-700 text-white"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? <Loader className="w-5 h-5 text-current" /> : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { KeyRound, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { Loader } from "@/components/ui/loader";
 
 export default function ForgotPasswordPage() {
   const { form, onSubmit, isPending, error } = useForgot();
@@ -51,8 +52,8 @@ export default function ForgotPasswordPage() {
             )}
           </div>
 
-          <Button type="submit" className="mt-2 w-full" isLoading={isPending}>
-            Send Code
+          <Button type="submit" className="mt-2 w-full" disabled={isPending}>
+            {isPending ? <Loader className="w-5 h-5 text-current" /> : "Send Code"}
           </Button>
           
           <Link prefetch={false} href="/auth/login" className="text-center mt-2">

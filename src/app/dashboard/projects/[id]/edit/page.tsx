@@ -4,9 +4,10 @@ import { use, useEffect } from "react";
 import { ProjectForm } from "@/features/projects/components/project-form";
 import { Button } from "@/components/ui/button";
 import { useGetProjectByIdQuery } from "@/features/projects/api/projects.queries";
-import { Briefcase, Loader2, ArrowLeft } from "lucide-react";
+import { Briefcase, ArrowLeft } from "lucide-react";
 import { useRouter } from "next-nprogress-bar";
 import { toast } from "sonner";
+import { Loader } from "@/components/ui/loader";
 
 export default function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -25,7 +26,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+        <Loader className="w-8 h-8 text-primary" />
       </div>
     );
   }

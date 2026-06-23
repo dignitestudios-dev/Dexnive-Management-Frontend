@@ -85,12 +85,12 @@ function MissingEntriesPageContent() {
             <p className="text-sm text-gray-500 mt-1">Track and review missing worklog entries for users</p>
           </div>
           <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-            <DialogTrigger asChild>
+            <DialogTrigger render={
               <Button variant="outline" className="gap-2 h-9">
                 <Filter className="w-4 h-4" />
                 Filters
               </Button>
-            </DialogTrigger>
+            } />
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>Filter Missing Entries</DialogTitle>
@@ -99,7 +99,7 @@ function MissingEntriesPageContent() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">Select User</label>
                   <Popover open={userComboOpen} onOpenChange={setUserComboOpen}>
-                    <PopoverTrigger asChild>
+                    <PopoverTrigger render={
                       <Button
                         variant="outline"
                         role="combobox"
@@ -111,7 +111,7 @@ function MissingEntriesPageContent() {
                           : "All Users (My Missing Entries)"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
-                    </PopoverTrigger>
+                    } />
                     <PopoverContent className="w-[450px] p-0 z-[100]" align="start">
                       <Command>
                         <CommandInput placeholder="Search user by name..." className="h-9" />

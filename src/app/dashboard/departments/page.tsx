@@ -14,6 +14,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from "@/components/ui/context-menu";
 import { toast } from "sonner";
 
 export default function DepartmentsPage() {
@@ -25,6 +32,9 @@ export default function DepartmentsPage() {
   const [editingDept, setEditingDept] = useState<{ _id: string; name: string; defaultRate?: number } | null>(null);
   const [name, setName] = useState("");
   const [defaultRate, setDefaultRate] = useState<number>(0);
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingDeptId, setDeletingDeptId] = useState<string | null>(null);
 
   const createMutation = useCreateDepartmentMutation();
   const updateMutation = useUpdateDepartmentMutation();
@@ -72,9 +82,18 @@ export default function DepartmentsPage() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this department?")) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => toast.success("Department deleted successfully"),
+    setDeletingDeptId(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (deletingDeptId) {
+      deleteMutation.mutate(deletingDeptId, {
+        onSuccess: () => {
+          toast.success("Department deleted successfully");
+          setIsDeleteDialogOpen(false);
+          setDeletingDeptId(null);
+        },
         onError: () => toast.error("Failed to delete department")
       });
     }
@@ -120,35 +139,42 @@ export default function DepartmentsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {departments.map((dept) => (
-                <div key={dept._id} className="bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all group overflow-hidden">
-                  <div className="p-5 flex flex-col gap-3">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 truncate" title={dept.name}>{dept.name}</h3>
-                        <p className="text-xs text-gray-500 truncate mt-0.5">
-                          Created {dept.createdAt ? new Date(dept.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }) : "N/A"}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(dept)} className="h-7 w-7 text-gray-500 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 rounded">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(dept._id)} className="h-7 w-7 text-gray-500 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-3 border-t border-gray-100 flex flex-col gap-1.5 mt-2">
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-500 text-xs uppercase tracking-wider font-medium">Default Rate</span>
-                        <span className="font-mono text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded text-xs">
-                          ${dept.defaultRate !== undefined ? dept.defaultRate : 0}
-                        </span>
+                <ContextMenu key={dept._id}>
+                  <ContextMenuTrigger render={<div />}>
+                    <div className="bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all group overflow-hidden cursor-context-menu">
+                      <div className="p-5 flex flex-col gap-3">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 truncate" title={dept.name}>{dept.name}</h3>
+                            <p className="text-xs text-gray-500 truncate mt-0.5">
+                              Created {dept.createdAt ? new Date(dept.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }) : "N/A"}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="pt-3 border-t border-gray-100 flex flex-col gap-1.5 mt-2">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-500 text-xs uppercase tracking-wider font-medium">Default Rate</span>
+                            <span className="font-mono text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded text-xs">
+                              ${dept.defaultRate !== undefined ? dept.defaultRate : 0}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="w-48 p-1">
+                    <ContextMenuItem onClick={() => handleOpenDialog(dept)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+                      <Pencil className="w-3.5 h-3.5 text-gray-500" />
+                      <span>Edit Department</span>
+                    </ContextMenuItem>
+                    <ContextMenuSeparator className="my-1" />
+                    <ContextMenuItem onClick={() => handleDelete(dept._id)} className="flex items-center gap-2 py-1.5 text-xs text-red-600 hover:text-red-700 focus:text-red-700">
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
               ))}
             </div>
           )}
@@ -191,6 +217,27 @@ export default function DepartmentsPage() {
               disabled={createMutation.isPending || updateMutation.isPending}
             >
               {(createMutation.isPending || updateMutation.isPending) ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-lg p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-red-600">Delete Department</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600">Are you sure you want to delete this department? This action cannot be undone.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="rounded-md">Cancel</Button>
+            <Button 
+              onClick={confirmDelete} 
+              className="rounded-md bg-red-600 hover:bg-red-700 text-white"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin text-current" /> : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
