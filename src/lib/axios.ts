@@ -42,7 +42,7 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 422 || data?.message === "Unprocessable Entity") {
       if (Array.isArray(data?.error)) {
         message = data.error.map((err: { message: string; path: string }) => err.message).join(", ");
-        if (data) data.message = message; // Mutate the data message so components read the joined string
+        if (data) data.message = message;
       }
       
       // Show global toast for Unprocessable Entity
@@ -50,6 +50,9 @@ axiosInstance.interceptors.response.use(
         toast.error(message);
       }
     }
+
+    // Override the generic axios error message with the backend message
+    error.message = message;
 
     return Promise.reject(error);
   }
