@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState } from "react";
-import { Plus, Loader2, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Loader2, Pencil, Trash2, Search, Building2, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGetDepartmentsQuery } from "@/features/departments/api/departments.queries";
@@ -141,24 +141,26 @@ export default function DepartmentsPage() {
               {departments.map((dept) => (
                 <ContextMenu key={dept._id}>
                   <ContextMenuTrigger render={<div />}>
-                    <div className="bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all group overflow-hidden cursor-context-menu">
-                      <div className="p-5 flex flex-col gap-3">
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900 truncate" title={dept.name}>{dept.name}</h3>
-                            <p className="text-xs text-gray-500 truncate mt-0.5">
-                              Created {dept.createdAt ? new Date(dept.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }) : "N/A"}
-                            </p>
+                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group overflow-hidden cursor-context-menu">
+                      <div className="p-5 flex flex-col h-full">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="w-10 h-10 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center flex-shrink-0">
+                            <Building2 className="w-5 h-5" />
                           </div>
                         </div>
                         
-                        <div className="pt-3 border-t border-gray-100 flex flex-col gap-1.5 mt-2">
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-500 text-xs uppercase tracking-wider font-medium">Default Rate</span>
-                            <span className="font-mono text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded text-xs">
-                              ${dept.defaultRate !== undefined ? dept.defaultRate : 0}
-                            </span>
-                          </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 truncate text-base" title={dept.name}>{dept.name}</h3>
+                          <p className="text-xs text-gray-500 truncate mt-1">
+                            Created {dept.createdAt ? new Date(dept.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }) : "N/A"}
+                          </p>
+                        </div>
+                        
+                        <div className="pt-4 border-t border-gray-100 mt-4 flex items-center justify-between">
+                          <span className="text-gray-500 text-xs uppercase tracking-wider font-medium">Default Rate</span>
+                          <span className="font-mono font-medium text-primary-700 bg-primary-50 border border-primary-100 px-2 py-0.5 rounded text-xs">
+                            ${dept.defaultRate !== undefined ? dept.defaultRate : 0}/hr
+                          </span>
                         </div>
                       </div>
                     </div>

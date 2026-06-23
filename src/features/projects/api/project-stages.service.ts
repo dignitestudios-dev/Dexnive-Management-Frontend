@@ -38,7 +38,7 @@ export const projectStagesService = {
   },
 
   reorderStages: async (payload: ReorderStagesPayload) => {
-    const { data } = await axiosInstance.patch<{ message: string; data: ProjectStage[] }>("/project-stages/reorder", payload);
+    const { data } = await axiosInstance.post<{ message: string; data: ProjectStage[] }>("/project-stages/reorder", payload);
     return data;
   },
 

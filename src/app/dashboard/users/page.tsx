@@ -66,6 +66,81 @@ function UserEmail({ email }: { email: string }) {
   );
 }
 
+const UserCardItem = React.memo(({ user, openDetails, handleToggleActive, handleDelete }: any) => {
+  const router = useRouter();
+  const roleName = typeof user.role === 'object' ? user.role.name : user.role;
+  const deptName = typeof user.department === 'object' ? user.department.name : user.department;
+  
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger render={<div className="h-full" />}>
+        <Card 
+          onClick={() => openDetails(user)}
+          className="rounded-md overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer border-gray-200/60 bg-white group h-full"
+        >
+          <CardContent className="p-5 flex flex-col gap-3">
+            <div className="flex justify-between items-start gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-gray-900 truncate" title={user.name}>{user.name}</h3>
+                  {user.isLead && (
+                    <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider">Lead</span>
+                  )}
+                </div>
+                <UserEmail email={user.email} />
+              </div>
+              <div title={user.deactivateDate ? "Inactive" : "Active"} className="mt-1 flex-shrink-0">
+                {user.deactivateDate ? (
+                  <span className="flex w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
+                ) : (
+                  <span className="flex w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
+                )}
+              </div>
+            </div>
+            
+            <div className="pt-2 border-t border-gray-100 flex flex-col gap-1.5 mt-auto">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Dept:</span>
+                <span className="font-medium text-gray-900 truncate ml-2" title={deptName}>{deptName}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Emp Code:</span>
+                <span className="font-mono text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded text-xs">{user.employeeCode}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-48 p-1">
+        <ContextMenuItem onClick={() => router.push(`/dashboard/users/missing-entries?user=${user._id}`)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+          <Filter className="w-3.5 h-3.5 text-gray-500" />
+          <span>Missing Entries</span>
+        </ContextMenuItem>
+        <ContextMenuSeparator className="my-1" />
+        <ContextMenuItem onClick={() => router.push(`/dashboard/users/${user._id}/edit`)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+          <Pencil className="w-3.5 h-3.5 text-gray-500" />
+          <span>Edit User</span>
+        </ContextMenuItem>
+        <ContextMenuSeparator className="my-1" />
+        <ContextMenuItem onClick={() => handleToggleActive(user)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+          {user.deactivateDate ? (
+            <UserCheck className="w-3.5 h-3.5 text-green-600" />
+          ) : (
+            <UserX className="w-3.5 h-3.5 text-amber-600" />
+          )}
+          <span>{user.deactivateDate ? "Activate User" : "Deactivate User"}</span>
+        </ContextMenuItem>
+        <ContextMenuSeparator className="my-1" />
+        <ContextMenuItem onClick={() => handleDelete(user)} className="flex items-center gap-2 py-1.5 text-xs text-red-600 hover:text-red-700 focus:text-red-700">
+          <Trash2 className="w-3.5 h-3.5" />
+          <span>Delete User</span>
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+});
+UserCardItem.displayName = "UserCardItem";
+
 function UsersPageContent() {
   const router = useRouter();
   const pathname = usePathname();
@@ -145,7 +220,7 @@ function UsersPageContent() {
 
   const activeFilterCount = roleIds.length + departmentIds.length;
 
-  const users = data?.pages.flatMap((page) => page.data) || [];
+  const users = React.useMemo(() => data?.pages.flatMap((page) => page.data) || [], [data]);
 
   const { data: summaryResponse, isLoading: isLoadingSummary } = useGetSummaryQuery({});
   
@@ -190,13 +265,13 @@ function UsersPageContent() {
 
   const updateUserMutation = useUpdateUserMutation();
 
-  const handleToggleActive = (user: any) => {
+  const handleToggleActive = useCallback((user: any) => {
     setConfirmDialog({ isOpen: true, type: "toggleActive", user });
-  };
+  }, []);
 
-  const handleDelete = (user: any) => {
+  const handleDelete = useCallback((user: any) => {
     setConfirmDialog({ isOpen: true, type: "delete", user });
-  };
+  }, []);
 
   const confirmAction = () => {
     if (!confirmDialog.user) return;
@@ -218,10 +293,10 @@ function UsersPageContent() {
     }
   };
 
-  const openDetails = (user: any) => {
+  const openDetails = useCallback((user: any) => {
     setSelectedUser(user);
     setIsDialogOpen(true);
-  };
+  }, []);
 
   const clearFilters = () => {
     setSearch("");
@@ -316,7 +391,7 @@ function UsersPageContent() {
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => setTempDepartmentIds([])}
-                        className={cn("px-4 py-1.5 rounded-full text-sm border transition-colors", tempDepartmentIds.length === 0 ? "bg-primary-50 border-primary-200 text-primary-700 font-medium" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50")}
+                        className={cn("px-3 py-1 rounded-full text-xs border transition-colors", tempDepartmentIds.length === 0 ? "bg-purple-600 border-purple-600 text-white font-medium" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50")}
                       >
                         All
                       </button>
@@ -324,7 +399,7 @@ function UsersPageContent() {
                         <button
                           key={d._id}
                           onClick={() => toggleTempDept(d._id)}
-                          className={cn("px-4 py-1.5 rounded-full text-sm border transition-colors", tempDepartmentIds.includes(d._id) ? "bg-primary-50 border-primary-200 text-primary-700 font-medium" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50")}
+                          className={cn("px-3 py-1 rounded-full text-xs border transition-colors", tempDepartmentIds.includes(d._id) ? "bg-purple-600 border-purple-600 text-white font-medium" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50")}
                         >
                           {d.name}
                         </button>
@@ -338,7 +413,7 @@ function UsersPageContent() {
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => setTempRoleIds([])}
-                        className={cn("px-4 py-1.5 rounded-full text-sm border transition-colors", tempRoleIds.length === 0 ? "bg-primary-50 border-primary-200 text-primary-700 font-medium" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50")}
+                        className={cn("px-3 py-1 rounded-full text-xs border transition-colors", tempRoleIds.length === 0 ? "bg-purple-600 border-purple-600 text-white font-medium" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50")}
                       >
                         All
                       </button>
@@ -346,7 +421,7 @@ function UsersPageContent() {
                         <button
                           key={r._id}
                           onClick={() => toggleTempRole(r._id)}
-                          className={cn("px-4 py-1.5 rounded-full text-sm border transition-colors", tempRoleIds.includes(r._id) ? "bg-primary-50 border-primary-200 text-primary-700 font-medium" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50")}
+                          className={cn("px-3 py-1 rounded-full text-xs border transition-colors", tempRoleIds.includes(r._id) ? "bg-purple-600 border-purple-600 text-white font-medium" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50")}
                         >
                           {r.name}
                         </button>
@@ -437,80 +512,15 @@ function UsersPageContent() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {users.map((user) => {
-                const roleName = typeof user.role === 'object' ? user.role.name : user.role;
-                const deptName = typeof user.department === 'object' ? user.department.name : user.department;
-                
-                return (
-                  <ContextMenu key={user._id}>
-                    <ContextMenuTrigger>
-                      <Card className="rounded-md overflow-hidden shadow-sm hover:shadow-md transition-all cursor-context-menu border-gray-200/60 bg-white group">
-                        <CardContent className="p-5 flex flex-col gap-3">
-                          <div className="flex justify-between items-start gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-semibold text-gray-900 truncate" title={user.name}>{user.name}</h3>
-                                {user.isLead && (
-                                  <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider">Lead</span>
-                                )}
-                              </div>
-                              <UserEmail email={user.email} />
-                            </div>
-                            <div title={user.deactivateDate ? "Inactive" : "Active"} className="mt-1 flex-shrink-0">
-                              {user.deactivateDate ? (
-                                <span className="flex w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
-                              ) : (
-                                <span className="flex w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="pt-2 border-t border-gray-100 flex flex-col gap-1.5">
-                            <div className="flex justify-between items-center text-sm">
-                              <span className="text-gray-500">Dept:</span>
-                              <span className="font-medium text-gray-900 truncate ml-2" title={deptName}>{deptName}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm">
-                              <span className="text-gray-500">Emp Code:</span>
-                              <span className="font-mono text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded text-xs">{user.employeeCode}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </ContextMenuTrigger>
-                    <ContextMenuContent className="w-48 p-1">
-                      <ContextMenuItem onClick={() => openDetails(user)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
-                        <Eye className="w-3.5 h-3.5 text-gray-500" />
-                        <span>View Profile</span>
-                      </ContextMenuItem>
-                      <ContextMenuSeparator className="my-1" />
-                      <ContextMenuItem onClick={() => router.push(`/dashboard/users/missing-entries?user=${user._id}`)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
-                        <Filter className="w-3.5 h-3.5 text-gray-500" />
-                        <span>Missing Entries</span>
-                      </ContextMenuItem>
-                      <ContextMenuSeparator className="my-1" />
-                      <ContextMenuItem onClick={() => router.push(`/dashboard/users/${user._id}/edit`)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
-                        <Pencil className="w-3.5 h-3.5 text-gray-500" />
-                        <span>Edit User</span>
-                      </ContextMenuItem>
-                      <ContextMenuSeparator className="my-1" />
-                      <ContextMenuItem onClick={() => handleToggleActive(user)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
-                        {user.deactivateDate ? (
-                          <UserCheck className="w-3.5 h-3.5 text-green-600" />
-                        ) : (
-                          <UserX className="w-3.5 h-3.5 text-amber-600" />
-                        )}
-                        <span>{user.deactivateDate ? "Activate User" : "Deactivate User"}</span>
-                      </ContextMenuItem>
-                      <ContextMenuSeparator className="my-1" />
-                      <ContextMenuItem onClick={() => handleDelete(user)} className="flex items-center gap-2 py-1.5 text-xs text-red-600 hover:text-red-700 focus:text-red-700">
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Delete User</span>
-                      </ContextMenuItem>
-                    </ContextMenuContent>
-                  </ContextMenu>
-                );
-              })}
+              {users.map((user) => (
+                <UserCardItem 
+                  key={user._id}
+                  user={user}
+                  openDetails={openDetails}
+                  handleToggleActive={handleToggleActive}
+                  handleDelete={handleDelete}
+                />
+              ))}
             </div>
           )}
 

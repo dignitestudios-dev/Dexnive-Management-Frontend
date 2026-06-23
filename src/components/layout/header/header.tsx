@@ -1,4 +1,4 @@
-import { Search, Bell, HelpCircle, LogOut, User as UserIcon, Loader2 } from "lucide-react";
+import { LogOut, User as UserIcon, Loader2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useAppDispatch } from "@/store";
@@ -12,7 +12,6 @@ export function Header() {
   const { data: myUserData } = useGetMyUserQuery();
   const user = myUserData?.data || localUser;
   const [showDropdown, setShowDropdown] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -70,42 +69,6 @@ export function Header() {
 
       {/* Right Actions */}
       <div className="flex items-center gap-4">
-        {/* Global Search Bar (fake for visual) */}
-        <div className="relative group hidden md:block">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
-          </div>
-          <input
-            type="text"
-            className="block w-64 pl-9 pr-8 py-1.5 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm transition-all"
-            placeholder="Search tasks, docs..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery ? (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute inset-y-0 right-2 pr-2 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            </button>
-          ) : (
-            <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
-              <span className="text-xs text-gray-400 border border-gray-200 rounded px-1.5 bg-white">⌘K</span>
-            </div>
-          )}
-        </div>
-
-        <div className="w-px h-5 bg-gray-200" />
-
-        <button className="text-gray-400 hover:text-gray-600 transition-colors">
-          <HelpCircle className="w-5 h-5" />
-        </button>
-        <button className="text-gray-400 hover:text-gray-600 transition-colors relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-        </button>
 
         {/* User Avatar Dropdown */}
         <div className="relative" ref={dropdownRef}>

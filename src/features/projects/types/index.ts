@@ -31,9 +31,9 @@ export interface GetProjectsParams {
   page?: number;
   limit?: number;
   search?: string;
-  status?: ProjectStatus;
-  projectType?: ProjectType;
-  division?: string;
+  status?: ProjectStatus | ProjectStatus[];
+  projectType?: ProjectType | ProjectType[];
+  division?: string | string[];
 }
 
 export interface PaginatedProjectsResponse {
@@ -64,7 +64,7 @@ export interface UpdateProjectPayload extends Partial<CreateProjectPayload> {
   projectId: string;
 }
 
-export type StageStatus = "pending" | "active" | "completed" | "delayed";
+export type StageStatus = "not-started" | "active" | "completed" | "delayed";
 
 export interface ProjectStage {
   _id: string;

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useState, use } from "react";
 import { useRouter } from "next-nprogress-bar";
-import { ArrowLeft, Plus, Pencil, Trash2, Calendar, CheckCircle2, PlayCircle, Clock, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, Calendar, CheckCircle2, PlayCircle, Clock, ArrowUp, ArrowDown, Eye, FileText, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -14,6 +14,7 @@ import { Loader } from "@/components/ui/loader";
 import { useGetProjectByIdQuery, useGetProjectStatsQuery } from "@/features/projects/api/projects.queries";
 import { 
   useGetStagesByProjectQuery,
+  useGetStageByIdQuery
 } from "@/features/projects/api/project-stages.queries";
 import { 
   useCreateStageMutation, 
@@ -25,6 +26,7 @@ import {
 
 import { ProjectStage, StageStatus } from "@/features/projects/types";
 import { Division } from "@/features/divisions/types";
+import { ProjectTimeline } from "@/features/projects/components/ProjectTimeline";
 
 export default function ProjectDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -60,8 +62,13 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
   const [newStatus, setNewStatus] = useState<StageStatus>("active");
   const [statusNote, setStatusNote] = useState("");
   
+  // View Details State
+  const [viewingStageId, setViewingStageId] = useState<string | null>(null);
+  const { data: stageDetailsData, isLoading: isLoadingStageDetails } = useGetStageByIdQuery(viewingStageId || "");
+  const stageDetails = stageDetailsData?.data;
+
   // Tab State
-  const [activeTab, setActiveTab] = useState<"list" | "board" | "timeline">("list");
+  const [activeTab, setActiveTab] = useState<"list" | "timeline">("list");
 
   const handleOpenStageDialog = (stage?: ProjectStage) => {
     if (stage) {
@@ -276,16 +283,10 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
           Stages List
         </button>
         <button 
-          onClick={() => setActiveTab("board")}
-          className={`py-3 border-b-2 transition-colors ${activeTab === "board" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-900"}`}
-        >
-          Board View
-        </button>
-        <button 
           onClick={() => setActiveTab("timeline")}
           className={`py-3 border-b-2 transition-colors ${activeTab === "timeline" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-900"}`}
         >
-          Timeline
+          Activity Timeline
         </button>
       </div>
 
@@ -359,7 +360,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                           {stage.status === 'active' ? (
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
                           ) : null}
-                          {stage.status}
+                          {stage.status.replace('-', ' ')}
                         </span>
                       </div>
 
@@ -377,7 +378,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                     </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="w-48 p-1">
-                    {(stage.status === 'pending' || stage.status === 'delayed') && (
+                    {(stage.status === 'not-started' || stage.status === 'delayed') && (
                       <ContextMenuItem onClick={() => handleOpenStatusDialog(stage, 'active')} className="flex items-center gap-2 py-1.5 text-xs text-emerald-600">
                         <PlayCircle className="w-3.5 h-3.5" />
                         <span>Start Stage</span>
@@ -389,9 +390,13 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                         <span>Complete Stage</span>
                       </ContextMenuItem>
                     )}
-                    {(stage.status === 'pending' || stage.status === 'delayed' || stage.status === 'active') && (
+                    {(stage.status === 'not-started' || stage.status === 'delayed' || stage.status === 'active') && (
                       <ContextMenuSeparator className="my-1" />
                     )}
+                    <ContextMenuItem onClick={() => setViewingStageId(stage._id)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+                      <Eye className="w-3.5 h-3.5 text-gray-500" />
+                      <span>View Details</span>
+                    </ContextMenuItem>
                     <ContextMenuItem onClick={() => handleOpenStageDialog(stage)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
                       <Pencil className="w-3.5 h-3.5 text-gray-500" />
                       <span>Edit Stage</span>
@@ -409,26 +414,8 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
         </div>
         )}
 
-        {activeTab === "board" && (
-          <div className="flex flex-col items-center justify-center h-full text-center p-12">
-            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Board View Coming Soon</h3>
-            <p className="text-gray-500 max-w-md">We are currently building the Kanban board view for stages and tasks. Check back later!</p>
-          </div>
-        )}
-
         {activeTab === "timeline" && (
-          <div className="flex flex-col items-center justify-center h-full text-center p-12">
-            <div className="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center mb-4">
-              <Calendar className="w-8 h-8 text-purple-500" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Timeline View Coming Soon</h3>
-            <p className="text-gray-500 max-w-md">The Gantt-style timeline view is under development. You'll be able to visualize your project schedule here soon.</p>
-          </div>
+          <ProjectTimeline projectId={projectId} />
         )}
       </div>
 
@@ -522,6 +509,84 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
               {updateStatusMutation.isPending ? <Loader className="w-5 h-5 text-current" /> : "Confirm Update"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Stage Details Dialog */}
+      <Dialog open={!!viewingStageId} onOpenChange={(open) => !open && setViewingStageId(null)}>
+        <DialogContent className="sm:max-w-2xl rounded-xl p-0 overflow-hidden bg-gray-50">
+          {isLoadingStageDetails || !stageDetails ? (
+            <div className="p-12 flex justify-center">
+              <Loader className="w-8 h-8 text-primary" />
+            </div>
+          ) : (
+            <>
+              <div className="bg-white px-6 py-4 border-b border-gray-200">
+                <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  {stageDetails.name}
+                  <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-md border ${
+                    stageDetails.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    stageDetails.status === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                    stageDetails.status === 'delayed' ? 'bg-red-50 text-red-700 border-red-200' :
+                    'bg-gray-50 text-gray-600 border-gray-200'
+                  }`}>
+                    {stageDetails.status.replace('-', ' ')}
+                  </span>
+                </DialogTitle>
+                <div className="flex gap-6 mt-3 text-sm text-gray-500">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4 opacity-70" />
+                    <span>Planned: {stageDetails.plannedStartDate ? new Date(stageDetails.plannedStartDate).toLocaleDateString() : "--"} - {stageDetails.plannedEndDate ? new Date(stageDetails.plannedEndDate).toLocaleDateString() : "--"}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 opacity-70" />
+                    <span>Actual: {stageDetails.actualStartDate ? new Date(stageDetails.actualStartDate).toLocaleDateString() : "--"} - {stageDetails.actualEndDate ? new Date(stageDetails.actualEndDate).toLocaleDateString() : "--"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 max-h-[60vh] overflow-y-auto">
+                <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                  <FileText className="w-4 h-4 text-gray-400" />
+                  Audit Log & Status History
+                </h4>
+                
+                {stageDetails.auditLog && stageDetails.auditLog.length > 0 ? (
+                  <div className="space-y-4">
+                    {stageDetails.auditLog.map((log: any, idx: number) => (
+                      <div key={idx} className="flex gap-4">
+                        <div className="flex flex-col items-center">
+                          <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                            <User className="w-4 h-4" />
+                          </div>
+                          {idx < stageDetails.auditLog.length - 1 && (
+                            <div className="w-px h-full bg-gray-200 mt-2"></div>
+                          )}
+                        </div>
+                        <div className="bg-white border border-gray-200 rounded-lg p-3 flex-1 mb-2">
+                          <div className="flex justify-between items-start mb-1">
+                            <div className="text-sm text-gray-900">
+                              <span className="font-medium">{log.changedBy?.name || "User"}</span> changed status to <span className="font-semibold uppercase text-xs">{log.newStatus}</span>
+                            </div>
+                            <span className="text-xs text-gray-400">{new Date(log.changedAt).toLocaleString()}</span>
+                          </div>
+                          {log.note && (
+                            <p className="text-sm text-gray-600 mt-2 bg-gray-50 p-2 rounded border border-gray-100">
+                              "{log.note}"
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-sm text-gray-500">
+                    No status history found for this stage.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 

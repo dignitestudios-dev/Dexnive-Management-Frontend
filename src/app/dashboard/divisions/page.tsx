@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, Layers, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGetDivisionsQuery } from "@/features/divisions/api/divisions.queries";
@@ -139,15 +139,19 @@ export default function DivisionsPage() {
               {divisions.map((div) => (
                 <ContextMenu key={div._id}>
                   <ContextMenuTrigger render={<div />}>
-                    <div className="bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all group overflow-hidden cursor-context-menu">
-                      <div className="p-5 flex flex-col gap-3">
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900 truncate" title={div.name}>{div.name}</h3>
-                            <p className="text-xs text-gray-500 truncate mt-0.5">
-                              Created {div.createdAt ? new Date(div.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }) : "N/A"}
-                            </p>
+                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group overflow-hidden cursor-context-menu">
+                      <div className="p-5 flex flex-col h-full">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="w-10 h-10 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center flex-shrink-0">
+                            <Layers className="w-5 h-5" />
                           </div>
+                        </div>
+                        
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 truncate text-base" title={div.name}>{div.name}</h3>
+                          <p className="text-xs text-gray-500 truncate mt-1">
+                            Created {div.createdAt ? new Date(div.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }) : "N/A"}
+                          </p>
                         </div>
                       </div>
                     </div>

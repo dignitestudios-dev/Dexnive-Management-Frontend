@@ -2,39 +2,96 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Search, Briefcase, MoreVertical, Eye, BarChart2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Briefcase, MoreVertical, Eye, BarChart2, X, Clock, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useGetProjectsQuery, useGetProjectStatsQuery } from "@/features/projects/api/projects.queries";
 import { useDeleteProjectMutation } from "@/features/projects/api/projects.mutations";
 import { useGetDivisionsQuery } from "@/features/divisions/api/divisions.queries";
 import { useRouter } from "next-nprogress-bar";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Project, ProjectStatus, ProjectType } from "@/features/projects/types";
 import { Division } from "@/features/divisions/types";
 import { Loader } from "@/components/ui/loader";
+import { ProjectTimeline } from "@/features/projects/components/ProjectTimeline";
 
-export default function ProjectsPage() {
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+
+function ProjectsPageContent() {
   const router = useRouter();
   
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   // Search and debounce
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get("search") || "");
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
+      updateSearchParams({ search: search || null });
     }, 500);
     return () => clearTimeout(timer);
   }, [search]);
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState<ProjectStatus | "all">("all");
-  const [typeFilter, setTypeFilter] = useState<ProjectType | "all">("all");
-  const [divisionFilter, setDivisionFilter] = useState<string | "all">("all");
+  const [status, setStatus] = useState<string>(searchParams.get("status") || "");
+  const [type, setType] = useState<string>(searchParams.get("type") || "");
+  const [divisionId, setDivisionId] = useState<string>(searchParams.get("division") || "");
+
+  const [tempStatus, setTempStatus] = useState<string>("");
+  const [tempType, setTempType] = useState<string>("");
+  const [tempDivisionId, setTempDivisionId] = useState<string>("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  const handleOpenFilter = (open: boolean) => {
+    setIsFilterOpen(open);
+    if (open) {
+      setTempStatus(status);
+      setTempType(type);
+      setTempDivisionId(divisionId);
+    }
+  };
+
+  const toggleTempStatus = (id: string) => setTempStatus(prev => prev === id ? "" : id);
+  const toggleTempType = (id: string) => setTempType(prev => prev === id ? "" : id);
+  const toggleTempDivision = (id: string) => setTempDivisionId(prev => prev === id ? "" : id);
+
+  const applyFilters = () => {
+    setStatus(tempStatus);
+    setType(tempType);
+    setDivisionId(tempDivisionId);
+    setIsFilterOpen(false);
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    
+    if (debouncedSearch) {
+      params.set("search", debouncedSearch);
+    } else {
+      params.delete("search");
+    }
+
+    params.delete("status");
+    if (status) params.set("status", status);
+
+    params.delete("type");
+    if (type) params.set("type", type);
+
+    params.delete("division");
+    if (divisionId) params.set("division", divisionId);
+
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [debouncedSearch, status, type, divisionId, pathname, router, searchParams]);
+
+  const activeFilterCount = (status ? 1 : 0) + (type ? 1 : 0) + (divisionId ? 1 : 0);
 
   const { data: divData } = useGetDivisionsQuery({});
   const divisions = divData?.data || [];
@@ -42,9 +99,9 @@ export default function ProjectsPage() {
   const { data, isLoading, refetch } = useGetProjectsQuery({ 
     search: debouncedSearch, 
     limit: 50,
-    ...(statusFilter !== "all" ? { status: statusFilter } : {}),
-    ...(typeFilter !== "all" ? { projectType: typeFilter } : {}),
-    ...(divisionFilter !== "all" ? { division: divisionFilter } : {}),
+    ...(status ? { status } : {}),
+    ...(type ? { projectType: type } : {}),
+    ...(divisionId ? { division: divisionId } : {}),
   });
   const projects = data?.data || [];
 
@@ -53,6 +110,7 @@ export default function ProjectsPage() {
   // Dialogs state
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [statsProjectId, setStatsProjectId] = useState<string | null>(null);
+  const [timelineProjectId, setTimelineProjectId] = useState<string | null>(null);
 
   const { data: statsData, isLoading: isStatsLoading } = useGetProjectStatsQuery(statsProjectId || "");
   const projectStats = statsData?.data;
@@ -108,73 +166,171 @@ export default function ProjectsPage() {
           </div>
 
           <div className="flex gap-2 w-full sm:w-auto overflow-x-auto">
-            <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
-              <SelectTrigger className="w-[140px] h-9 bg-white text-xs capitalize">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="text-xs">All Statuses</SelectItem>
-                <SelectItem value="not-started" className="text-xs">Not Started</SelectItem>
-                <SelectItem value="active" className="text-xs">Active</SelectItem>
-                <SelectItem value="on-hold" className="text-xs">On Hold</SelectItem>
-                <SelectItem value="completed" className="text-xs">Completed</SelectItem>
-              </SelectContent>
-            </Select>
+            <Popover open={isFilterOpen} onOpenChange={handleOpenFilter}>
+              <PopoverTrigger className={cn("inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input rounded-md px-4 py-2 h-9 gap-2 shadow-sm", activeFilterCount > 0 ? "bg-purple-600 hover:bg-purple-700 text-white border-0" : "bg-white hover:bg-accent hover:text-accent-foreground")}>
+                  <Filter className="w-4 h-4" />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <span className="flex items-center justify-center h-5 w-5 rounded-full bg-white/20 text-xs font-semibold">
+                      {activeFilterCount}
+                    </span>
+                  )}
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0 rounded-xl shadow-lg border-gray-200" align="end">
+                <div className="flex justify-between items-center p-4 border-b border-gray-100">
+                  <h3 className="font-semibold text-gray-900">Filters</h3>
+                </div>
+                <div className="p-4 space-y-6">
+                  {/* Status */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-gray-700">Status</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setTempStatus("")}
+                        className={cn("px-3 py-1 rounded-full text-xs border transition-colors", tempStatus === "" ? "bg-purple-600 border-purple-600 text-white font-medium" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50")}
+                      >
+                        All Statuses
+                      </button>
+                      {[
+                        { id: "not-started", label: "Not Started" },
+                        { id: "active", label: "Active" },
+                        { id: "on-hold", label: "On Hold" },
+                        { id: "completed", label: "Completed" }
+                      ].map(s => (
+                        <button
+                          key={s.id}
+                          onClick={() => toggleTempStatus(s.id)}
+                          className={cn("px-3 py-1 rounded-full text-xs border transition-colors", tempStatus === s.id ? "bg-purple-600 border-purple-600 text-white font-medium" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50")}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-            <Select value={typeFilter} onValueChange={(val: any) => setTypeFilter(val)}>
-              <SelectTrigger className="w-[140px] h-9 bg-white text-xs capitalize">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="text-xs">All Types</SelectItem>
-                <SelectItem value="external" className="text-xs">External</SelectItem>
-                <SelectItem value="internal" className="text-xs">Internal</SelectItem>
-              </SelectContent>
-            </Select>
+                  {/* Type */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-gray-700">Type</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setTempType("")}
+                        className={cn("px-3 py-1 rounded-full text-xs border transition-colors", tempType === "" ? "bg-purple-600 border-purple-600 text-white font-medium" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50")}
+                      >
+                        All Types
+                      </button>
+                      {[
+                        { id: "internal", label: "Internal" },
+                        { id: "external", label: "External" }
+                      ].map(t => (
+                        <button
+                          key={t.id}
+                          onClick={() => toggleTempType(t.id)}
+                          className={cn("px-3 py-1 rounded-full text-xs border transition-colors", tempType === t.id ? "bg-purple-600 border-purple-600 text-white font-medium" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50")}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-            <Select value={divisionFilter} onValueChange={(val: any) => setDivisionFilter(val || "all")}>
-              <SelectTrigger className="w-[140px] h-9 bg-white text-xs">
-                <SelectValue placeholder="Division" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="text-xs">All Divisions</SelectItem>
-                {divisions.map((d) => (
-                  <SelectItem key={d._id} value={d._id} className="text-xs">{d.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  {/* Division */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-gray-700">Division</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setTempDivisionId("")}
+                        className={cn("px-3 py-1 rounded-full text-xs border transition-colors", tempDivisionId === "" ? "bg-purple-600 border-purple-600 text-white font-medium" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50")}
+                      >
+                        All Divisions
+                      </button>
+                      {divisions.map((d: any) => (
+                        <button
+                          key={d._id}
+                          onClick={() => toggleTempDivision(d._id)}
+                          className={cn("px-3 py-1 rounded-full text-xs border transition-colors", tempDivisionId === d._id ? "bg-purple-600 border-purple-600 text-white font-medium" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50")}
+                        >
+                          {d.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50 rounded-b-xl">
+                  <Button variant="ghost" className="text-gray-500 rounded-md" onClick={() => { setTempStatus(""); setTempType(""); setTempDivisionId(""); }}>
+                    Reset
+                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="rounded-md" onClick={() => setIsFilterOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button className="rounded-md bg-purple-600 hover:bg-purple-700 text-white px-6 shadow-md" onClick={applyFilters}>
+                      Apply
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
-        {/* Applied Filters Display */}
-        {(statusFilter !== "all" || typeFilter !== "all" || divisionFilter !== "all") && (
-          <div className="px-4 py-2 border-b border-gray-200 bg-white flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-gray-500">Applied Filters:</span>
-            {statusFilter !== "all" && (
-              <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-xs font-medium text-gray-600 capitalize">
-                Status: {statusFilter}
-              </span>
-            )}
-            {typeFilter !== "all" && (
-              <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-xs font-medium text-gray-600 capitalize">
-                Type: {typeFilter}
-              </span>
-            )}
-            {divisionFilter !== "all" && (
-              <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-xs font-medium text-gray-600">
-                Division: {divisions.find((d) => d._id === divisionFilter)?.name || "Unknown"}
-              </span>
-            )}
-            <Button 
-              variant="ghost" 
-              size="xs" 
-              onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setDivisionFilter("all"); }}
-              className="text-gray-500 hover:text-gray-900"
-            >
-              Clear all
-            </Button>
+        {activeFilterCount > 0 && (
+          <div className="px-4 py-3 border-b border-gray-200 bg-white">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm text-gray-500 mr-1">Active filters:</span>
+              
+              {status && (
+                <div className="flex items-center gap-1.5 border-r border-gray-200 pr-3 mr-1">
+                  <span className="text-xs font-semibold text-gray-700">Status:</span>
+                  <span className="px-2 py-0.5 rounded-md text-xs font-medium border bg-blue-50 border-blue-200 text-blue-700 flex items-center gap-1">
+                    {status.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                    <button onClick={() => setStatus("")} className="hover:text-blue-900 transition-colors">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                </div>
+              )}
+
+              {type && (
+                <div className="flex items-center gap-1.5 border-r border-gray-200 pr-3 mr-1">
+                  <span className="text-xs font-semibold text-gray-700">Type:</span>
+                  <span className="px-2 py-0.5 rounded-md text-xs font-medium border bg-amber-50 border-amber-200 text-amber-700 flex items-center gap-1">
+                    {type === "external" ? "External" : "Internal"}
+                    <button onClick={() => setType("")} className="hover:text-amber-900 transition-colors">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                </div>
+              )}
+
+              {divisionId && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-gray-700">Division:</span>
+                  {(() => {
+                    const d = divisions.find((d: any) => d._id === divisionId);
+                    if (!d) return null;
+                    return (
+                      <span className="px-2 py-0.5 rounded-md text-xs font-medium border bg-purple-50 border-purple-200 text-purple-700 flex items-center gap-1">
+                        {d.name}
+                        <button onClick={() => setDivisionId("")} className="hover:text-purple-900 transition-colors">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    );
+                  })()}
+                </div>
+              )}
+              
+              <button 
+                onClick={() => { setStatus(""); setType(""); setDivisionId(""); }}
+                className="text-xs text-gray-500 hover:text-gray-900 ml-2 font-medium"
+              >
+                Clear all
+              </button>
+            </div>
           </div>
         )}
+
+
 
         <div className="p-6 bg-gray-50/30">
           {isLoading ? (
@@ -191,7 +347,8 @@ export default function ProjectsPage() {
                 <ContextMenu key={proj._id}>
                   <ContextMenuTrigger>
                     <div 
-                      className="bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all group overflow-hidden flex flex-col cursor-context-menu h-[210px]"
+                      onClick={() => router.push(`/dashboard/projects/${proj._id}`)}
+                      className="bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all group overflow-hidden flex flex-col cursor-pointer h-[210px]"
                     >
                       <div className="p-4 flex-1 flex flex-col gap-3">
                         <div className="flex justify-between items-start gap-2">
@@ -231,14 +388,13 @@ export default function ProjectsPage() {
                     </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="w-48 p-1">
-                    <ContextMenuItem onClick={() => router.push(`/dashboard/projects/${proj._id}`)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
-                      <Eye className="w-3.5 h-3.5 text-gray-500" />
-                      <span>View Details</span>
-                    </ContextMenuItem>
-                    <ContextMenuSeparator className="my-1" />
                     <ContextMenuItem onClick={() => setStatsProjectId(proj._id)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
                       <BarChart2 className="w-3.5 h-3.5 text-gray-500" />
                       <span>View Stats</span>
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => setTimelineProjectId(proj._id)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+                      <Clock className="w-3.5 h-3.5 text-gray-500" />
+                      <span>View Timeline</span>
                     </ContextMenuItem>
                     <ContextMenuSeparator className="my-1" />
                     <ContextMenuItem onClick={() => router.push(`/dashboard/projects/${proj._id}/edit`)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
@@ -272,6 +428,26 @@ export default function ProjectsPage() {
             <Button variant="destructive" onClick={confirmDelete} disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? <Loader className="w-5 h-5 text-current" /> : "Delete Project"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Project Timeline Dialog */}
+      <Dialog open={!!timelineProjectId} onOpenChange={(open) => !open && setTimelineProjectId(null)}>
+        <DialogContent className="w-[95vw] max-w-7xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-primary-600" />
+              Project Timeline
+            </DialogTitle>
+          </DialogHeader>
+          
+          {timelineProjectId && (
+            <ProjectTimeline projectId={timelineProjectId} />
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTimelineProjectId(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -341,5 +517,17 @@ export default function ProjectsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function ProjectsPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-12 flex justify-center h-[500px] items-center">
+        <Loader className="w-8 h-8 text-primary" />
+      </div>
+    }>
+      <ProjectsPageContent />
+    </Suspense>
   );
 }

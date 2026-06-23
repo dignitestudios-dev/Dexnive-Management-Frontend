@@ -223,7 +223,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
                 className="rounded border-gray-300 text-primary-600 focus:ring-primary-600"
               />
               <label htmlFor="activateFirstStage" className="text-xs text-gray-700 cursor-pointer">
-                Activate first stage immediately after creating (Auto-seeds stages)
+                Activate first stage immediately after creating
               </label>
             </div>
           )}
