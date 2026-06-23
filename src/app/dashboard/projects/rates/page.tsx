@@ -39,7 +39,7 @@ export default function RatesPage() {
           <p className="text-sm text-gray-500">Manage monthly rates for departments (All amounts are in USD $)</p>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={year} onValueChange={setYear}>
+          <Select value={year} onValueChange={(val) => setYear(val || "")}>
             <SelectTrigger className="w-28 bg-white h-9 shadow-sm">
               <SelectValue placeholder="Year" />
             </SelectTrigger>
@@ -118,7 +118,7 @@ function UpdateRatesDialog({ open, onOpenChange, year }: { open: boolean, onOpen
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: deptData, isLoading: isLoadingDepts } = useGetDepartmentsQuery({ page: 1, limit: 100 });
+  const { data: deptData, isLoading: isLoadingDepts } = useGetDepartmentsQuery();
   const departments = deptData?.data || [];
   
   const updateMutation = useUpdateRatesMutation();

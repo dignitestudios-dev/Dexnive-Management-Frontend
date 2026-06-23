@@ -35,7 +35,6 @@ function ProjectsPageContent() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
-      updateSearchParams({ search: search || null });
     }, 500);
     return () => clearTimeout(timer);
   }, [search]);
@@ -99,8 +98,8 @@ function ProjectsPageContent() {
   const { data, isLoading, refetch } = useGetProjectsQuery({ 
     search: debouncedSearch, 
     limit: 50,
-    ...(status ? { status } : {}),
-    ...(type ? { projectType: type } : {}),
+    ...(status ? { status: status as ProjectStatus } : {}),
+    ...(type ? { projectType: type as ProjectType } : {}),
     ...(divisionId ? { division: divisionId } : {}),
   });
   const projects = data?.data || [];

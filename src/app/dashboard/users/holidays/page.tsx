@@ -53,7 +53,7 @@ function HolidaysPageContent() {
           <p className="text-sm text-gray-500">Manage organization holidays and breaks</p>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={year} onValueChange={setYear}>
+          <Select value={year} onValueChange={(val) => setYear(val || "")}>
             <SelectTrigger className="w-28 bg-white h-9 shadow-sm">
               <SelectValue placeholder="Year" />
             </SelectTrigger>
