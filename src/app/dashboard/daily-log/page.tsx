@@ -4,9 +4,13 @@ import { DailyWorklog } from "@/features/worklogs/components/daily-worklog";
 import { ArrowLeft, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next-nprogress-bar";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function DailyLogPage() {
+function DailyLogContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const date = searchParams.get("date") || undefined;
 
   return (
     <div className="w-full p-6 md:p-8">
@@ -28,8 +32,16 @@ export default function DailyLogPage() {
             <p className="text-sm text-gray-500">Record your daily work activities and submit them.</p>
           </div>
         </div>
-        <DailyWorklog />
+        <DailyWorklog defaultDate={date} />
       </div>
     </div>
+  );
+}
+
+export default function DailyLogPage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <DailyLogContent />
+    </Suspense>
   );
 }

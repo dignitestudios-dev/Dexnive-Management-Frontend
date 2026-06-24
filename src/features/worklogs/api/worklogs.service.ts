@@ -16,6 +16,11 @@ export async function getMissingEntries(params?: GetMissingEntriesParams): Promi
   return data;
 }
 
+export async function getMyMissingEntries(params?: GetMissingEntriesParams): Promise<MissingEntriesResponse> {
+  const { data } = await axiosInstance.get<MissingEntriesResponse>("/worklogs/my/missing", { params });
+  return data;
+}
+
 export async function getAllWorklogs(params?: WorklogQueryParams): Promise<WorklogsResponse> {
   const { data } = await axiosInstance.get<WorklogsResponse>("/worklogs", { params });
   return data;

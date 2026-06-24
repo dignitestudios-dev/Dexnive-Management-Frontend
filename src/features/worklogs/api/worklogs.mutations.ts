@@ -12,6 +12,7 @@ export function useSaveDraftMutation() {
       queryClient.invalidateQueries({ queryKey: worklogKeys.my(variables.shiftDate) });
       queryClient.invalidateQueries({ queryKey: worklogKeys.list() });
       queryClient.invalidateQueries({ queryKey: worklogKeys.summary() });
+      queryClient.invalidateQueries({ queryKey: worklogKeys.all }); // just invalidate all worklogs related to be safe and refresh missing list
     },
   });
 }
@@ -25,6 +26,7 @@ export function useSubmitWorklogMutation() {
       queryClient.invalidateQueries({ queryKey: worklogKeys.my(variables.shiftDate) });
       queryClient.invalidateQueries({ queryKey: worklogKeys.list() });
       queryClient.invalidateQueries({ queryKey: worklogKeys.summary() });
+      queryClient.invalidateQueries({ queryKey: worklogKeys.all }); // just invalidate all worklogs related to be safe and refresh missing list
     },
   });
 }

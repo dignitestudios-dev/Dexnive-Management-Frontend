@@ -61,7 +61,7 @@ export function RecentWorklogs() {
         </Badge>
       </div>
       <div className="overflow-y-auto custom-scrollbar p-3 flex-1">
-        <div className="space-y-2">
+        <div className="grid grid-cols-3 gap-2">
           {worklogs.map((log: any) => (
             <div key={log._id} className="p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-gray-200 transition-all flex items-center justify-between group">
               <div>
@@ -72,9 +72,9 @@ export function RecentWorklogs() {
                   <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] px-2 py-0">
                     Submitted
                   </Badge>
-                  <span className="text-xs font-medium text-gray-500 flex items-center gap-1">
+                  {/* <span className="text-xs font-medium text-gray-500 flex items-center gap-1">
                     <Briefcase className="w-3 h-3" /> {log.entries?.length || 0} Projects
-                  </span>
+                  </span> */}
                 </div>
               </div>
               <div className="text-right">

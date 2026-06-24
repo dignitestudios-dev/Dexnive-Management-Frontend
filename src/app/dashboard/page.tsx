@@ -2,21 +2,37 @@
 
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { RecentWorklogs } from "@/features/worklogs/components/recent-worklogs";
-import { useGetMyWorklogByDateQuery } from "@/features/worklogs/api/worklogs.queries";
-import { format } from "date-fns";
+import { useGetMyWorklogByDateQuery, useGetMyMissingEntriesQuery } from "@/features/worklogs/api/worklogs.queries";
+import { format, subDays, startOfMonth } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader } from "@/components/ui/loader";
-import { Clock, Plus, CheckCircle2, AlertCircle, CalendarCheck, FileText, Briefcase } from "lucide-react";
+import { Clock, Plus, CheckCircle2, AlertCircle, CalendarCheck, FileText, Briefcase, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next-nprogress-bar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { parseISO } from "date-fns";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user, isAdmin } = useAuth();
   const todayDateStr = format(new Date(), "yyyy-MM-dd");
   
   const { data: dailyWorklogData, isLoading } = useGetMyWorklogByDateQuery(todayDateStr);
   const myWorklog = dailyWorklogData?.data;
+
+  const { data: missingEntriesData, isLoading: isLoadingMissing } = useGetMyMissingEntriesQuery({
+    startDate: format(startOfMonth(new Date()), "yyyy-MM-dd"),
+    endDate: format(subDays(new Date(), 1), "yyyy-MM-dd")
+  });
+  const missingEntries = missingEntriesData?.data || [];
 
   const formatMins = (mins: number) => {
     const h = Math.floor(mins / 60);
@@ -43,6 +59,55 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex flex-col gap-8">
+          {!isAdmin && missingEntries.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-red-900 text-lg">Missing Logs Detected</h3>
+                  <p className="text-red-700 text-sm">
+                    You have {missingEntries.length} day{missingEntries.length > 1 ? "s" : ""} from this month without submitted worklogs.
+                  </p>
+                </div>
+              </div>
+              {(() => {
+                const firstEntry = missingEntries[0];
+                const shiftDateRaw = typeof firstEntry === 'string' ? firstEntry : firstEntry.shiftDate;
+                const shiftDateClean = shiftDateRaw ? shiftDateRaw.split('T')[0] : '';
+                return (
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                    <Select 
+                      onValueChange={(val) => router.push(`/dashboard/daily-log?date=${val}`)}
+                    >
+                      <SelectTrigger className="w-full sm:w-[180px] bg-white border-red-200 text-red-700 h-10">
+                        <SelectValue placeholder="Pick a missing date" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {missingEntries.map((entry: any) => {
+                          const sdRaw = typeof entry === 'string' ? entry : entry.shiftDate;
+                          const d = sdRaw.split('T')[0];
+                          return (
+                            <SelectItem key={d} value={d} className="text-red-700 font-medium">
+                              {format(parseISO(d), "MMM d, yyyy")}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    
+                    <Link href={`/dashboard/daily-log?date=${shiftDateClean}`}>
+                      <Button variant="destructive" className="shrink-0 gap-2 w-full h-10 shadow-sm">
+                        <Plus className="w-4 h-4" /> Fill Next Missing
+                      </Button>
+                    </Link>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
           {!isAdmin && (
             <Card className="border border-gray-200 shadow-sm bg-white overflow-hidden p-6">
               <div className="flex items-center justify-between mb-6">

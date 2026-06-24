@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format, parseISO, startOfMonth, subDays } from "date-fns";
 import { 
   Plus, 
   Trash2, 
@@ -44,8 +44,10 @@ import { Badge } from "@/components/ui/badge";
 import { useGetProjectsQuery } from "@/features/projects/api/projects.queries";
 import { 
   useGetMyWorklogByDateQuery, 
-  useGetNonBillableReasonsQuery 
+  useGetNonBillableReasonsQuery,
+  useGetMyMissingEntriesQuery
 } from "@/features/worklogs/api/worklogs.queries";
+import { useRouter } from "next-nprogress-bar";
 import { 
   useSaveDraftMutation, 
   useSubmitWorklogMutation 
@@ -65,13 +67,46 @@ const draftFormSchema = z.object({
   entries: z.array(entrySchema).min(1, "At least one entry is required"),
 });
 
-export function DailyWorklog() {
-  const today = format(new Date(), "yyyy-MM-dd");
+export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
+  const router = useRouter();
+  const defaultDateOnly = defaultDate ? defaultDate.split('T')[0] : undefined;
+  const today = defaultDateOnly || format(new Date(), "yyyy-MM-dd");
   
   const { data: myWorklog, isLoading: isLoadingWorklog, refetch } = useGetMyWorklogByDateQuery(today);
   const { data: projectsData } = useGetProjectsQuery({ status: "active", limit: 100 });
   const { data: reasonsData } = useGetNonBillableReasonsQuery();
-  
+
+  const { data: missingEntriesData } = useGetMyMissingEntriesQuery({
+    startDate: format(startOfMonth(new Date()), "yyyy-MM-dd"),
+    endDate: format(subDays(new Date(), 1), "yyyy-MM-dd")
+  });
+
+  const handleSubmissionSuccess = () => {
+    setSubmittingAction(null);
+    const missingEntries = missingEntriesData?.data || [];
+    const remainingMissing = missingEntries.filter((entry: any) => {
+      const sd = typeof entry === 'string' ? entry : entry.shiftDate;
+      return sd && sd.split('T')[0] !== today;
+    });
+
+    if (defaultDate && remainingMissing.length > 0) {
+      const nextDate = typeof remainingMissing[0] === 'string' ? remainingMissing[0] : remainingMissing[0].shiftDate;
+      const nextDateClean = nextDate.split('T')[0];
+      toast.success(`Worklog submitted! Redirecting to next missing log: ${format(parseISO(nextDateClean), "MMM d")}`);
+      router.push(`/dashboard/daily-log?date=${nextDateClean}`);
+    } else {
+      toast.success("Worklog submitted and locked!");
+      if (defaultDate) {
+        router.push("/dashboard");
+      } else {
+        refetch().then(() => {
+          setSubmittingAction(null);
+          setStep(2);
+        });
+      }
+    }
+  };
+
   const saveDraftMutation = useSaveDraftMutation();
   const submitWorklogMutation = useSubmitWorklogMutation();
 
@@ -108,40 +143,55 @@ export function DailyWorklog() {
   const isOvertime = liveTotalMinutes > targetMinutes;
 
   useEffect(() => {
-    if (myWorklog?.data) {
-      const data = myWorklog.data;
-      if (data.status === "draft") {
-        const newAllocations: Record<string, { reason: string; minutes: number }[]> = {};
-        let needsAlloc = false;
+    if (!myWorklog) return;
 
-        (data.entries || []).forEach(entry => {
-          if (entry.nonBillableMinutes > 0) {
-            needsAlloc = true;
-            newAllocations[entry._id] = entry.reasonAllocations?.length 
-              ? entry.reasonAllocations 
-              : [{ reason: "", minutes: entry.nonBillableMinutes }];
-          }
-        });
+    if (!myWorklog.data) {
+      // It's a completely new/empty day
+      draftForm.reset({ entries: [{ project: "", hours: 0, minutes: 0, description: "" }] });
+      setStep(1);
+      setAllocations({});
+      return;
+    }
 
-        setAllocations(newAllocations);
-        
-        const formEntries = (data.entries || []).map(entry => ({
-          project: typeof entry.project === "string" ? entry.project : entry.project._id,
-          hours: Math.floor(entry.loggedMinutes / 60),
-          minutes: entry.loggedMinutes % 60,
-          description: entry.description || "",
-        }));
-        
-        if (formEntries.length > 0) {
-          draftForm.reset({ entries: formEntries });
+    const data = myWorklog.data;
+    if (data.status === "draft") {
+      const newAllocations: Record<string, { reason: string; minutes: number }[]> = {};
+      let needsAlloc = false;
+
+      (data.entries || []).forEach((entry: any) => {
+        if (entry.nonBillableMinutes > 0) {
+          needsAlloc = true;
+          newAllocations[entry._id] = entry.reasonAllocations?.length 
+            ? entry.reasonAllocations 
+            : [{ reason: "", minutes: entry.nonBillableMinutes }];
         }
+      });
 
-        // Removed auto-setStep(2) so users can stay on draft step 
-      } else if (data.status === "submitted") {
-        setStep(2); // Keep it on the review view
+      setAllocations(newAllocations);
+      
+      const formEntries = (data.entries || []).map((entry: any) => ({
+        project: typeof entry.project === "string" ? entry.project : entry.project._id,
+        hours: Math.floor(entry.loggedMinutes / 60),
+        minutes: entry.loggedMinutes % 60,
+        description: entry.description || "",
+      }));
+      
+      if (formEntries.length > 0) {
+        draftForm.reset({ entries: formEntries });
+      } else {
+        draftForm.reset({ entries: [{ project: "", hours: 0, minutes: 0, description: "" }] });
       }
+
+    } else if (data.status === "submitted") {
+      setStep(2); // Keep it on the review view
     }
   }, [myWorklog, draftForm]);
+
+  // Reset UI state when the date changes
+  useEffect(() => {
+    setStep(1);
+    setSubmittingAction(null);
+  }, [today]);
 
   const onDraftSubmit = (values: z.infer<typeof draftFormSchema>, goToNextStep: boolean = true) => {
     setSubmittingAction(goToNextStep ? 'continue' : 'draft');
@@ -161,11 +211,7 @@ export function DailyWorklog() {
             // Auto submit if 8 hours or more
             submitWorklogMutation.mutate({ shiftDate: today, reasonAllocations: {} }, {
               onSuccess: () => {
-                toast.success("Worklog drafted and submitted successfully!");
-                refetch().then(() => {
-                  setSubmittingAction(null);
-                  setStep(2); // Show the submitted summary
-                });
+                handleSubmissionSuccess();
               },
               onError: (error: any) => {
                 toast.error(error.message || "Draft saved, but failed to auto-submit.");
@@ -234,8 +280,7 @@ export function DailyWorklog() {
       reasonAllocations: allocations,
     }, {
       onSuccess: () => {
-        toast.success("Worklog submitted and locked for today.");
-        refetch();
+        handleSubmissionSuccess();
       },
       onError: (error: any) => {
         toast.error(error.message || "Failed to submit worklog");
@@ -263,10 +308,12 @@ export function DailyWorklog() {
       {/* Header Area */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Today's Timesheet</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            {defaultDate ? "Timesheet for" : "Today's Timesheet"}
+          </h2>
           <p className="text-gray-500 mt-1 flex items-center gap-2 text-sm">
             <Clock className="w-4 h-4 text-primary-600" />
-            {format(new Date(), "EEEE, MMMM d, yyyy")}
+            {format(parseISO(today), "EEEE, MMMM d, yyyy")}
           </p>
         </div>
         <div>
@@ -445,6 +492,43 @@ export function DailyWorklog() {
                 <div>
                   <Form {...draftForm}>
                     <form onSubmit={draftForm.handleSubmit(v => onDraftSubmit(v, true))} className="space-y-5">
+                      {missingEntriesData?.data && missingEntriesData.data.length > 0 && (
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-amber-50/50 border border-amber-100 p-4 rounded-xl mb-4 gap-3">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-amber-900">Log Date</span>
+                            <span className="text-xs text-amber-700">Select which missing day to log</span>
+                          </div>
+                          <Select 
+                            value={today} 
+                            onValueChange={(val) => {
+                              const todayStr = format(new Date(), "yyyy-MM-dd");
+                              if (val === todayStr) {
+                                router.push("/dashboard");
+                              } else {
+                                router.push(`/dashboard/daily-log?date=${val}`);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-full sm:w-[240px] bg-white border-amber-200 text-amber-900 focus:ring-amber-300">
+                              <SelectValue placeholder="Select date" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={format(new Date(), "yyyy-MM-dd")}>
+                                Today ({format(new Date(), "MMM d")})
+                              </SelectItem>
+                              {missingEntriesData.data.map((entry: any) => {
+                                const sd = typeof entry === 'string' ? entry : entry.shiftDate;
+                                const d = sd.split('T')[0];
+                                return (
+                                  <SelectItem key={d} value={d} className="text-amber-700 font-medium">
+                                    Missing: {format(parseISO(d), "MMM d, yyyy")}
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <div className="space-y-3">
                         {fields.map((field, index) => (
                           <div 
@@ -791,6 +875,7 @@ export function DailyWorklog() {
     </div>
   );
 }
+
 
 
 
