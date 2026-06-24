@@ -80,9 +80,10 @@ export function SecondarySidebar() {
                 <span>Favorites</span>
               </div>
               <div className="flex flex-col gap-0.5">
-                <SidebarItem icon={<FileText className="w-4 h-4" />} label="Daily Logs" href="/dashboard/daily-log" />
-                <SidebarItem icon={<History className="w-4 h-4" />} label="Logs History" href="/dashboard/history" />
-                {isAdmin && <SidebarItem icon={<Hash className="w-4 h-4" />} label="Team Updates" href="/dashboard/updates" />}
+                <SidebarItem icon={<Home className="w-4 h-4" />} label="Dashboard" href="/dashboard" active={pathname === "/dashboard"} />
+                <SidebarItem icon={<FileText className="w-4 h-4" />} label="Add Daily Log" href="/dashboard/daily-log" active={pathname === "/dashboard/daily-log"} />
+                <SidebarItem icon={<History className="w-4 h-4" />} label="Logs History" href="/dashboard/history" active={pathname === "/dashboard/history"} />
+                {isAdmin && <SidebarItem icon={<Hash className="w-4 h-4" />} label="Team Updates" href="/dashboard/updates" active={pathname === "/dashboard/updates"} />}
               </div>
             </div>
 

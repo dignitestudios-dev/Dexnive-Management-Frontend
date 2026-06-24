@@ -65,6 +65,12 @@ const entrySchema = z.object({
 
 const draftFormSchema = z.object({
   entries: z.array(entrySchema).min(1, "At least one entry is required"),
+}).refine(data => {
+  const totalMinutes = data.entries.reduce((acc, entry) => acc + (entry.hours * 60) + entry.minutes, 0);
+  return totalMinutes <= 24 * 60;
+}, {
+  message: "Total logged time cannot exceed 24 hours per day",
+  path: ["root"], // Use root to easily display form-level errors
 });
 
 export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
@@ -139,7 +145,9 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   }, 0);
 
   const targetMinutes = 8 * 60;
-  const progressPercentage = Math.min((liveTotalMinutes / targetMinutes) * 100, 100);
+  const currentMaxMinutes = Math.max(targetMinutes, liveTotalMinutes);
+  const primaryWidth = (Math.min(liveTotalMinutes, targetMinutes) / currentMaxMinutes) * 100;
+  const draftOvertimeWidth = (Math.max(0, liveTotalMinutes - targetMinutes) / currentMaxMinutes) * 100;
   const isOvertime = liveTotalMinutes > targetMinutes;
 
   useEffect(() => {
@@ -351,25 +359,38 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
           
           <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden flex">
             {step === 2 && worklog ? (
+              (() => {
+                const maxMins = Math.max(targetMinutes, worklog.totalLoggedMinutes);
+                return (
+                  <>
+                    <div 
+                      style={{ width: `${(worklog.totalBillableMinutes / maxMins) * 100}%` }}
+                      className="bg-emerald-500 h-full transition-all duration-300"
+                    />
+                    <div 
+                      style={{ width: `${(worklog.totalNonBillableMinutes / maxMins) * 100}%` }}
+                      className="bg-amber-400 h-full transition-all duration-300"
+                    />
+                    <div 
+                      style={{ width: `${(worklog.totalOvertimeMinutes / maxMins) * 100}%` }}
+                      className="bg-purple-500 h-full transition-all duration-300"
+                    />
+                  </>
+                );
+              })()
+            ) : (
               <>
                 <div 
-                  style={{ width: `${Math.min((worklog.totalBillableMinutes / targetMinutes) * 100, 100)}%` }}
-                  className="bg-emerald-500 h-full transition-all duration-300"
+                  className="bg-primary-600 h-full transition-all duration-300"
+                  style={{ width: `${primaryWidth}%` }}
                 />
-                <div 
-                  style={{ width: `${Math.min((worklog.totalNonBillableMinutes / targetMinutes) * 100, 100)}%` }}
-                  className="bg-amber-400 h-full transition-all duration-300"
-                />
-                <div 
-                  style={{ width: `${Math.min((worklog.totalOvertimeMinutes / targetMinutes) * 100, 100)}%` }}
-                  className="bg-purple-500 h-full transition-all duration-300"
-                />
+                {isOvertime && (
+                  <div 
+                    className="bg-purple-500 h-full transition-all duration-300"
+                    style={{ width: `${draftOvertimeWidth}%` }}
+                  />
+                )}
               </>
-            ) : (
-              <div 
-                className={`h-full transition-all duration-300 ${isOvertime ? 'bg-purple-500' : 'bg-primary-600'}`}
-                style={{ width: `${progressPercentage}%` }}
-              />
             )}
           </div>
         </div>
@@ -600,7 +621,27 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                                       <FormItem className="flex-1 space-y-0">
                                         <FormControl>
                                           <div className="relative">
-                                            <Input type="number" min={0} className="bg-white border-gray-200 shadow-sm pr-6 text-center" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
+                                            <Input 
+                                              type="number" 
+                                              min={0} 
+                                              placeholder="0"
+                                              className="bg-white border-gray-200 shadow-sm pr-6 text-center" 
+                                              {...field} 
+                                              value={field.value === 0 ? "" : field.value}
+                                              onChange={e => {
+                                                const raw = e.target.value;
+                                                if (raw === "") {
+                                                  field.onChange(0);
+                                                  return;
+                                                }
+                                                let val = parseInt(raw) || 0;
+                                                const currentHours = parseInt(field.value) || 0;
+                                                const otherMinutes = liveTotalMinutes - (currentHours * 60);
+                                                const maxAllowedHours = Math.floor((24 * 60 - otherMinutes) / 60);
+                                                if (val > maxAllowedHours) val = Math.max(0, maxAllowedHours);
+                                                field.onChange(val);
+                                              }} 
+                                            />
                                             <span className="absolute right-2.5 top-2.5 text-xs text-gray-400 font-medium">h</span>
                                           </div>
                                         </FormControl>
@@ -614,7 +655,29 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                                       <FormItem className="flex-1 space-y-0">
                                         <FormControl>
                                           <div className="relative">
-                                            <Input type="number" min={0} max={59} className="bg-white border-gray-200 shadow-sm pr-6 text-center" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
+                                            <Input 
+                                              type="number" 
+                                              min={0} 
+                                              max={59} 
+                                              placeholder="0"
+                                              className="bg-white border-gray-200 shadow-sm pr-6 text-center" 
+                                              {...field} 
+                                              value={field.value === 0 ? "" : field.value}
+                                              onChange={e => {
+                                                const raw = e.target.value;
+                                                if (raw === "") {
+                                                  field.onChange(0);
+                                                  return;
+                                                }
+                                                let val = parseInt(raw) || 0;
+                                                const currentMins = parseInt(field.value) || 0;
+                                                const otherMinutes = liveTotalMinutes - currentMins;
+                                                const maxAllowedMinutes = (24 * 60) - otherMinutes;
+                                                const finalMax = Math.min(59, Math.max(0, maxAllowedMinutes));
+                                                if (val > finalMax) val = finalMax;
+                                                field.onChange(val);
+                                              }} 
+                                            />
                                             <span className="absolute right-2.5 top-2.5 text-xs text-gray-400 font-medium">m</span>
                                           </div>
                                         </FormControl>
@@ -627,6 +690,13 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                           </div>
                         ))}
                         
+                        {draftForm.formState.errors.root && (
+                          <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm font-medium border border-red-100 flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4" />
+                            {draftForm.formState.errors.root.message}
+                          </div>
+                        )}
+
                         <Button
                           type="button"
                           variant="ghost"
