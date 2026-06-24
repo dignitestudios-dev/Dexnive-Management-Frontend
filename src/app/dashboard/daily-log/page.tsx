@@ -32,7 +32,7 @@ function DailyLogContent() {
             <p className="text-sm text-gray-500">Record your daily work activities and submit them.</p>
           </div>
         </div>
-        <DailyWorklog defaultDate={date} />
+        <DailyWorklog key={date || "today"} defaultDate={date} />
       </div>
     </div>
   );

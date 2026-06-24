@@ -187,12 +187,6 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
     }
   }, [myWorklog, draftForm]);
 
-  // Reset UI state when the date changes
-  useEffect(() => {
-    setStep(1);
-    setSubmittingAction(null);
-  }, [today]);
-
   const onDraftSubmit = (values: z.infer<typeof draftFormSchema>, goToNextStep: boolean = true) => {
     setSubmittingAction(goToNextStep ? 'continue' : 'draft');
     const payload = {
