@@ -1,23 +1,17 @@
 "use client";
 
 import { useGetMyWorklogsQuery } from "../api/worklogs.queries";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Briefcase, CalendarDays, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Loader } from "@/components/ui/loader";
 
 export function RecentWorklogs() {
-  const currentMonth = new Date();
-  const startDate = format(startOfMonth(currentMonth), "yyyy-MM-dd");
-  const endDate = format(endOfMonth(currentMonth), "yyyy-MM-dd");
-
   const { data: worklogsResponse, isLoading } = useGetMyWorklogsQuery({
-    startDate,
-    endDate,
     status: "submitted",
     page: 1,
-    limit: 10,
+    limit: 3,
   });
 
   const worklogs = worklogsResponse?.data || [];
@@ -44,7 +38,7 @@ export function RecentWorklogs() {
         </div>
         <h3 className="text-gray-900 font-medium mb-1">No Recent Logs</h3>
         <p className="text-sm text-gray-500 max-w-[250px]">
-          You haven't submitted any worklogs this month yet.
+          You haven't submitted any worklogs yet.
         </p>
       </Card>
     );
@@ -57,7 +51,7 @@ export function RecentWorklogs() {
           <Clock className="w-4 h-4 text-primary-500" /> Recent Logs
         </h3>
         <Badge variant="secondary" className="bg-gray-100 text-gray-600 hover:bg-gray-200">
-          This Month
+          Last 3 Logs
         </Badge>
       </div>
       <div className="overflow-y-auto custom-scrollbar p-3 flex-1">

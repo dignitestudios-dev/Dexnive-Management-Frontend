@@ -10,7 +10,8 @@ import { Suspense } from "react";
 function DailyLogContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const date = searchParams.get("date") || undefined;
+  const rawDate = searchParams.get("date");
+  const date = (rawDate === "null" || rawDate === "") ? undefined : rawDate || undefined;
 
   return (
     <div className="w-full p-6 md:p-8">

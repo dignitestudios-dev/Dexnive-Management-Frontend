@@ -1,7 +1,7 @@
 "use client";
 import { Loader } from "@/components/ui/loader";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -50,7 +50,8 @@ import {
 import { useRouter } from "next-nprogress-bar";
 import { 
   useSaveDraftMutation, 
-  useSubmitWorklogMutation 
+  useSubmitWorklogMutation,
+  useSubmitMissingReasonMutation
 } from "@/features/worklogs/api/worklogs.mutations";
 
 const entrySchema = z.object({
@@ -87,19 +88,28 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
     endDate: format(subDays(new Date(), 1), "yyyy-MM-dd")
   });
 
+  const missingEntries = (missingEntriesData?.data || []).filter((e: any) => {
+    const d = typeof e === "string" ? e : e?.shiftDate;
+    return d && d !== "null";
+  });
+
   const handleSubmissionSuccess = () => {
     setSubmittingAction(null);
-    const missingEntries = missingEntriesData?.data || [];
     const remainingMissing = missingEntries.filter((entry: any) => {
       const sd = typeof entry === 'string' ? entry : entry.shiftDate;
-      return sd && sd.split('T')[0] !== today;
+      return sd.split('T')[0] !== today;
     });
 
     if (defaultDate && remainingMissing.length > 0) {
       const nextDate = typeof remainingMissing[0] === 'string' ? remainingMissing[0] : remainingMissing[0].shiftDate;
-      const nextDateClean = nextDate.split('T')[0];
-      toast.success(`Worklog submitted! Redirecting to next missing log: ${format(parseISO(nextDateClean), "MMM d")}`);
-      router.push(`/dashboard/daily-log?date=${nextDateClean}`);
+      if (nextDate) {
+        const nextDateClean = nextDate.split('T')[0];
+        toast.success(`Worklog submitted! Redirecting to next missing log: ${format(parseISO(nextDateClean), "MMM d")}`);
+        router.push(`/dashboard/daily-log?date=${nextDateClean}`);
+      } else {
+        toast.success("Worklog submitted and locked!");
+        router.push("/dashboard");
+      }
     } else {
       toast.success("Worklog submitted and locked!");
       if (defaultDate) {
@@ -195,6 +205,25 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
     }
   }, [myWorklog, draftForm]);
 
+  const submitMissingReasonMutation = useSubmitMissingReasonMutation();
+
+  const [missingReasonStage, setMissingReasonStage] = useState<"pending" | "bypassed">("pending");
+  const [missingReasonData, setMissingReasonData] = useState<{reason: string, note: string} | null>(null);
+  const [missingReasonForm, setMissingReasonForm] = useState<{reason: string, note: string}>({ reason: "", note: "" });
+
+  const isMissingDay = useMemo(() => {
+    return missingEntriesData?.data?.some((entry: any) => {
+      const d = typeof entry === "string" ? entry : entry.shiftDate;
+      return d && d.startsWith(today);
+    });
+  }, [missingEntriesData, today]);
+
+  useEffect(() => {
+    setMissingReasonStage("pending");
+    setMissingReasonData(null);
+    setMissingReasonForm({ reason: "", note: "" });
+  }, [today]);
+
   const onDraftSubmit = (values: z.infer<typeof draftFormSchema>, goToNextStep: boolean = true) => {
     setSubmittingAction(goToNextStep ? 'continue' : 'draft');
     const payload = {
@@ -206,40 +235,40 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
       })),
     };
 
-    saveDraftMutation.mutate(payload, {
-      onSuccess: () => {
-        if (goToNextStep) {
-          if (liveTotalMinutes >= 480) {
-            // Auto submit if 8 hours or more
-            submitWorklogMutation.mutate({ shiftDate: today, reasonAllocations: {} }, {
-              onSuccess: () => {
-                handleSubmissionSuccess();
-              },
-              onError: (error: any) => {
-                toast.error(error.message || "Draft saved, but failed to auto-submit.");
-                refetch().then(() => {
-                  setSubmittingAction(null);
-                  setStep(2);
-                });
-              }
-            });
-          } else {
-            toast.success("Draft saved, proceeding...");
-            refetch().then(() => {
-              setSubmittingAction(null);
-              setStep(2);
-            });
-          }
-        } else {
-          toast.success("Draft saved successfully");
-          refetch().then(() => setSubmittingAction(null));
-        }
-      },
-      onError: (error: any) => {
-        toast.error(error.message || "Failed to save draft");
-        setSubmittingAction(null);
+    const handleSuccess = () => {
+      if (goToNextStep) {
+        toast.success("Draft saved, proceeding...");
+        refetch().then(() => {
+          setSubmittingAction(null);
+          setStep(2);
+        });
+      } else {
+        toast.success("Draft saved successfully.");
+        refetch().then(() => setSubmittingAction(null));
       }
-    });
+    };
+
+    const handleError = (error: any) => {
+      toast.error(error.message || "Failed to save draft");
+      setSubmittingAction(null);
+    };
+
+    if (missingReasonData && !myWorklog?.data) {
+      submitMissingReasonMutation.mutate({
+        shiftDate: today,
+        reason: missingReasonData.reason,
+        note: missingReasonData.note,
+        entries: payload.entries
+      }, {
+        onSuccess: handleSuccess,
+        onError: handleError
+      });
+    } else {
+      saveDraftMutation.mutate(payload, {
+        onSuccess: handleSuccess,
+        onError: handleError
+      });
+    }
   };
 
   const onFinalSubmit = () => {
@@ -358,45 +387,131 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
           </div>
           
           <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden flex">
-            {step === 2 && worklog ? (
-              (() => {
-                const maxMins = Math.max(targetMinutes, worklog.totalLoggedMinutes);
-                return (
-                  <>
-                    <div 
-                      style={{ width: `${(worklog.totalBillableMinutes / maxMins) * 100}%` }}
-                      className="bg-emerald-500 h-full transition-all duration-300"
-                    />
-                    <div 
-                      style={{ width: `${(worklog.totalNonBillableMinutes / maxMins) * 100}%` }}
-                      className="bg-amber-400 h-full transition-all duration-300"
-                    />
-                    <div 
-                      style={{ width: `${(worklog.totalOvertimeMinutes / maxMins) * 100}%` }}
-                      className="bg-purple-500 h-full transition-all duration-300"
-                    />
-                  </>
-                );
-              })()
-            ) : (
-              <>
-                <div 
-                  className="bg-primary-600 h-full transition-all duration-300"
-                  style={{ width: `${primaryWidth}%` }}
-                />
-                {isOvertime && (
+            {(() => {
+              const displayMinutes = step === 2 && worklog ? worklog.totalLoggedMinutes : liveTotalMinutes;
+              const isDisplayOvertime = displayMinutes > targetMinutes;
+              const maxDisplayMins = Math.max(targetMinutes, displayMinutes);
+              const displayPrimaryWidth = (Math.min(displayMinutes, targetMinutes) / maxDisplayMins) * 100;
+              const displayOvertimeWidth = (Math.max(0, displayMinutes - targetMinutes) / maxDisplayMins) * 100;
+
+              return (
+                <>
                   <div 
-                    className="bg-purple-500 h-full transition-all duration-300"
-                    style={{ width: `${draftOvertimeWidth}%` }}
+                    className="bg-primary-600 h-full transition-all duration-300"
+                    style={{ width: `${displayPrimaryWidth}%` }}
                   />
-                )}
-              </>
-            )}
+                  {isDisplayOvertime && (
+                    <div 
+                      className="bg-purple-500 h-full transition-all duration-300"
+                      style={{ width: `${displayOvertimeWidth}%` }}
+                    />
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
 
         <div className="p-6">
-          {isSubmitted ? (
+          {isMissingDay && !myWorklog?.data && missingReasonStage === "pending" ? (
+            <div className="space-y-6">
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                    <div>
+                      <h3 className="text-amber-800 font-medium">Missing Entry Detected</h3>
+                      <p className="text-amber-700 text-sm mt-1">Please provide a reason for the missing worklog on this date before continuing.</p>
+                    </div>
+                  </div>
+                  {missingEntries.length > 0 && (
+                    <Select 
+                      value={today}
+                      onValueChange={(val) => {
+                        router.push(`/dashboard/daily-log?date=${val}`);
+                        setMissingReasonStage("pending");
+                        setMissingReasonForm({ reason: "", note: "" });
+                      }}
+                    >
+                      <SelectTrigger className="w-full sm:w-[200px] bg-white border-amber-200 text-amber-900 h-10 shrink-0">
+                        <SelectValue placeholder="Change date" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {missingEntries.map((entry: any) => {
+                          const sdRaw = typeof entry === 'string' ? entry : entry.shiftDate;
+                          const d = sdRaw.split('T')[0];
+                          return (
+                            <SelectItem key={d} value={d} className="font-medium">
+                              {format(parseISO(d), "MMM d, yyyy")}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4 max-w-lg">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Reason</label>
+                  <Select 
+                    value={missingReasonForm.reason} 
+                    onValueChange={(val) => setMissingReasonForm(prev => ({ ...prev, reason: val || "" }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a reason" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="absent">Absent</SelectItem>
+                      <SelectItem value="forgot">Forgot to log</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {missingReasonForm.reason === "other" && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Note</label>
+                    <Textarea 
+                      placeholder="Please explain..." 
+                      value={missingReasonForm.note}
+                      onChange={(e) => setMissingReasonForm(prev => ({ ...prev, note: e.target.value }))}
+                    />
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <Button 
+                    className="w-full md:w-auto"
+                    disabled={!missingReasonForm.reason || (missingReasonForm.reason === "other" && !missingReasonForm.note.trim()) || submitMissingReasonMutation.isPending}
+                    onClick={() => {
+                      if (missingReasonForm.reason === "absent") {
+                        submitMissingReasonMutation.mutate({
+                          shiftDate: today,
+                          reason: "absent",
+                          note: missingReasonForm.note
+                        }, {
+                          onSuccess: () => {
+                            toast.success("Absent reason submitted successfully");
+                            if (defaultDate) router.push("/dashboard");
+                            else refetch();
+                          },
+                          onError: (err: any) => toast.error(err.message || "Failed to submit reason")
+                        });
+                      } else {
+                        setMissingReasonData(missingReasonForm);
+                        setMissingReasonStage("bypassed");
+                      }
+                    }}
+                  >
+                    {submitMissingReasonMutation.isPending ? <Loader className="w-4 h-4 mr-2" /> : null}
+                    {missingReasonForm.reason === "absent" ? "Submit Reason" : "Continue to Log Time"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : isSubmitted ? (
             <div className="space-y-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
@@ -507,7 +622,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                 <div>
                   <Form {...draftForm}>
                     <form onSubmit={draftForm.handleSubmit(v => onDraftSubmit(v, true))} className="space-y-5">
-                      {missingEntriesData?.data && missingEntriesData.data.length > 0 && (
+                      {missingEntries.length > 0 && (
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-amber-50/50 border border-amber-100 p-4 rounded-xl mb-4 gap-3">
                           <div className="flex flex-col">
                             <span className="text-sm font-semibold text-amber-900">Log Date</span>
@@ -531,7 +646,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                               <SelectItem value={format(new Date(), "yyyy-MM-dd")}>
                                 Today ({format(new Date(), "MMM d")})
                               </SelectItem>
-                              {missingEntriesData.data.map((entry: any) => {
+                              {missingEntries.map((entry: any) => {
                                 const sd = typeof entry === 'string' ? entry : entry.shiftDate;
                                 const d = sd.split('T')[0];
                                 return (
@@ -634,7 +749,8 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                                                   field.onChange(0);
                                                   return;
                                                 }
-                                                let val = parseInt(raw) || 0;
+                                                const cleanRaw = raw.replace(/^0+/, '') || '0';
+                                                let val = parseInt(cleanRaw) || 0;
                                                 const currentHours = parseInt(field.value) || 0;
                                                 const otherMinutes = liveTotalMinutes - (currentHours * 60);
                                                 const maxAllowedHours = Math.floor((24 * 60 - otherMinutes) / 60);
@@ -669,7 +785,8 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                                                   field.onChange(0);
                                                   return;
                                                 }
-                                                let val = parseInt(raw) || 0;
+                                                const cleanRaw = raw.replace(/^0+/, '') || '0';
+                                                let val = parseInt(cleanRaw) || 0;
                                                 const currentMins = parseInt(field.value) || 0;
                                                 const otherMinutes = liveTotalMinutes - currentMins;
                                                 const maxAllowedMinutes = (24 * 60) - otherMinutes;
@@ -731,7 +848,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                             </>
                           ) : (
                             <>
-                              {liveTotalMinutes >= 480 ? "Submit Worklog" : "Review & Continue"}
+                              Review
                               <ArrowRight className="w-4 h-4 ml-2" />
                             </>
                           )}
@@ -826,9 +943,29 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                                             <Input 
                                               type="number" 
                                               className="bg-white border-gray-200 pr-7 text-center focus-visible:ring-primary-500"
-                                              value={alloc.minutes} 
+                                              value={alloc.minutes === 0 ? "" : alloc.minutes} 
+                                              placeholder="0"
+                                              min={0}
                                               onChange={(e) => {
-                                                const val = parseInt(e.target.value) || 0;
+                                                const raw = e.target.value;
+                                                if (raw === "") {
+                                                  setAllocations(prev => {
+                                                    const current = [...(prev[entry._id] || [])];
+                                                    current[idx] = { ...current[idx], minutes: 0 };
+                                                    return { ...prev, [entry._id]: current };
+                                                  });
+                                                  return;
+                                                }
+                                                const cleanRaw = raw.replace(/^0+/, '') || '0';
+                                                let val = parseInt(cleanRaw) || 0;
+                                                
+                                                // Calculate remaining non-billable time for this entry
+                                                const totalLogged = entry.loggedMinutes || 0;
+                                                const currentOthers = (allocations[entry._id] || []).reduce((acc: number, a: any, i: number) => i === idx ? acc : acc + (a.minutes || 0), 0);
+                                                const maxAllowed = totalLogged - currentOthers;
+                                                
+                                                if (val > maxAllowed) val = Math.max(0, maxAllowed);
+
                                                 setAllocations(prev => {
                                                   const current = [...(prev[entry._id] || [])];
                                                   current[idx] = { ...current[idx], minutes: val };

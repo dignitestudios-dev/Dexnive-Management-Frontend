@@ -26,7 +26,7 @@ export function useMissingEntriesQuery(params?: GetMissingEntriesParams) {
   });
 }
 
-export function useGetMyMissingEntriesQuery(params?: GetMissingEntriesParams) {
+export function useGetMyMissingEntriesQuery(params?: { startDate?: string; endDate?: string }) {
   return useQuery({
     queryKey: worklogKeys.myMissing(params),
     queryFn: () => getMyMissingEntries(params),
@@ -58,7 +58,7 @@ export function useGetMyWorklogByDateQuery(shiftDate: string) {
   return useQuery({
     queryKey: worklogKeys.my(shiftDate),
     queryFn: () => getMyWorklogByDate(shiftDate),
-    enabled: !!shiftDate,
+    enabled: !!shiftDate && shiftDate !== "null",
   });
 }
 
@@ -69,3 +69,4 @@ export function useGetMyTimesheetQuery(params: { startDate: string; endDate: str
     enabled: !!params.startDate && !!params.endDate,
   });
 }
+

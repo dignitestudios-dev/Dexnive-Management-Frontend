@@ -32,7 +32,10 @@ export default function DashboardPage() {
     startDate: format(startOfMonth(new Date()), "yyyy-MM-dd"),
     endDate: format(subDays(new Date(), 1), "yyyy-MM-dd")
   });
-  const missingEntries = missingEntriesData?.data || [];
+  const missingEntries = (missingEntriesData?.data || []).filter((e: any) => {
+    const d = typeof e === "string" ? e : e?.shiftDate;
+    return d && d !== "null";
+  });
 
   const formatMins = (mins: number) => {
     const h = Math.floor(mins / 60);
@@ -166,9 +169,13 @@ export default function DashboardPage() {
                     <div className="w-full sm:w-auto flex shrink-0">
                       <Link href="/dashboard/daily-log" className="w-full">
                         <Button className="w-full gap-2 shadow-sm">
-                          {myWorklog?.status === 'submitted' || myWorklog?.status === 'draft' ? (
+                          {myWorklog?.status === 'submitted' ? (
                             <>
-                              <FileText className="w-4 h-4" /> View / Edit Logs
+                              <FileText className="w-4 h-4" /> View Log
+                            </>
+                          ) : myWorklog?.status === 'draft' ? (
+                            <>
+                              <FileText className="w-4 h-4" /> Complete Draft
                             </>
                           ) : (
                             <>

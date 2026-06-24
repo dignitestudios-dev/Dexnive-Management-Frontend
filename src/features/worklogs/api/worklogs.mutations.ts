@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { saveDraft, submitWorklog, createNonBillableReason, updateNonBillableReason, deleteNonBillableReason } from "./worklogs.service";
+import { saveDraft, submitWorklog, createNonBillableReason, updateNonBillableReason, deleteNonBillableReason, submitMissingReason } from "./worklogs.service";
 import { SaveDraftPayload, SubmitWorklogPayload } from "../types";
 import { worklogKeys } from "./worklogs.queries";
 
@@ -57,6 +57,19 @@ export function useDeleteReasonMutation() {
     mutationFn: deleteNonBillableReason,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: worklogKeys.reasons() });
+    },
+  });
+}
+
+export function useSubmitMissingReasonMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: submitMissingReason,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: worklogKeys.my(variables.shiftDate) });
+      queryClient.invalidateQueries({ queryKey: worklogKeys.list() });
+      queryClient.invalidateQueries({ queryKey: worklogKeys.summary() });
+      queryClient.invalidateQueries({ queryKey: worklogKeys.all }); 
     },
   });
 }

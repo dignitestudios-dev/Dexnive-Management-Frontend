@@ -75,3 +75,8 @@ export async function getMyTimesheet(params: { startDate: string; endDate: strin
   const { data } = await axiosInstance.get<any>("/worklogs/my/timesheet", { params });
   return data;
 }
+
+export async function submitMissingReason(payload: { shiftDate: string; reason: string; note?: string; entries?: any[] }): Promise<any> {
+  const { data } = await axiosInstance.post<any>("/worklogs/my/missing/reason", payload);
+  return data;
+}
