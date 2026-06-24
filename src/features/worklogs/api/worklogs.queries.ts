@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getMissingEntries, getAllWorklogs, getSummary, getMyWorklogByDate, getNonBillableReasons, getMyTimesheet } from "./worklogs.service";
+import { getMissingEntries, getAllWorklogs, getMyWorklogs, getSummary, getMyWorklogByDate, getNonBillableReasons, getMyTimesheet } from "./worklogs.service";
 import { GetMissingEntriesParams, WorklogQueryParams, WorklogSummaryParams } from "../types";
 
 export const worklogKeys = {
@@ -29,6 +29,13 @@ export function useGetAllWorklogsQuery(params?: WorklogQueryParams) {
   return useQuery({
     queryKey: worklogKeys.list(params),
     queryFn: () => getAllWorklogs(params),
+  });
+}
+
+export function useGetMyWorklogsQuery(params?: WorklogQueryParams) {
+  return useQuery({
+    queryKey: [...worklogKeys.all, "myList", params],
+    queryFn: () => getMyWorklogs(params),
   });
 }
 

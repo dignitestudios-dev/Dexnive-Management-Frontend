@@ -1,4 +1,5 @@
-import { LogOut, User as UserIcon, Loader2 } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
+import { LogOut, User as UserIcon } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useAppDispatch } from "@/store";
@@ -91,7 +92,7 @@ export function Header() {
                 className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {logoutMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader className="w-4 h-4" />
                 ) : (
                   <LogOut className="w-4 h-4" />
                 )}
@@ -106,7 +107,7 @@ export function Header() {
       {logoutMutation.isPending && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/50 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4 p-6 bg-white rounded-2xl shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
-            <Loader2 className="w-10 h-10 animate-spin text-primary-600" />
+            <Loader className="w-10 h-10 text-primary-600" />
             <p className="text-lg font-medium text-gray-900">Logging out safely...</p>
           </div>
         </div>
@@ -114,3 +115,5 @@ export function Header() {
     </header>
   );
 }
+
+

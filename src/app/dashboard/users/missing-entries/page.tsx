@@ -1,10 +1,11 @@
 "use client";
+import { Loader } from "@/components/ui/loader";
 
 import { useState } from "react";
 import { format } from "date-fns";
 import { useMissingEntriesQuery } from "@/features/worklogs/api/worklogs.queries";
 import { useGetUsersQuery } from "@/features/users/api/users.queries";
-import { Loader2, Search, AlertCircle } from "lucide-react";
+import { Search, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -216,7 +217,7 @@ function MissingEntriesPageContent() {
       <div className="flex-1 overflow-auto p-6 bg-gray-50/30">
         {isMissingLoading || isUsersLoading ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-            <Loader2 className="w-8 h-8 animate-spin mb-4 text-primary" />
+            <Loader className="w-8 h-8 mb-4 text-primary" />
             <p>Loading missing entries...</p>
           </div>
         ) : isError ? (
@@ -267,10 +268,12 @@ export default function MissingEntriesPage() {
   return (
     <Suspense fallback={
       <div className="flex h-full w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+        <Loader className="h-8 w-8 text-primary-500" />
       </div>
     }>
       <MissingEntriesPageContent />
     </Suspense>
   );
 }
+
+

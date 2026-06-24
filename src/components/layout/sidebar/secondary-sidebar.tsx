@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 
-import { ChevronDown, ChevronRight, FolderClosed, Hash, MoreHorizontal, Plus, FileText, History, Users, Shield, Building2, Briefcase, Calendar, DollarSign } from "lucide-react";
+import { ChevronDown, ChevronRight, FolderClosed, Hash, MoreHorizontal, Plus, FileText, History, Users, Shield, Building2, Briefcase, Calendar, DollarSign, Home } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { usePathname } from "next/navigation";
@@ -39,7 +39,6 @@ export function SecondarySidebar() {
               <SidebarItem icon={<Users className="w-4 h-4" />} label="All Users" href="/dashboard/users" active={pathname === "/dashboard/users"} />
               <SidebarItem icon={<FileText className="w-4 h-4" />} label="Missing Entries" href="/dashboard/users/missing-entries" active={pathname === "/dashboard/users/missing-entries"} />
               <SidebarItem icon={<History className="w-4 h-4" />} label="All Worklogs" href="/dashboard/users/all-worklogs" active={pathname === "/dashboard/users/all-worklogs"} />
-              <SidebarItem icon={<Calendar className="w-4 h-4" />} label="Holidays" href="/dashboard/users/holidays" active={pathname === "/dashboard/users/holidays"} />
             </div>
           </div>
         ) : isOrgRoute && isAdmin ? (
@@ -59,7 +58,6 @@ export function SecondarySidebar() {
             </div>
             <div className="flex flex-col gap-0.5">
               <SidebarItem icon={<Briefcase className="w-4 h-4" />} label="All Projects" href="/dashboard/projects" active={pathname === "/dashboard/projects"} />
-              <SidebarItem icon={<DollarSign className="w-4 h-4" />} label="Rates" href="/dashboard/projects/rates" active={pathname === "/dashboard/projects/rates"} />
             </div>
           </div>
         ) : isSettingsRoute && isAdmin ? (
@@ -69,6 +67,8 @@ export function SecondarySidebar() {
             </div>
             <div className="flex flex-col gap-0.5">
               <SidebarItem icon={<Shield className="w-4 h-4" />} label="Security" href="/dashboard/settings" active={pathname === "/dashboard/settings"} />
+              <SidebarItem icon={<Calendar className="w-4 h-4" />} label="Holidays" href="/dashboard/settings/holidays" active={pathname === "/dashboard/settings/holidays"} />
+              <SidebarItem icon={<DollarSign className="w-4 h-4" />} label="Rates" href="/dashboard/settings/rates" active={pathname === "/dashboard/settings/rates"} />
               <SidebarItem icon={<FileText className="w-4 h-4" />} label="Non-Billable Reasons" href="/dashboard/settings/reasons" active={pathname === "/dashboard/settings/reasons"} />
             </div>
           </div>
@@ -80,7 +80,7 @@ export function SecondarySidebar() {
                 <span>Favorites</span>
               </div>
               <div className="flex flex-col gap-0.5">
-                <SidebarItem icon={<FileText className="w-4 h-4" />} label="Daily Logs" href="/dashboard" />
+                <SidebarItem icon={<FileText className="w-4 h-4" />} label="Daily Logs" href="/dashboard/daily-log" />
                 <SidebarItem icon={<History className="w-4 h-4" />} label="Logs History" href="/dashboard/history" />
                 {isAdmin && <SidebarItem icon={<Hash className="w-4 h-4" />} label="Team Updates" href="/dashboard/updates" />}
               </div>
@@ -155,3 +155,4 @@ function CollapsibleFolder({ title, children }: { title: string; children?: Reac
     </div>
   );
 }
+

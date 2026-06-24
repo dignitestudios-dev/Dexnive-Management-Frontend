@@ -1,42 +1,154 @@
 "use client";
 
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { DailyWorklog } from "@/features/worklogs/components/daily-worklog";
+import { RecentWorklogs } from "@/features/worklogs/components/recent-worklogs";
+import { useGetMyWorklogByDateQuery } from "@/features/worklogs/api/worklogs.queries";
+import { format } from "date-fns";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Loader } from "@/components/ui/loader";
+import { Clock, Plus, CheckCircle2, AlertCircle, CalendarCheck, FileText, Briefcase } from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth();
+  const todayDateStr = format(new Date(), "yyyy-MM-dd");
+  
+  const { data: dailyWorklogData, isLoading } = useGetMyWorklogByDateQuery(todayDateStr);
+  const myWorklog = dailyWorklogData?.data;
+
+  const formatMins = (mins: number) => {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${h}h ${m}m`;
+  };
 
   return (
-    <div className="p-8">
-      <div className="max-w-4xl">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-          {(() => {
-            const hour = new Date().getHours();
-            if (hour < 12) return "Good Morning";
-            if (hour < 17) return "Good Afternoon";
-            if (hour < 21) return "Good Evening";
-            return "Good Night";
-          })()}{user?.name ? `, ${user.name}` : ""}!
-        </h1>
-        <p className="text-gray-500 mb-8">
-          Here is what's happening in your workspace today.
-        </p>
+    <div className="w-full p-6 md:p-8">
+      <div className="w-full max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-semibold text-gray-900 mb-2">
+            {(() => {
+              const hour = new Date().getHours();
+              if (hour < 12) return "Good Morning";
+              if (hour < 17) return "Good Afternoon";
+              if (hour < 21) return "Good Evening";
+              return "Good Night";
+            })()}{user?.name ? `, ${user.name}` : ""}!
+          </h1>
+          <p className="text-gray-500 text-lg">
+            Here is what's happening in your workspace today.
+          </p>
+        </div>
 
-        {/* Daily Worklog Section */}
-        {!isAdmin && (
-          <div className="mb-8">
-            <DailyWorklog />
-          </div>
-        )}
+        <div className="flex flex-col gap-8">
+          {!isAdmin && (
+            <Card className="border border-gray-200 shadow-sm bg-white overflow-hidden p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2 text-lg">
+                  <CalendarCheck className="w-5 h-5 text-primary-500" /> Today's Status
+                </h3>
+                <span className="text-sm font-medium text-gray-500">{format(new Date(), "EEEE, MMMM d, yyyy")}</span>
+              </div>
 
-        {/* Placeholder for content widgets */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="h-64 rounded-xl border border-gray-200 bg-gray-50/50 flex flex-col items-center justify-center text-gray-400 border-dashed">
-            <span className="text-sm font-medium">Recent Logs Widget</span>
-          </div>
-          <div className="h-64 rounded-xl border border-gray-200 bg-gray-50/50 flex flex-col items-center justify-center text-gray-400 border-dashed">
-            <span className="text-sm font-medium">Analytics Widget</span>
-          </div>
+              {isLoading ? (
+                <div className="flex justify-center items-center h-24">
+                  <Loader className="w-8 h-8 text-primary-600" />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-6">
+                  <div className="flex flex-col sm:flex-row items-center justify-between bg-gray-50/50 border border-gray-100 rounded-xl p-5 gap-6">
+                    <div className="flex items-center gap-4">
+                      {myWorklog?.status === 'submitted' ? (
+                        <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                          <CheckCircle2 className="w-6 h-6" />
+                        </div>
+                      ) : myWorklog?.status === 'draft' ? (
+                        <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                          <Clock className="w-6 h-6" />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                          <AlertCircle className="w-6 h-6" />
+                        </div>
+                      )}
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold text-gray-900 text-lg">
+                            {myWorklog?.status === 'submitted' ? 'Logs Submitted' : 
+                             myWorklog?.status === 'draft' ? 'Draft Saved' : 'No Logs Yet'}
+                          </p>
+                          {myWorklog?.status && (
+                            <Badge variant="outline" className={
+                              myWorklog.status === 'submitted' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                              myWorklog.status === 'draft' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                              'bg-gray-50 text-gray-700 border-gray-200'
+                            }>
+                              {myWorklog.status.charAt(0).toUpperCase() + myWorklog.status.slice(1)}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {myWorklog?.status === 'submitted' || myWorklog?.status === 'draft' 
+                            ? `You have logged ${formatMins(myWorklog?.totalLoggedMinutes || 0)} today.`
+                            : "You haven't added any work logs for today yet."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="w-full sm:w-auto flex shrink-0">
+                      <Link href="/dashboard/daily-log" className="w-full">
+                        <Button className="w-full gap-2 shadow-sm">
+                          {myWorklog?.status === 'submitted' || myWorklog?.status === 'draft' ? (
+                            <>
+                              <FileText className="w-4 h-4" /> View / Edit Logs
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-4 h-4" /> Add Work Logs
+                            </>
+                          )}
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+
+                  {myWorklog?.entries && myWorklog.entries.length > 0 && (
+                    <div className="mt-2 border-t border-gray-100 pt-6">
+                      <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Briefcase className="w-4 h-4 text-gray-500" /> Today's Logged Entries
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {myWorklog.entries.map((entry: any, idx: number) => (
+                          <div key={idx} className="p-4 rounded-xl border border-gray-100 bg-gray-50/50 flex flex-col gap-2 transition-colors hover:bg-gray-50 hover:border-gray-200">
+                            <div className="flex items-start justify-between gap-4">
+                              <h5 className="font-semibold text-gray-900 text-sm line-clamp-1">
+                                {typeof entry.project === "object" ? `${entry.project.code ? entry.project.code + ' - ' : ''}${entry.project.name || 'Unknown Project'}`.trim() : "Project"}
+                              </h5>
+                              <span className="text-xs font-bold text-primary-700 bg-primary-50 px-2 py-1 rounded shrink-0">
+                                {formatMins(entry.loggedMinutes)}
+                              </span>
+                            </div>
+                            {entry.description && (
+                              <p className="text-sm text-gray-600 line-clamp-2 mt-1">{entry.description}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+          )}
+
+          {!isAdmin && (
+            <div>
+              <RecentWorklogs />
+            </div>
+          )}
         </div>
       </div>
     </div>

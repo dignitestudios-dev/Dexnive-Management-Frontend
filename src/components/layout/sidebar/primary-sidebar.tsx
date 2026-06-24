@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { 
+import { LayoutDashboard,  
   Users, 
   Settings, 
   Plus,
@@ -44,6 +44,7 @@ export function PrimarySidebar() {
 
       {/* Primary Global Navigation */}
       <nav className="flex flex-col gap-3 w-full items-center mt-2 flex-1">
+        <NavItem icon={<LayoutDashboard className="w-5 h-5" />} tooltip="Dashboard" active={pathname === '/dashboard'} href="/dashboard" />
         {isAdmin && (
           <>
             <NavItem icon={<Users className="w-5 h-5" />} tooltip="Team" active={isTeamActive} href="/dashboard/users" />
@@ -118,7 +119,7 @@ export function PrimarySidebar() {
                     </div>
                   </DropdownMenuItem>
 
-                  <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-pointer rounded-xl hover:bg-gray-50 focus:bg-gray-50 transition-all duration-300 group outline-none" onClick={() => router.push('/dashboard/users/holidays?add=true')}>
+                  <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-pointer rounded-xl hover:bg-gray-50 focus:bg-gray-50 transition-all duration-300 group outline-none" onClick={() => router.push('/dashboard/settings/holidays?add=true')}>
                     <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 group-hover:bg-primary-500 group-hover:text-white transition-colors duration-300">
                       <CalendarPlus className="w-5 h-5" />
                     </div>
@@ -159,3 +160,4 @@ function NavItem({ icon, active, tooltip, href = "#" }: { icon: React.ReactNode;
     </Link>
   );
 }
+

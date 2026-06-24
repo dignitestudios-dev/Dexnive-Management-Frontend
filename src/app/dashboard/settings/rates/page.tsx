@@ -1,7 +1,8 @@
 "use client";
+import { Loader } from "@/components/ui/loader";
 
 import { useState } from "react";
-import { Loader2, DollarSign, Edit, Check } from "lucide-react";
+import { DollarSign, Edit, Check } from "lucide-react";
 import { useGetRatesQuery } from "@/features/rates/api/rates.queries";
 import { useUpdateRatesMutation } from "@/features/rates/api/rates.mutations";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -60,7 +61,7 @@ export default function RatesPage() {
       <div className="flex-1 overflow-auto p-6 custom-scrollbar bg-gray-50/30">
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
-            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            <Loader className="w-6 h-6 text-gray-400" />
           </div>
         ) : ratesData.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-500 border border-dashed rounded-lg bg-gray-50/50">
@@ -265,7 +266,7 @@ function UpdateRatesDialog({ open, onOpenChange, year }: { open: boolean, onOpen
             
             {isLoadingDepts ? (
               <div className="flex-1 flex justify-center items-center">
-                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                <Loader className="w-5 h-5 text-gray-400" />
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto custom-scrollbar pr-1 max-h-[250px]">
@@ -305,7 +306,7 @@ function UpdateRatesDialog({ open, onOpenChange, year }: { open: boolean, onOpen
             Cancel
           </Button>
           <Button size="sm" onClick={handleSave} disabled={updateMutation.isPending} className="bg-primary-600 hover:bg-primary-700 shadow-sm px-4 text-xs h-8">
-            {updateMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" /> : <Check className="w-3 h-3 mr-1.5" />}
+            {updateMutation.isPending ? <Loader className="w-3 h-3 mr-1.5" /> : <Check className="w-3 h-3 mr-1.5" />}
             Update Rates
           </Button>
         </div>
@@ -313,3 +314,5 @@ function UpdateRatesDialog({ open, onOpenChange, year }: { open: boolean, onOpen
     </Dialog>
   );
 }
+
+

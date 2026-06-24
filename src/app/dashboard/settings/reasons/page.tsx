@@ -1,4 +1,5 @@
 "use client";
+import { Loader } from "@/components/ui/loader";
 
 import { useState } from "react";
 import { 
@@ -9,7 +10,7 @@ import {
   useUpdateReasonMutation, 
   useDeleteReasonMutation 
 } from "@/features/worklogs/api/worklogs.mutations";
-import { Loader2, Plus, AlertCircle, Edit, Trash2, Tag, ChevronLeft, MoreHorizontal } from "lucide-react";
+import { Plus, AlertCircle, Edit, Trash2, Tag, ChevronLeft, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -138,7 +139,7 @@ export default function ManageReasonsPage() {
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-              <Loader2 className="w-8 h-8 animate-spin mb-4 text-primary" />
+              <Loader className="w-8 h-8 mb-4 text-primary" />
               <p>Loading reasons...</p>
             </div>
           ) : isError ? (
@@ -290,7 +291,7 @@ export default function ManageReasonsPage() {
                 <Button variant="outline" type="button" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
                   {(createMutation.isPending || updateMutation.isPending) ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader className="w-4 h-4 mr-2" />
                   ) : null}
                   {editingId ? "Save Changes" : "Create Reason"}
                 </Button>
@@ -302,3 +303,5 @@ export default function ManageReasonsPage() {
     </div>
   );
 }
+
+

@@ -1,8 +1,9 @@
 "use client";
+import { Loader } from "@/components/ui/loader";
 
 import * as React from "react";
 import { useState } from "react";
-import { Plus, Loader2, Pencil, Trash2, Search, Building2, MoreHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Building2, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGetDepartmentsQuery } from "@/features/departments/api/departments.queries";
@@ -130,7 +131,7 @@ export default function DepartmentsPage() {
         <div className="p-6 bg-gray-50/30">
           {isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+              <Loader className="w-8 h-8 text-primary-500" />
             </div>
           ) : departments.length === 0 ? (
             <div className="py-12 text-center text-gray-500">
@@ -239,7 +240,7 @@ export default function DepartmentsPage() {
               className="rounded-md bg-red-600 hover:bg-red-700 text-white"
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin text-current" /> : "Delete"}
+              {deleteMutation.isPending ? <Loader className="w-5 h-5 text-current" /> : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -247,3 +248,5 @@ export default function DepartmentsPage() {
     </div>
   );
 }
+
+

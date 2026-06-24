@@ -1,4 +1,5 @@
 "use client";
+import { Loader } from "@/components/ui/loader";
 
 import { useState, useEffect } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
@@ -15,8 +16,7 @@ import {
   ChevronRight,
   Clock,
   ArrowRight,
-  Info,
-  Loader2
+  Info
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,6 +30,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -503,7 +504,7 @@ export function DailyWorklog() {
                                     <FormItem>
                                       <FormLabel className="text-gray-700 font-semibold">Description</FormLabel>
                                       <FormControl>
-                                        <Input placeholder="What did you do?" className="bg-white border-gray-200 shadow-sm" {...field} />
+                                        <Textarea placeholder="What did you do?" className="bg-white border-gray-200 shadow-sm resize-none h-10 min-h-10 py-2" rows={1} {...field} />
                                       </FormControl>
                                       <FormMessage className="text-xs" />
                                     </FormItem>
@@ -567,7 +568,7 @@ export function DailyWorklog() {
                           disabled={submittingAction !== null || liveTotalMinutes === 0}
                           className="border-gray-200 text-gray-700 hover:bg-gray-50 min-w-[120px]"
                         >
-                          {submittingAction === 'draft' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                          {submittingAction === 'draft' ? <Loader className="w-4 h-4 mr-2" /> : null}
                           Save Draft
                         </Button>
                         <Button 
@@ -577,7 +578,7 @@ export function DailyWorklog() {
                         >
                           {submittingAction === 'continue' ? (
                             <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              <Loader className="w-4 h-4 mr-2" />
                               Processing...
                             </>
                           ) : (
@@ -790,3 +791,6 @@ export function DailyWorklog() {
     </div>
   );
 }
+
+
+

@@ -21,6 +21,11 @@ export async function getAllWorklogs(params?: WorklogQueryParams): Promise<Workl
   return data;
 }
 
+export async function getMyWorklogs(params?: WorklogQueryParams): Promise<WorklogsResponse> {
+  const { data } = await axiosInstance.get<WorklogsResponse>("/worklogs/my", { params });
+  return data;
+}
+
 export async function getSummary(params?: WorklogSummaryParams): Promise<WorklogSummaryResponse> {
   const { data } = await axiosInstance.get<WorklogSummaryResponse>("/worklogs/summary", { params });
   return data;

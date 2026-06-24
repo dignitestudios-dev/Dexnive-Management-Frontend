@@ -1,8 +1,9 @@
 "use client";
+import { Loader } from "@/components/ui/loader";
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { Plus, Trash2, Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon } from "lucide-react";
 import { useGetHolidaysQuery } from "@/features/holidays/api/holidays.queries";
 import { useCreateHolidayMutation, useDeleteHolidayMutation } from "@/features/holidays/api/holidays.mutations";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -74,7 +75,7 @@ function HolidaysPageContent() {
       <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
-            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            <Loader className="w-6 h-6 text-gray-400" />
           </div>
         ) : holidays.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-500 border border-dashed rounded-lg bg-gray-50/50">
@@ -96,7 +97,7 @@ function HolidaysPageContent() {
                       disabled={deleteMutation.isPending}
                       title="Delete holiday"
                     >
-                      {deleteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      {deleteMutation.isPending ? <Loader className="w-3.5 h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
                     </button>
                   </div>
                   
@@ -126,7 +127,7 @@ export default function HolidaysPage() {
   return (
     <Suspense fallback={
       <div className="flex-1 flex items-center justify-center bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        <Loader className="w-8 h-8 text-gray-400" />
       </div>
     }>
       <HolidaysPageContent />
@@ -288,7 +289,7 @@ function CreateHolidayDialog({ open, onOpenChange }: { open: boolean, onOpenChan
           <div className="flex justify-end gap-3 mt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button onClick={handleSave} disabled={createMutation.isPending} className="bg-primary-600 hover:bg-primary-700">
-              {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {createMutation.isPending ? <Loader className="w-4 h-4 mr-2" /> : null}
               Create
             </Button>
           </div>
@@ -297,3 +298,5 @@ function CreateHolidayDialog({ open, onOpenChange }: { open: boolean, onOpenChan
     </Dialog>
   );
 }
+
+

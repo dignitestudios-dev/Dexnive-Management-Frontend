@@ -3,8 +3,7 @@ import { Loader } from "@/components/ui/loader";
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { useGetAllWorklogsQuery } from "@/features/worklogs/api/worklogs.queries";
-import { useGetUsersQuery } from "@/features/users/api/users.queries";
+import { useGetMyWorklogsQuery } from "@/features/worklogs/api/worklogs.queries";
 import { useGetProjectsQuery } from "@/features/projects/api/projects.queries";
 import { Search, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { ChevronsUpDown, Check, Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function AllWorklogsPage() {
+export default function MyWorklogsHistoryPage() {
   const formatMins = (mins: number) => {
     const h = Math.floor(mins / 60);
     const m = mins % 60;
@@ -37,7 +36,6 @@ export default function AllWorklogsPage() {
   const defaultEndDate = () => format(new Date(), "yyyy-MM-dd");
 
   const [draftFilters, setDraftFilters] = useState({
-    user: "all",
     project: "all",
     status: "all",
     startDate: defaultStartDate(),
@@ -47,14 +45,11 @@ export default function AllWorklogsPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Combobox open states
-  const [userComboOpen, setUserComboOpen] = useState(false);
   const [projectComboOpen, setProjectComboOpen] = useState(false);
 
-  const { data: usersData } = useGetUsersQuery({ limit: 100 });
   const { data: projectsData } = useGetProjectsQuery({ limit: 100 });
 
-  const { data: worklogsData, isLoading, isError, refetch } = useGetAllWorklogsQuery({
-    user: appliedFilters.user && appliedFilters.user !== "all" ? appliedFilters.user : undefined,
+  const { data: worklogsData, isLoading, isError, refetch } = useGetMyWorklogsQuery({
     project: appliedFilters.project && appliedFilters.project !== "all" ? appliedFilters.project : undefined,
     status: appliedFilters.status && appliedFilters.status !== "all" ? appliedFilters.status : undefined,
     startDate: appliedFilters.startDate,
@@ -64,12 +59,10 @@ export default function AllWorklogsPage() {
   const handleApplyFilters = () => {
     setAppliedFilters(draftFilters);
     setIsFilterOpen(false);
-    // Add small delay to let state update before refetch if needed, though react-query reacts to state changes directly
   };
   
   const handleClearFilters = () => {
     const cleared = {
-      user: "all",
       project: "all",
       status: "all",
       startDate: defaultStartDate(),
@@ -84,83 +77,16 @@ export default function AllWorklogsPage() {
       <div className="flex-shrink-0 border-b border-gray-200 bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900 tracking-tight">All Worklogs</h1>
-            <p className="text-sm text-gray-500 mt-1">View and filter submitted worklogs across all users</p>
+            <h1 className="text-xl font-semibold text-gray-900 tracking-tight">My Worklogs History</h1>
+            <p className="text-sm text-gray-500 mt-1">View and filter your worklogs history</p>
           </div>
           <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-            <DialogTrigger render={<Button variant="outline" className="gap-2 h-9" />}>
-              <Filter className="w-4 h-4" />
-              Filters
-            </DialogTrigger>
+            <DialogTrigger render={<Button variant="outline" className="gap-2 h-9"><Filter className="w-4 h-4" />Filters</Button>} />
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>Filter Worklogs</DialogTitle>
               </DialogHeader>
               <div className="grid gap-5 py-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">User</label>
-                  <Popover open={userComboOpen} onOpenChange={setUserComboOpen}>
-                    <PopoverTrigger render={
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={userComboOpen}
-                        className="w-full justify-between h-10 font-normal text-sm bg-white"
-                      />
-                    }>
-                        {draftFilters.user && draftFilters.user !== "all"
-                          ? usersData?.data.find((user) => user._id === draftFilters.user)?.name
-                          : "All Users"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[450px] p-0 z-[100]" align="start">
-                      <Command>
-                        <CommandInput placeholder="Search user by name..." className="h-9" />
-                        <CommandList>
-                          <CommandEmpty>No user found.</CommandEmpty>
-                          <CommandGroup>
-                            <CommandItem
-                              value="all"
-                              onSelect={() => {
-                                setDraftFilters(p => ({ ...p, user: "all" }));
-                                setUserComboOpen(false);
-                              }}
-                              className="cursor-pointer"
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  draftFilters.user === "all" ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              All Users
-                            </CommandItem>
-                            {usersData?.data.map((user) => (
-                              <CommandItem
-                                key={user._id}
-                                value={user.name + " " + user._id}
-                                onSelect={() => {
-                                  setDraftFilters(p => ({ ...p, user: user._id }));
-                                  setUserComboOpen(false);
-                                }}
-                                className="cursor-pointer"
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    draftFilters.user === user._id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {user.name} <span className="text-gray-400 text-xs ml-2">({user.employeeCode || "N/A"})</span>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">Project</label>
                   <Popover open={projectComboOpen} onOpenChange={setProjectComboOpen}>
@@ -266,13 +192,6 @@ export default function AllWorklogsPage() {
             Date: {appliedFilters.startDate} to {appliedFilters.endDate}
           </span>
           
-          {appliedFilters.user !== "all" && (
-            <span className="inline-flex items-center px-2 py-1 rounded-md bg-primary-50 text-primary-700 text-xs font-medium border border-primary-100">
-              User: {usersData?.data.find((u) => u._id === appliedFilters.user)?.name || "Unknown"}
-              <button onClick={() => { setDraftFilters(p => ({ ...p, user: "all" })); setAppliedFilters(p => ({ ...p, user: "all" })); }} className="ml-1.5 hover:text-primary-900"><X className="w-3 h-3" /></button>
-            </span>
-          )}
-          
           {appliedFilters.project !== "all" && (
             <span className="inline-flex items-center px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-medium border border-indigo-100">
               Project: {projectsData?.data.find((p) => p._id === appliedFilters.project)?.name || "Unknown"}
@@ -287,8 +206,8 @@ export default function AllWorklogsPage() {
             </span>
           )}
           
-          {(appliedFilters.user !== "all" || appliedFilters.project !== "all" || appliedFilters.status !== "all" || appliedFilters.startDate !== defaultStartDate() || appliedFilters.endDate !== defaultEndDate()) && (
-            <Button variant="ghost" size="xs" onClick={handleClearFilters} className="text-gray-500 hover:text-gray-900 h-6 px-2 text-xs ml-auto">
+          {(appliedFilters.project !== "all" || appliedFilters.status !== "all" || appliedFilters.startDate !== defaultStartDate() || appliedFilters.endDate !== defaultEndDate()) && (
+            <Button variant="ghost" size="sm" onClick={handleClearFilters} className="text-gray-500 hover:text-gray-900 h-6 px-2 text-xs ml-auto">
               Clear all
             </Button>
           )}
@@ -318,7 +237,6 @@ export default function AllWorklogsPage() {
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-medium">
                 <tr>
-                  <th className="px-6 py-4">User</th>
                   <th className="px-6 py-4">Date</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Logged Hours</th>
@@ -327,12 +245,8 @@ export default function AllWorklogsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {worklogsData?.data.map((log) => (
+                {worklogsData?.data.map((log: any) => (
                   <tr key={log._id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">{log.user?.name || "Unknown"}</div>
-                      <div className="text-xs text-gray-500">{log.user?.employeeCode || ""}</div>
-                    </td>
                     <td className="px-6 py-4 font-medium text-gray-900">
                       {format(new Date(log.shiftDate), "MMM d, yyyy")}
                     </td>
