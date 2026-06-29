@@ -2,7 +2,7 @@ import axios from "axios";
 import { toast } from "sonner";
 
 const axiosInstance = axios.create({
-  baseURL: 'https://416zwbs6-3050.inc1.devtunnels.ms',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
   timeout: 10000,
   headers: { "Content-Type": "application/json" },
   paramsSerializer: { indexes: null },
