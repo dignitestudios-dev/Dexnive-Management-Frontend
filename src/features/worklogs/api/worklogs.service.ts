@@ -76,7 +76,17 @@ export async function getMyTimesheet(params: { startDate: string; endDate: strin
   return data;
 }
 
+export async function getUserTimesheet(params: { user: string; startDate: string; endDate: string }): Promise<any> {
+  const { data } = await axiosInstance.get<any>("/worklogs/timesheet", { params });
+  return data;
+}
+
 export async function submitMissingReason(payload: { shiftDate: string; reason: string; note?: string; entries?: any[] }): Promise<any> {
   const { data } = await axiosInstance.post<any>("/worklogs/my/missing/reason", payload);
+  return data;
+}
+
+export async function getAllMissingEntriesCount(params: { startDate?: string; endDate?: string; department?: string; page?: number; limit?: number }): Promise<any> {
+  const { data } = await axiosInstance.get<any>("/worklogs/all/missing-count", { params });
   return data;
 }

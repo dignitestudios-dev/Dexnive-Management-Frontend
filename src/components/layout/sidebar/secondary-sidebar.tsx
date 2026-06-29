@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 
-import { ChevronDown, ChevronRight, FolderClosed, Hash, MoreHorizontal, Plus, FileText, History, Users, Shield, Building2, Briefcase, Calendar, DollarSign, Home } from "lucide-react";
+import { ChevronDown, ChevronRight, FolderClosed, Hash, MoreHorizontal, Plus, FileText, History, Users, Shield, Building2, Briefcase, Calendar, DollarSign, Home, CalendarDays } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { usePathname } from "next/navigation";
@@ -45,6 +45,7 @@ export function SecondarySidebar() {
               <SidebarItem icon={<Users className="w-4 h-4" />} label="All Users" href="/dashboard/users" active={pathname === "/dashboard/users"} />
               <SidebarItem icon={<FileText className="w-4 h-4" />} label="Missing Entries" href="/dashboard/users/missing-entries" active={pathname === "/dashboard/users/missing-entries"} />
               <SidebarItem icon={<History className="w-4 h-4" />} label="All Worklogs" href="/dashboard/users/all-worklogs" active={pathname === "/dashboard/users/all-worklogs"} />
+              <SidebarItem icon={<CalendarDays className="w-4 h-4" />} label="User Timesheets" href="/dashboard/users/timesheet" active={pathname === "/dashboard/users/timesheet"} />
             </div>
           </div>
         ) : isOrgRoute && isAdmin ? (

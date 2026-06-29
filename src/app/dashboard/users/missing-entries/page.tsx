@@ -3,18 +3,11 @@ import { Loader } from "@/components/ui/loader";
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { useMissingEntriesQuery } from "@/features/worklogs/api/worklogs.queries";
-import { useGetUsersQuery } from "@/features/users/api/users.queries";
-import { Search, AlertCircle } from "lucide-react";
+import { useGetAllMissingEntriesCountQuery } from "@/features/worklogs/api/worklogs.queries";
+import { useGetDepartmentsQuery } from "@/features/departments/api/departments.queries";
+import { Search, AlertCircle, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -34,30 +27,34 @@ function MissingEntriesPageContent() {
   const defaultEndDate = () => format(new Date(), "yyyy-MM-dd");
 
   const [draftFilters, setDraftFilters] = useState({
-    user: searchParams.get("user") || "all_users",
-    startDate: defaultStartDate(),
-    endDate: defaultEndDate(),
+    department: searchParams.get("department") || "all_departments",
+    startDate: searchParams.get("startDate") || defaultStartDate(),
+    endDate: searchParams.get("endDate") || defaultEndDate(),
   });
   const [appliedFilters, setAppliedFilters] = useState(draftFilters);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [userComboOpen, setUserComboOpen] = useState(false);
-
-  // Fetch users for dropdown
-  const { data: usersData, isLoading: isUsersLoading } = useGetUsersQuery({ limit: 100 });
+  const [deptComboOpen, setDeptComboOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedEntry, setSelectedEntry] = useState<any>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   useEffect(() => {
-    if (usersData?.data && usersData.data.length > 0 && draftFilters.user === "all_users" && !searchParams.get("user")) {
-      const firstUser = usersData.data[0]._id;
-      setDraftFilters(p => ({ ...p, user: firstUser }));
-      setAppliedFilters(p => ({ ...p, user: firstUser }));
-    }
-  }, [usersData, searchParams]);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  // Fetch missing entries
-  const { data: missingData, isLoading: isMissingLoading, isError, refetch } = useMissingEntriesQuery({
-    user: (appliedFilters.user && appliedFilters.user !== "all_users") ? appliedFilters.user : undefined,
+  // Fetch departments for dropdown
+  const { data: deptsData, isLoading: isDeptsLoading } = useGetDepartmentsQuery({ search: debouncedSearch });
+
+  // Fetch missing entries count
+  const { data: missingData, isLoading: isMissingLoading, isError } = useGetAllMissingEntriesCountQuery({
+    department: (appliedFilters.department && appliedFilters.department !== "all_departments") ? appliedFilters.department : undefined,
     startDate: appliedFilters.startDate,
-    endDate: appliedFilters.endDate
+    endDate: appliedFilters.endDate,
+    limit: 100
   });
 
   const handleApplyFilters = () => {
@@ -66,9 +63,8 @@ function MissingEntriesPageContent() {
   };
   
   const handleClearFilters = () => {
-    const firstUser = usersData?.data?.[0]?._id || "all_users";
     const cleared = {
-      user: firstUser,
+      department: "all_departments",
       startDate: defaultStartDate(),
       endDate: defaultEndDate(),
     };
@@ -98,60 +94,70 @@ function MissingEntriesPageContent() {
               </DialogHeader>
               <div className="grid gap-5 py-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Select User</label>
-                  <Popover open={userComboOpen} onOpenChange={setUserComboOpen}>
+                  <label className="text-sm font-medium text-gray-700">Select Department</label>
+                  <Popover open={deptComboOpen} onOpenChange={setDeptComboOpen}>
                     <PopoverTrigger render={
                       <Button
                         variant="outline"
                         role="combobox"
-                        aria-expanded={userComboOpen}
+                        aria-expanded={deptComboOpen}
                         className="w-full justify-between h-10 font-normal text-sm bg-white"
                       >
-                        {draftFilters.user && draftFilters.user !== "all_users"
-                          ? usersData?.data.find((user) => user._id === draftFilters.user)?.name
-                          : "All Users (My Missing Entries)"}
+                        {draftFilters.department && draftFilters.department !== "all_departments"
+                          ? deptsData?.data.find((d: any) => d._id === draftFilters.department)?.name
+                          : "All Departments"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     } />
                     <PopoverContent className="w-[450px] p-0 z-[100]" align="start">
-                      <Command>
-                        <CommandInput placeholder="Search user by name..." className="h-9" />
+                      <Command shouldFilter={false}>
+                        <CommandInput 
+                          placeholder="Search department..." 
+                          className="h-9"
+                          value={searchQuery}
+                          onValueChange={setSearchQuery} 
+                        />
                         <CommandList>
-                          <CommandEmpty>No user found.</CommandEmpty>
+                          {isDeptsLoading && (
+                            <div className="py-6 text-center text-sm text-gray-500 flex items-center justify-center gap-2">
+                              <Loader className="w-4 h-4" /> Loading departments...
+                            </div>
+                          )}
+                          {!isDeptsLoading && <CommandEmpty>No department found.</CommandEmpty>}
                           <CommandGroup>
                             <CommandItem
-                              value="all_users"
+                              value="all_departments"
                               onSelect={() => {
-                                setDraftFilters(p => ({ ...p, user: "all_users" }));
-                                setUserComboOpen(false);
+                                setDraftFilters(p => ({ ...p, department: "all_departments" }));
+                                setDeptComboOpen(false);
                               }}
                               className="cursor-pointer"
                             >
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  draftFilters.user === "all_users" ? "opacity-100" : "opacity-0"
+                                  draftFilters.department === "all_departments" ? "opacity-100" : "opacity-0"
                                 )}
                               />
-                              All Users (My Missing Entries)
+                              All Departments
                             </CommandItem>
-                            {usersData?.data.map((user) => (
+                            {deptsData?.data.map((dept: any) => (
                               <CommandItem
-                                key={user._id}
-                                value={user.name + " " + user._id}
+                                key={dept._id}
+                                value={dept.name + " " + dept._id}
                                 onSelect={() => {
-                                  setDraftFilters(p => ({ ...p, user: user._id }));
-                                  setUserComboOpen(false);
+                                  setDraftFilters(p => ({ ...p, department: dept._id }));
+                                  setDeptComboOpen(false);
                                 }}
                                 className="cursor-pointer"
                               >
                                 <Check
                                   className={cn(
                                     "mr-2 h-4 w-4",
-                                    draftFilters.user === user._id ? "opacity-100" : "opacity-0"
+                                    draftFilters.department === dept._id ? "opacity-100" : "opacity-0"
                                   )}
                                 />
-                                {user.name} <span className="text-gray-400 text-xs ml-2">({user.employeeCode || "N/A"})</span>
+                                {dept.name}
                               </CommandItem>
                             ))}
                           </CommandGroup>
@@ -198,14 +204,14 @@ function MissingEntriesPageContent() {
             Date: {appliedFilters.startDate} to {appliedFilters.endDate}
           </span>
           
-          {appliedFilters.user !== "all_users" && (
+          {appliedFilters.department !== "all_departments" && (
             <span className="inline-flex items-center px-2 py-1 rounded-md bg-primary-50 text-primary-700 text-xs font-medium border border-primary-100">
-              User: {usersData?.data.find((u) => u._id === appliedFilters.user)?.name || "Unknown"}
-              <button onClick={() => { setDraftFilters(p => ({ ...p, user: "all_users" })); setAppliedFilters(p => ({ ...p, user: "all_users" })); }} className="ml-1.5 hover:text-primary-900"><X className="w-3 h-3" /></button>
+              Department: {deptsData?.data.find((d: any) => d._id === appliedFilters.department)?.name || "Unknown"}
+              <button onClick={() => { setDraftFilters(p => ({ ...p, department: "all_departments" })); setAppliedFilters(p => ({ ...p, department: "all_departments" })); }} className="ml-1.5 hover:text-primary-900"><X className="w-3 h-3" /></button>
             </span>
           )}
           
-          {(appliedFilters.user !== "all_users" || appliedFilters.startDate !== defaultStartDate() || appliedFilters.endDate !== defaultEndDate()) && (
+          {(appliedFilters.department !== "all_departments" || appliedFilters.startDate !== defaultStartDate() || appliedFilters.endDate !== defaultEndDate()) && (
             <Button variant="ghost" size="xs" onClick={handleClearFilters} className="text-gray-500 hover:text-gray-900 h-6 px-2 text-xs ml-auto">
               Clear all
             </Button>
@@ -215,7 +221,7 @@ function MissingEntriesPageContent() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6 bg-gray-50/30">
-        {isMissingLoading || isUsersLoading ? (
+        {isMissingLoading || isDeptsLoading ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-400">
             <Loader className="w-8 h-8 mb-4 text-primary" />
             <p>Loading missing entries...</p>
@@ -225,7 +231,7 @@ function MissingEntriesPageContent() {
             <AlertCircle className="w-8 h-8 mb-4" />
             <p>Failed to load missing entries.</p>
           </div>
-        ) : missingData?.data.length === 0 ? (
+        ) : missingData?.data?.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-400">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
               <AlertCircle className="w-8 h-8 text-gray-400" />
@@ -238,19 +244,33 @@ function MissingEntriesPageContent() {
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-medium">
                 <tr>
-                  <th className="px-6 py-4">Date</th>
-                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">User</th>
+                  <th className="px-6 py-4">Department</th>
+                  <th className="px-6 py-4 text-right">Missing Days</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {missingData?.data.map((entry, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                {missingData?.data?.filter((entry: any) => entry.missingEntriesCount > 0).map((entry: any, idx: number) => (
+                  <tr 
+                    key={idx} 
+                    className="hover:bg-gray-50/50 transition-colors cursor-pointer"
+                    onClick={() => {
+                      setSelectedEntry(entry);
+                      setIsDetailsOpen(true);
+                    }}
+                  >
                     <td className="px-6 py-4 font-medium text-gray-900">
-                      {format(new Date(entry.shiftDate), "EEEE, MMMM d, yyyy")}
+                      <div>
+                        <p>{entry.userName}</p>
+                        <p className="text-xs text-gray-500 font-normal">{entry.employeeCode}</p>
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-gray-600">
+                      {entry.department?.name || "N/A"}
+                    </td>
+                    <td className="px-6 py-4 text-right">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                        Missing
+                        {entry.missingEntriesCount}
                       </span>
                     </td>
                   </tr>
@@ -260,6 +280,53 @@ function MissingEntriesPageContent() {
           </div>
         )}
       </div>
+
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Missing Entries Details</DialogTitle>
+          </DialogHeader>
+          {selectedEntry && (
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Name</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedEntry.userName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Email</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedEntry.userEmail || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Employee Code</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedEntry.employeeCode || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Department</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedEntry.department?.name || "N/A"}</p>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium text-gray-900 mb-2 border-b border-gray-100 pb-2">
+                  Missing Dates ({selectedEntry.missingEntriesCount})
+                </h4>
+                <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-2">
+                  {selectedEntry.missingDates?.map((d: string, idx: number) => (
+                    <div key={idx} className="px-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs text-gray-700 shadow-sm flex items-center justify-between">
+                      <span className="font-medium">{format(new Date(d), "MMM d, yyyy")}</span>
+                      <span className="text-gray-400">{format(new Date(d), "EEE")}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsDetailsOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

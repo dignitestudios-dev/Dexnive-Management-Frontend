@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getMissingEntries, getMyMissingEntries, getAllWorklogs, getMyWorklogs, getSummary, getMyWorklogByDate, getNonBillableReasons, getMyTimesheet } from "./worklogs.service";
+import { getMissingEntries, getMyMissingEntries, getAllWorklogs, getMyWorklogs, getSummary, getMyWorklogByDate, getNonBillableReasons, getMyTimesheet, getUserTimesheet, getAllMissingEntriesCount } from "./worklogs.service";
 import { GetMissingEntriesParams, WorklogQueryParams, WorklogSummaryParams } from "../types";
 
 export const worklogKeys = {
@@ -67,6 +67,21 @@ export function useGetMyTimesheetQuery(params: { startDate: string; endDate: str
     queryKey: [...worklogKeys.all, "timesheet", params],
     queryFn: () => getMyTimesheet(params),
     enabled: !!params.startDate && !!params.endDate,
+  });
+}
+
+export function useGetUserTimesheetQuery(params: { user: string; startDate: string; endDate: string }) {
+  return useQuery({
+    queryKey: [...worklogKeys.all, "userTimesheet", params],
+    queryFn: () => getUserTimesheet(params),
+    enabled: !!params.user && !!params.startDate && !!params.endDate,
+  });
+}
+
+export function useGetAllMissingEntriesCountQuery(params: { startDate?: string; endDate?: string; department?: string; page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: [...worklogKeys.all, "allMissingCount", params],
+    queryFn: () => getAllMissingEntriesCount(params),
   });
 }
 
