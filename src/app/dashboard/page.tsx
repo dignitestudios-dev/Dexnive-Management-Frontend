@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { RecentWorklogs } from "@/features/worklogs/components/recent-worklogs";
+import { AdminDashboard } from "./admin-dashboard";
 import { useGetMyWorklogByDateQuery, useGetMyMissingEntriesQuery } from "@/features/worklogs/api/worklogs.queries";
 import { format, subDays, startOfMonth } from "date-fns";
 import { Card } from "@/components/ui/card";
@@ -220,6 +221,10 @@ export default function DashboardPage() {
             <div>
               <RecentWorklogs />
             </div>
+          )}
+
+          {isAdmin && (
+            <AdminDashboard />
           )}
         </div>
       </div>

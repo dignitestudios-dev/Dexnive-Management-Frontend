@@ -52,7 +52,9 @@ export function PrimarySidebar() {
             <NavItem icon={<Briefcase className="w-5 h-5" />} tooltip="Projects" active={isProjectsActive} href="/dashboard/projects" />
           </>
         )}
-        <NavItem icon={<CalendarDays className="w-5 h-5" />} tooltip="My Timesheet" active={pathname === '/dashboard/my-timesheet'} href="/dashboard/my-timesheet" />
+        {!isAdmin && (
+          <NavItem icon={<CalendarDays className="w-5 h-5" />} tooltip="My Timesheet" active={pathname === '/dashboard/my-timesheet'} href="/dashboard/my-timesheet" />
+        )}
       </nav>
 
       {/* Bottom Actions */}

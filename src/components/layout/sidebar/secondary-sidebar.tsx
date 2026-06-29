@@ -17,6 +17,12 @@ export function SecondarySidebar() {
   const isProjectsRoute = pathname?.startsWith("/dashboard/projects");
   const isSettingsRoute = pathname?.startsWith("/dashboard/settings");
 
+  const hasContextualSidebar = (isTeamRoute && isAdmin) || (isOrgRoute && isAdmin) || (isProjectsRoute && isAdmin) || (isSettingsRoute && isAdmin);
+
+  if (!hasContextualSidebar) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col h-full w-[260px] bg-gray-50 border-r border-gray-200 flex-shrink-0 z-10">
       {/* Header Workspace Name */}
@@ -72,43 +78,7 @@ export function SecondarySidebar() {
               <SidebarItem icon={<FileText className="w-4 h-4" />} label="Non-Billable Reasons" href="/dashboard/settings/reasons" active={pathname === "/dashboard/settings/reasons"} />
             </div>
           </div>
-        ) : (
-          <>
-            {/* Favorites / Quick Links Section */}
-            <div className="mb-6">
-              <div className="px-3 mb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center justify-between group">
-                <span>Favorites</span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <SidebarItem icon={<Home className="w-4 h-4" />} label="Dashboard" href="/dashboard" active={pathname === "/dashboard"} />
-                <SidebarItem icon={<FileText className="w-4 h-4" />} label="Add Daily Log" href="/dashboard/daily-log" active={pathname === "/dashboard/daily-log"} />
-                <SidebarItem icon={<History className="w-4 h-4" />} label="Logs History" href="/dashboard/history" active={pathname === "/dashboard/history"} />
-                {isAdmin && <SidebarItem icon={<Hash className="w-4 h-4" />} label="Team Updates" href="/dashboard/updates" active={pathname === "/dashboard/updates"} />}
-              </div>
-            </div>
-
-            {/* Spaces / Folders Section */}
-            {isAdmin && (
-              <div>
-                <div className="px-3 mb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center justify-between group">
-                  <span>Spaces</span>
-                  <button className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded text-gray-600 transition-all">
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                
-                <div className="flex flex-col gap-0.5">
-                  <CollapsibleFolder title="Engineering">
-                    <SidebarItem icon={<Hash className="w-4 h-4" />} label="Frontend" nested />
-                    <SidebarItem icon={<Hash className="w-4 h-4" />} label="Backend" nested />
-                  </CollapsibleFolder>
-                  <CollapsibleFolder title="Design" />
-                  <CollapsibleFolder title="Management" />
-                </div>
-              </div>
-            )}
-          </>
-        )}
+        ) : null}
 
       </div>
     </div>
