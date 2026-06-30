@@ -33,6 +33,8 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
     activateFirstStage: true
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -54,8 +56,14 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
   const updateMutation = useUpdateProjectMutation();
 
   const handleSave = () => {
-    if (!formData.name.trim() || !formData.code.trim()) {
-      return toast.error("Name and Code are required");
+    const newErrors: Record<string, string> = {};
+    if (!formData.name.trim()) newErrors.name = "Project name is required";
+    if (!formData.code.trim()) newErrors.code = "Project code is required";
+    
+    setErrors(newErrors);
+    
+    if (Object.keys(newErrors).length > 0) {
+      return;
     }
 
     const { activateFirstStage, ...restFormData } = formData;
@@ -77,7 +85,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
             toast.success("Project updated successfully");
             router.push("/dashboard/projects");
           },
-          onError: () => toast.error("Failed to update project")
+          onError: (err: any) => toast.error(err.message || "Failed to update project")
         }
       );
     } else {
@@ -89,7 +97,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
             toast.success("Project created successfully");
             router.push("/dashboard/projects");
           },
-          onError: () => toast.error("Failed to create project")
+          onError: (err: any) => toast.error(err.message || "Failed to create project")
         }
       );
     }
@@ -101,29 +109,37 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           
           <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-700">Project Name *</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Project Name <span className="text-red-500">*</span></label>
             <Input 
               value={formData.name} 
-              onChange={(e) => setFormData(p => ({...p, name: e.target.value}))} 
+              onChange={(e) => {
+                setFormData(p => ({...p, name: e.target.value}));
+                if (errors.name) setErrors(p => ({...p, name: ""}));
+              }} 
               placeholder="e.g. Website Redesign"
               maxLength={100}
-              className="h-9 bg-white"
+              className={`h-9 bg-white ${errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             />
+            {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-700">Project Code *</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Project Code <span className="text-red-500">*</span></label>
             <Input 
               value={formData.code} 
-              onChange={(e) => setFormData(p => ({...p, code: e.target.value}))} 
+              onChange={(e) => {
+                setFormData(p => ({...p, code: e.target.value}));
+                if (errors.code) setErrors(p => ({...p, code: ""}));
+              }} 
               placeholder="e.g. WR-01"
               maxLength={10}
-              className="h-9 bg-white uppercase"
+              className={`h-9 bg-white uppercase ${errors.code ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             />
+            {errors.code && <p className="text-xs text-red-500 mt-1">{errors.code}</p>}
           </div>
 
           <div className="space-y-1 sm:col-span-2">
-            <label className="text-xs font-medium text-gray-700">Description</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
             <Input 
               value={formData.description} 
               onChange={(e) => setFormData(p => ({...p, description: e.target.value}))} 
@@ -134,7 +150,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-700">Division</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Division</label>
             <Select value={formData.division} onValueChange={(val: any) => setFormData(p => ({...p, division: val || ""}))}>
               <SelectTrigger className="h-9 bg-white text-xs">
                 <SelectValue placeholder="Select division...">
@@ -155,7 +171,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-700">Type</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Type</label>
             <Select value={formData.projectType} onValueChange={(val: any) => setFormData(p => ({...p, projectType: val}))}>
               <SelectTrigger className="h-9 bg-white text-xs capitalize">
                 <SelectValue />
@@ -168,7 +184,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-700">Status</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Status</label>
             <Select value={formData.status} onValueChange={(val: any) => setFormData(p => ({...p, status: val}))}>
               <SelectTrigger className="h-9 bg-white text-xs capitalize">
                 <SelectValue />
@@ -183,7 +199,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-700">Budgeted Hours</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Budgeted Hours</label>
             <Input 
               type="number"
               value={formData.budgetedHours} 
@@ -194,7 +210,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-700">Est. Start Date</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Est. Start Date</label>
             <Input 
               type="date"
               value={formData.estimatedStartDate} 
@@ -204,7 +220,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-700">Est. End Date</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Est. End Date</label>
             <Input 
               type="date"
               value={formData.estimatedEndDate} 

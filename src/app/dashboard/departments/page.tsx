@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { DeleteDialog } from "@/components/ui/delete-dialog";
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -32,6 +33,7 @@ export default function DepartmentsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<{ _id: string; name: string; defaultRate?: number } | null>(null);
   const [name, setName] = useState("");
+  const [nameError, setNameError] = useState("");
   const [defaultRate, setDefaultRate] = useState<number>(0);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -51,11 +53,16 @@ export default function DepartmentsPage() {
       setName("");
       setDefaultRate(0);
     }
+    setNameError("");
     setIsDialogOpen(true);
   };
 
   const handleSave = () => {
-    if (!name.trim()) return toast.error("Name is required");
+    if (!name.trim()) {
+      setNameError("Name is required");
+      return;
+    }
+    setNameError("");
 
     if (editingDept) {
       updateMutation.mutate(
@@ -185,21 +192,25 @@ export default function DepartmentsPage() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md rounded-lg p-6">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
               {editingDept ? "Edit Department" : "Add Department"}
             </DialogTitle>
           </DialogHeader>
-          <div className="py-4 space-y-4">
+          <div className="pt-4 pb-2 space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Department Name</label>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Department Name <span className="text-red-500">*</span></label>
               <Input 
                 value={name} 
-                onChange={(e) => setName(e.target.value)} 
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (nameError) setNameError("");
+                }} 
                 placeholder="e.g. Engineering"
-                className="h-9"
+                className={`h-9 ${nameError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
               />
+              {nameError && <p className="text-xs text-red-500 mt-1">{nameError}</p>}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Default Rate ($)</label>
@@ -225,28 +236,14 @@ export default function DepartmentsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md rounded-lg p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-red-600">Delete Department</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-gray-600">Are you sure you want to delete this department? This action cannot be undone.</p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="rounded-md">Cancel</Button>
-            <Button 
-              onClick={confirmDelete} 
-              className="rounded-md bg-red-600 hover:bg-red-700 text-white"
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? <Loader className="w-5 h-5 text-current" /> : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteDialog
+        title="Delete Department"
+        itemName="department"
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={confirmDelete}
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   );
 }
-
-

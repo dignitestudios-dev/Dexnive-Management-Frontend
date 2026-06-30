@@ -122,7 +122,7 @@ function ProjectsPageContent() {
           setProjectToDelete(null);
           refetch(); // or react-query will invalidate automatically
         },
-        onError: () => toast.error("Failed to delete project")
+        onError: (err: any) => toast.error(err.message || "Failed to delete project")
       });
     }
   };
@@ -488,16 +488,30 @@ function ProjectsPageContent() {
                   <>
                     <div className="col-span-2 border-t border-gray-200 mt-2 pt-3">
                       <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Budget Usage</p>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-                        <div 
-                          className={`h-2.5 rounded-full ${
-                            (projectStats.budgetUsedPercent || 0) > 100 ? 'bg-red-500' : 'bg-primary-500'
-                          }`} 
-                          style={{ width: `${Math.min(projectStats.budgetUsedPercent || 0, 100)}%` }}
-                        ></div>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2 flex overflow-hidden">
+                        {(projectStats.budgetUsedPercent || 0) <= 100 ? (
+                          <div 
+                            className="h-2.5 bg-primary-500 transition-all duration-500" 
+                            style={{ width: `${Math.min(projectStats.budgetUsedPercent || 0, 100)}%` }}
+                          />
+                        ) : (
+                          <>
+                            <div 
+                              className="h-2.5 bg-primary-500 opacity-60 transition-all duration-500" 
+                              style={{ width: `${(100 / (projectStats.budgetUsedPercent || 1)) * 100}%` }}
+                            />
+                            <div 
+                              className="h-2.5 bg-red-500 transition-all duration-500" 
+                              style={{ width: `${(((projectStats.budgetUsedPercent || 0) - 100) / (projectStats.budgetUsedPercent || 1)) * 100}%` }}
+                            />
+                          </>
+                        )}
                       </div>
                       <p className="text-xs text-gray-600 mt-1.5 text-right font-medium">
-                        {projectStats.budgetUsedPercent}% of {projectStats.budgetedHours}h used
+                        <span className={(projectStats.budgetUsedPercent || 0) > 100 ? "text-red-600 font-bold" : ""}>
+                          {projectStats.budgetUsedPercent}%
+                        </span> of {projectStats.budgetedHours}h used
+                        {(projectStats.budgetUsedPercent || 0) > 100 && ` (+${((projectStats.totalHours || 0) - projectStats.budgetedHours).toFixed(1)}h extra)`}
                       </p>
                     </div>
                   </>

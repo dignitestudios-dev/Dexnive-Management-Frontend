@@ -6,7 +6,8 @@ import { format } from "date-fns";
 import { Plus, Trash2, Calendar as CalendarIcon } from "lucide-react";
 import { useGetHolidaysQuery } from "@/features/holidays/api/holidays.queries";
 import { useCreateHolidayMutation, useDeleteHolidayMutation } from "@/features/holidays/api/holidays.mutations";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { DeleteDialog } from "@/components/ui/delete-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,7 @@ function HolidaysPageContent() {
   const searchParams = useSearchParams();
   const [year, setYear] = useState(currentYear.toString());
   const [isDialogOpen, setIsDialogOpen] = useState(searchParams.get("add") === "true");
+  const [holidayToDelete, setHolidayToDelete] = useState<string | null>(null);
   
   // Years from 2025 to current year
   const years = Array.from({ length: Math.max(1, currentYear - 2025 + 1) }, (_, i) => (2025 + i).toString());
@@ -32,11 +34,12 @@ function HolidaysPageContent() {
 
   const deleteMutation = useDeleteHolidayMutation();
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this holiday?")) {
-      deleteMutation.mutate(id, {
+  const confirmDelete = () => {
+    if (holidayToDelete) {
+      deleteMutation.mutate(holidayToDelete, {
         onSuccess: () => {
           toast.success("Holiday deleted successfully");
+          setHolidayToDelete(null);
         },
         onError: (err: any) => {
           toast.error(err.response?.data?.message || "Failed to delete holiday");
@@ -92,7 +95,7 @@ function HolidaysPageContent() {
                       <CalendarIcon className="w-4 h-4" />
                     </div>
                     <button 
-                      onClick={() => handleDelete(holiday._id)}
+                      onClick={() => setHolidayToDelete(holiday._id)}
                       className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
                       disabled={deleteMutation.isPending}
                       title="Delete holiday"
@@ -119,6 +122,15 @@ function HolidaysPageContent() {
       </div>
 
       <CreateHolidayDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
+
+      <DeleteDialog
+        title="Delete Holiday"
+        itemName="holiday"
+        isOpen={!!holidayToDelete}
+        onClose={() => setHolidayToDelete(null)}
+        onConfirm={confirmDelete}
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   );
 }
@@ -138,6 +150,7 @@ export default function HolidaysPage() {
 function CreateHolidayDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (val: boolean) => void }) {
   const [mode, setMode] = useState<ModeType>("single");
   const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
   
   // States for calendar
   const [date, setDate] = useState<Date>();
@@ -147,21 +160,35 @@ function CreateHolidayDialog({ open, onOpenChange }: { open: boolean, onOpenChan
   const createMutation = useCreateHolidayMutation();
 
   const handleSave = () => {
-    if (!reason.trim()) return toast.error("Please enter a reason");
+    if (!reason.trim()) {
+      setError("Please enter a reason");
+      return;
+    }
 
     const payload: any = { reason };
 
     if (mode === "single") {
-      if (!date) return toast.error("Please select a date");
+      if (!date) {
+        setError("Please select a date");
+        return;
+      }
       payload.shiftDate = format(date, "yyyy-MM-dd");
     } else if (mode === "multiple") {
-      if (!dates.length) return toast.error("Please select dates");
+      if (!dates.length) {
+        setError("Please select dates");
+        return;
+      }
       payload.dates = dates.map(d => format(d, "yyyy-MM-dd"));
     } else if (mode === "range") {
-      if (!range?.from || !range?.to) return toast.error("Please select a date range");
+      if (!range?.from || !range?.to) {
+        setError("Please select a date range");
+        return;
+      }
       payload.startDate = format(range.from, "yyyy-MM-dd");
       payload.endDate = format(range.to, "yyyy-MM-dd");
     }
+    
+    setError(null);
 
     createMutation.mutate(payload, {
       onSuccess: () => {
@@ -169,6 +196,7 @@ function CreateHolidayDialog({ open, onOpenChange }: { open: boolean, onOpenChan
         onOpenChange(false);
         // Reset state
         setReason("");
+        setError(null);
         setDate(undefined);
         setDates([]);
         setRange(undefined);
@@ -209,15 +237,21 @@ function CreateHolidayDialog({ open, onOpenChange }: { open: boolean, onOpenChan
           </div>
 
           <div className="space-y-2">
-            <Label>Holiday Reason</Label>
+            <Label>Holiday Reason <span className="text-red-500">*</span></Label>
             <Input 
               placeholder="e.g. Christmas, New Year..." 
               value={reason} 
-              onChange={(e) => setReason(e.target.value)} 
+              onChange={(e) => {
+                setReason(e.target.value);
+                if (error === "Please enter a reason") setError(null);
+              }}
+              className={error === "Please enter a reason" ? "border-red-500 focus-visible:ring-red-500" : ""}
             />
+            {error === "Please enter a reason" && <p className="text-xs text-red-500 mt-1">{error}</p>}
           </div>
 
-          <div className="flex flex-col items-center border rounded-xl p-3 bg-gray-50/50">
+          <div className={`flex flex-col items-center border rounded-xl p-3 bg-gray-50/50 ${error && error !== "Please enter a reason" ? "border-red-500" : ""}`}>
+            <Label className="self-start mb-2">Holiday Date(s) <span className="text-red-500">*</span></Label>
             {mode === "single" && (
               <Calendar
                 mode="single"
@@ -282,6 +316,9 @@ function CreateHolidayDialog({ open, onOpenChange }: { open: boolean, onOpenChan
                 ) : (
                   <p className="text-amber-600 font-medium">No date range selected yet</p>
                 )
+              )}
+              {error && error !== "Please enter a reason" && (
+                <p className="text-xs text-red-500 mt-1">{error}</p>
               )}
             </div>
           </div>

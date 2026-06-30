@@ -17,7 +17,7 @@ export function SecondarySidebar() {
   const isProjectsRoute = pathname?.startsWith("/dashboard/projects");
   const isSettingsRoute = pathname?.startsWith("/dashboard/settings");
 
-  const hasContextualSidebar = (isTeamRoute && isAdmin) || (isOrgRoute && isAdmin) || (isProjectsRoute && isAdmin) || (isSettingsRoute && isAdmin);
+  const hasContextualSidebar = (isTeamRoute && isAdmin) || (isOrgRoute && isAdmin) || (isProjectsRoute && isAdmin) || (isSettingsRoute && isAdmin) || !isAdmin;
 
   if (!hasContextualSidebar) {
     return null;
@@ -65,6 +65,7 @@ export function SecondarySidebar() {
             </div>
             <div className="flex flex-col gap-0.5">
               <SidebarItem icon={<Briefcase className="w-4 h-4" />} label="All Projects" href="/dashboard/projects" active={pathname === "/dashboard/projects"} />
+              <SidebarItem icon={<FileText className="w-4 h-4" />} label="Stages Template" href="/dashboard/projects/stage-templates" active={pathname === "/dashboard/projects/stage-templates"} />
             </div>
           </div>
         ) : isSettingsRoute && isAdmin ? (
@@ -77,6 +78,14 @@ export function SecondarySidebar() {
               <SidebarItem icon={<Calendar className="w-4 h-4" />} label="Holidays" href="/dashboard/settings/holidays" active={pathname === "/dashboard/settings/holidays"} />
               <SidebarItem icon={<DollarSign className="w-4 h-4" />} label="Rates" href="/dashboard/settings/rates" active={pathname === "/dashboard/settings/rates"} />
               <SidebarItem icon={<FileText className="w-4 h-4" />} label="Non-Billable Reasons" href="/dashboard/settings/reasons" active={pathname === "/dashboard/settings/reasons"} />
+            </div>
+          </div>
+        ) : !isAdmin ? (
+          <div className="mb-6">
+            <div className="flex flex-col gap-0.5 mt-2">
+              <SidebarItem icon={<Home className="w-4 h-4" />} label="Dashboard" href="/dashboard" active={pathname === "/dashboard"} />
+              <SidebarItem icon={<FileText className="w-4 h-4" />} label="Add Daily Log" href="/dashboard/daily-log" active={pathname === "/dashboard/daily-log"} />
+              <SidebarItem icon={<History className="w-4 h-4" />} label="Logs History" href="/dashboard/history" active={pathname === "/dashboard/history"} />
             </div>
           </div>
         ) : null}

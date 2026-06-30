@@ -10,13 +10,14 @@ import {
   useUpdateReasonMutation, 
   useDeleteReasonMutation 
 } from "@/features/worklogs/api/worklogs.mutations";
-import { Plus, AlertCircle, Edit, Trash2, Tag, ChevronLeft, MoreHorizontal } from "lucide-react";
+import { Plus, AlertCircle, Edit, Pencil, Trash2, Tag, ChevronLeft, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { DeleteDialog } from "@/components/ui/delete-dialog";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -51,6 +52,7 @@ export default function ManageReasonsPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [reasonToDelete, setReasonToDelete] = useState<string | null>(null);
 
   const form = useForm<ReasonFormValues>({
     resolver: zodResolver(reasonSchema),
@@ -98,11 +100,12 @@ export default function ManageReasonsPage() {
     }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this reason?")) {
-      deleteMutation.mutate(id, {
+  const confirmDelete = () => {
+    if (reasonToDelete) {
+      deleteMutation.mutate(reasonToDelete, {
         onSuccess: () => {
           toast.success("Reason deleted successfully");
+          setReasonToDelete(null);
         },
         onError: (err: any) => {
           toast.error(err?.response?.data?.message || "Failed to delete reason");
@@ -164,12 +167,12 @@ export default function ManageReasonsPage() {
                   <th className="px-6 py-4">Category</th>
                   <th className="px-6 py-4">Code</th>
                   <th className="px-6 py-4 text-center">Requires Note</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {reasons.map((reason: any) => (
-                  <tr key={reason._id} className="hover:bg-gray-50/50 transition-colors">
+                  <ContextMenu key={reason._id}>
+                    <ContextMenuTrigger render={<tr className="hover:bg-gray-50/50 transition-colors cursor-context-menu" />}>
                     <td className="px-6 py-4 font-medium text-gray-900">{reason.name}</td>
                     <td className="px-6 py-4 text-gray-500">
                       {reason.category ? (
@@ -184,25 +187,19 @@ export default function ManageReasonsPage() {
                     <td className="px-6 py-4 text-center text-gray-500">
                       {reason.requiresNote ? "Yes" : "No"}
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4 text-gray-500" />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditModal(reason)} className="cursor-pointer">
-                            <Edit className="mr-2 h-4 w-4 text-gray-500" />
-                            <span>Edit</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDelete(reason._id)} className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            <span>Delete</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="w-48 p-1">
+                      <ContextMenuItem onClick={() => openEditModal(reason)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+                        <Pencil className="w-3.5 h-3.5 text-gray-500" />
+                        <span>Edit</span>
+                      </ContextMenuItem>
+                      <ContextMenuSeparator className="my-1" />
+                      <ContextMenuItem onClick={() => setReasonToDelete(reason._id)} className="flex items-center gap-2 py-1.5 text-xs text-red-600 hover:text-red-700 focus:text-red-700">
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 ))}
               </tbody>
             </table>
@@ -216,13 +213,13 @@ export default function ManageReasonsPage() {
             <DialogTitle>{editingId ? "Edit Reason" : "Add Reason"}</DialogTitle>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4 pb-2">
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name *</FormLabel>
+                    <FormLabel>Name <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
                       <Input placeholder="e.g. Training, Internal Meeting" {...field} />
                     </FormControl>
@@ -235,7 +232,7 @@ export default function ManageReasonsPage() {
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category *</FormLabel>
+                    <FormLabel>Category <span className="text-red-500">*</span></FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -287,7 +284,7 @@ export default function ManageReasonsPage() {
                   </FormItem>
                 )}
               />
-              <DialogFooter className="pt-4">
+              <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
                   {(createMutation.isPending || updateMutation.isPending) ? (
@@ -300,6 +297,15 @@ export default function ManageReasonsPage() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      <DeleteDialog
+        title="Delete Reason"
+        itemName="reason"
+        isOpen={!!reasonToDelete}
+        onClose={() => setReasonToDelete(null)}
+        onConfirm={confirmDelete}
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   );
 }

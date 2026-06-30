@@ -165,7 +165,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
               <Input
                 id="name"
                 placeholder="John Doe"
@@ -173,7 +173,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                 {...register("name")}
                 className={errors.name ? "border-red-500" : ""}
               />
-              {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
+              {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
             </div>
 
             <div className="space-y-2">
@@ -185,11 +185,11 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                 {...register("password")}
                 className={errors.password ? "border-red-500" : ""}
               />
-              {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
+              {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="employeeCode">Employee Code</Label>
+              <Label htmlFor="employeeCode">Employee Code <span className="text-red-500">*</span></Label>
               <Input
                 id="employeeCode"
                 placeholder="1001"
@@ -201,11 +201,11 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                 })}
                 className={errors.employeeCode ? "border-red-500" : ""}
               />
-              {errors.employeeCode && <p className="text-sm text-red-500">{errors.employeeCode.message}</p>}
+              {errors.employeeCode && <p className="text-xs text-red-500">{errors.employeeCode.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role">Role <span className="text-red-500">*</span></Label>
               <Controller
                 control={control}
                 name="role"
@@ -224,11 +224,11 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                   </Select>
                 )}
               />
-              {errors.role && <p className="text-sm text-red-500">{errors.role.message}</p>}
+              {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="department">Department</Label>
+              <Label htmlFor="department">Department <span className="text-red-500">*</span></Label>
               <Controller
                 control={control}
                 name="department"
@@ -247,7 +247,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                   </Select>
                 )}
               />
-              {errors.department && <p className="text-sm text-red-500">{errors.department.message}</p>}
+              {errors.department && <p className="text-xs text-red-500">{errors.department.message}</p>}
             </div>
 
             <div className="col-span-1 md:col-span-2 flex flex-col gap-4 mt-2">

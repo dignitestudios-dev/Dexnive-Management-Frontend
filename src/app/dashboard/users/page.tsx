@@ -33,7 +33,9 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { DeleteDialog } from "@/components/ui/delete-dialog";
 
 function getRoleBadgeColor(roleName: string) {
   const name = roleName.toLowerCase();
@@ -611,36 +613,41 @@ function UsersPageContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation Dialog */}
-      <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, isOpen: open }))}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {confirmDialog.type === "delete" ? "Delete User" : 
-               confirmDialog.user?.deactivateDate ? "Activate User" : "Deactivate User"}
-            </DialogTitle>
-            <DialogDescription>
-              {confirmDialog.type === "delete" 
-                ? "Are you sure you want to permanently delete this user? This action cannot be undone." 
-                : confirmDialog.user?.deactivateDate 
-                  ? "Are you sure you want to reactivate this user? They will regain access to the platform." 
-                  : "Are you sure you want to deactivate this user? They will temporarily lose access to the platform."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-3 pt-4 border-t mt-2 border-gray-100">
-            <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}>
-              Cancel
-            </Button>
-            <Button 
-              className={confirmDialog.type === "delete" ? "bg-red-600 hover:bg-red-700 text-white" : ""}
-              onClick={confirmAction}
-              disabled={updateUserMutation.isPending}
-            >
-              {updateUserMutation.isPending ? <Loader className="w-4 h-4 mr-2 " /> : "Confirm"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        {/* Activate/Deactivate Dialog */}
+        <Dialog open={confirmDialog.isOpen && confirmDialog.type !== "delete"} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, isOpen: open }))}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>
+                {confirmDialog.user?.deactivateDate ? "Activate User" : "Deactivate User"}
+              </DialogTitle>
+              <DialogDescription>
+                {confirmDialog.user?.deactivateDate 
+                    ? "Are you sure you want to reactivate this user? They will regain access to the platform." 
+                    : "Are you sure you want to deactivate this user? They will temporarily lose access to the platform."}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={confirmAction}
+                disabled={updateUserMutation.isPending}
+              >
+                {updateUserMutation.isPending ? <Loader className="w-4 h-4 mr-2 text-current" /> : "Confirm"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <DeleteDialog
+          title="Delete User"
+          itemName="user"
+          isOpen={confirmDialog.isOpen && confirmDialog.type === "delete"}
+          onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={confirmAction}
+          isDeleting={updateUserMutation.isPending}
+        />
     </div>
   );
 }

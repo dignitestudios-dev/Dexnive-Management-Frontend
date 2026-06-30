@@ -1,12 +1,15 @@
 import axiosInstance from "@/lib/axios";
 import { LoginCredentials, LoginResponse, ForgotPasswordPayload, VerifyOTPPayload } from "@/features/auth/types";
 
+const generateDeviceId = () => {
+  return `web-${Math.random().toString(36).substring(2, 15)}-${Date.now().toString(36)}`;
+};
+
 export async function loginUser(credentials: LoginCredentials): Promise<LoginResponse> {
   const { data } = await axiosInstance.post<LoginResponse>("/auth/login", credentials, {
     headers: {
-      // These are required by the backend AuthValidator
-      "deviceuniqueid": "web-browser", // Generate properly if needed
-      "devicemodel": navigator.userAgent,
+      "deviceuniqueid": generateDeviceId(),
+      "devicemodel": typeof navigator !== "undefined" ? navigator.userAgent : "web-browser",
     }
   });
   return data;

@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { DeleteDialog } from "@/components/ui/delete-dialog";
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -32,6 +33,7 @@ export default function DivisionsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDiv, setEditingDiv] = useState<{ _id: string; name: string } | null>(null);
   const [name, setName] = useState("");
+  const [nameError, setNameError] = useState("");
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingDivId, setDeletingDivId] = useState<string | null>(null);
@@ -48,11 +50,16 @@ export default function DivisionsPage() {
       setEditingDiv(null);
       setName("");
     }
+    setNameError("");
     setIsDialogOpen(true);
   };
 
   const handleSave = () => {
-    if (!name.trim()) return toast.error("Name is required");
+    if (!name.trim()) {
+      setNameError("Name is required");
+      return;
+    }
+    setNameError("");
 
     if (editingDiv) {
       updateMutation.mutate(
@@ -62,7 +69,7 @@ export default function DivisionsPage() {
             toast.success("Division updated successfully");
             setIsDialogOpen(false);
           },
-          onError: () => toast.error("Failed to update division")
+          onError: (err: any) => toast.error(err.message || "Failed to update division")
         }
       );
     } else {
@@ -73,7 +80,7 @@ export default function DivisionsPage() {
             toast.success("Division created successfully");
             setIsDialogOpen(false);
           },
-          onError: () => toast.error("Failed to create division")
+          onError: (err: any) => toast.error(err.message || "Failed to create division")
         }
       );
     }
@@ -92,7 +99,7 @@ export default function DivisionsPage() {
           setIsDeleteDialogOpen(false);
           setDeletingDivId(null);
         },
-        onError: () => toast.error("Failed to delete division")
+        onError: (err: any) => toast.error(err.message || "Failed to delete division")
       });
     }
   };
@@ -175,20 +182,24 @@ export default function DivisionsPage() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md rounded-lg p-6">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
               {editingDiv ? "Edit Division" : "Add Division"}
             </DialogTitle>
           </DialogHeader>
-          <div className="py-4">
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Division Name</label>
+          <div className="pt-4 pb-2">
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Division Name <span className="text-red-500">*</span></label>
             <Input 
               value={name} 
-              onChange={(e) => setName(e.target.value)} 
+              onChange={(e) => {
+                setName(e.target.value);
+                if (nameError) setNameError("");
+              }} 
               placeholder="e.g. Mobile"
-              className="h-9"
+              className={`h-9 ${nameError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             />
+            {nameError && <p className="text-xs text-red-500 mt-1">{nameError}</p>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="rounded-md">Cancel</Button>
@@ -203,26 +214,14 @@ export default function DivisionsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md rounded-lg p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-red-600">Delete Division</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-gray-600">Are you sure you want to delete this division? This action cannot be undone.</p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="rounded-md">Cancel</Button>
-            <Button 
-              onClick={confirmDelete} 
-              className="rounded-md bg-red-600 hover:bg-red-700 text-white"
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? <Loader className="w-5 h-5 text-current" /> : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteDialog
+        title="Delete Division"
+        itemName="division"
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={confirmDelete}
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   );
 }

@@ -77,6 +77,11 @@ export interface ProjectStage {
   plannedEndDate?: string;
   actualStartDate?: string;
   actualEndDate?: string;
+  budgetedHours?: number;
+  totalBillableHours?: number;
+  totalNonBillableHours?: number;
+  totalOvertimeHours?: number;
+  totalHours?: number;
   auditLog: {
     status: StageStatus;
     changedAt: string;
@@ -93,6 +98,7 @@ export interface CreateProjectStagePayload {
   order: number;
   plannedStartDate?: string;
   plannedEndDate?: string;
+  budgetedHours?: number;
 }
 
 export interface UpdateStageStatusPayload {
@@ -106,6 +112,7 @@ export interface UpdateStageDetailsPayload {
   name?: string;
   plannedStartDate?: string;
   plannedEndDate?: string;
+  budgetedHours?: number;
 }
 
 export interface ReorderStagesPayload {

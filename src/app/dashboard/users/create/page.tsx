@@ -110,7 +110,7 @@ export default function CreateUserPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
               <Input
                 id="name"
                 placeholder="John Doe"
@@ -118,11 +118,11 @@ export default function CreateUserPage() {
                 {...register("name")}
                 className={errors.name ? "border-red-500" : ""}
               />
-              {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
+              {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
               <Input
                 id="email"
                 type="email"
@@ -130,11 +130,11 @@ export default function CreateUserPage() {
                 {...register("email")}
                 className={errors.email ? "border-red-500" : ""}
               />
-              {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+              {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Password <span className="text-red-500">*</span></Label>
               <Input
                 id="password"
                 type="password"
@@ -142,11 +142,11 @@ export default function CreateUserPage() {
                 {...register("password")}
                 className={errors.password ? "border-red-500" : ""}
               />
-              {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
+              {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="employeeCode">Employee Code</Label>
+              <Label htmlFor="employeeCode">Employee Code <span className="text-red-500">*</span></Label>
               <Input
                 id="employeeCode"
                 placeholder="1001"
@@ -158,11 +158,11 @@ export default function CreateUserPage() {
                 })}
                 className={errors.employeeCode ? "border-red-500" : ""}
               />
-              {errors.employeeCode && <p className="text-sm text-red-500">{errors.employeeCode.message}</p>}
+              {errors.employeeCode && <p className="text-xs text-red-500">{errors.employeeCode.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role">Role <span className="text-red-500">*</span></Label>
               <Controller
                 control={control}
                 name="role"
@@ -183,7 +183,7 @@ export default function CreateUserPage() {
                   </Select>
                 )}
               />
-              {errors.role && <p className="text-sm text-red-500">{errors.role.message}</p>}
+              {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
             </div>
 
             <div className="space-y-2">
@@ -208,7 +208,7 @@ export default function CreateUserPage() {
                   </Select>
                 )}
               />
-              {errors.department && <p className="text-sm text-red-500">{errors.department.message}</p>}
+              {errors.department && <p className="text-xs text-red-500">{errors.department.message}</p>}
             </div>
 
             <div className="space-y-2">
@@ -219,7 +219,7 @@ export default function CreateUserPage() {
                 {...register("joiningDate")}
                 className={errors.joiningDate ? "border-red-500" : ""}
               />
-              {errors.joiningDate && <p className="text-sm text-red-500">{errors.joiningDate.message}</p>}
+              {errors.joiningDate && <p className="text-xs text-red-500">{errors.joiningDate.message}</p>}
             </div>
 
             <div className="space-y-2 flex flex-col justify-center">

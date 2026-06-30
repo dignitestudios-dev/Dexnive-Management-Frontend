@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
+import { DeleteDialog } from "@/components/ui/delete-dialog";
 import { toast } from "sonner";
 import { Loader } from "@/components/ui/loader";
 
@@ -27,6 +28,11 @@ import {
 import { ProjectStage, StageStatus } from "@/features/projects/types";
 import { Division } from "@/features/divisions/types";
 import { ProjectTimeline } from "@/features/projects/components/ProjectTimeline";
+
+const formatDisplayDate = (dateString?: string | null) => {
+  if (!dateString) return "--";
+  return new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
 
 export default function ProjectDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -56,11 +62,14 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
   const [stageName, setStageName] = useState("");
   const [plannedStartDate, setPlannedStartDate] = useState("");
   const [plannedEndDate, setPlannedEndDate] = useState("");
+  const [budgetedHours, setBudgetedHours] = useState("");
+  const [stageError, setStageError] = useState("");
   
   // Status Form State
   const [statusStage, setStatusStage] = useState<ProjectStage | null>(null);
-  const [newStatus, setNewStatus] = useState<StageStatus>("active");
+  const [newStatus, setNewStatus] = useState<StageStatus>("not-started");
   const [statusNote, setStatusNote] = useState("");
+  const [stageToDelete, setStageToDelete] = useState<string | null>(null);
   
   // View Details State
   const [viewingStageId, setViewingStageId] = useState<string | null>(null);
@@ -76,22 +85,49 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
       setStageName(stage.name);
       setPlannedStartDate(stage.plannedStartDate ? new Date(stage.plannedStartDate).toISOString().split('T')[0] : "");
       setPlannedEndDate(stage.plannedEndDate ? new Date(stage.plannedEndDate).toISOString().split('T')[0] : "");
+      setBudgetedHours(stage.budgetedHours ? String(stage.budgetedHours) : "");
     } else {
       setEditingStage(null);
       setStageName("");
       setPlannedStartDate("");
       setPlannedEndDate("");
+      setBudgetedHours("");
     }
+    setStageError("");
     setIsStageDialogOpen(true);
   };
 
   const handleSaveStage = () => {
-    if (!stageName.trim()) return toast.error("Stage name is required");
+    if (!stageName.trim()) {
+      setStageError("Stage name is required");
+      return;
+    }
+    
+    const parsedBudget = Number(budgetedHours);
+    if (budgetedHours && (isNaN(parsedBudget) || parsedBudget < 0)) {
+      setStageError("Budgeted hours must be a positive number");
+      return;
+    }
+
+    if (stats?.budgetedHours && parsedBudget > 0) {
+      const otherStagesBudget = stages
+        .filter((s: ProjectStage) => s._id !== editingStage?._id)
+        .reduce((sum: number, s: ProjectStage) => sum + (s.budgetedHours || 0), 0);
+      
+      const totalBudgetWithThisStage = otherStagesBudget + parsedBudget;
+      if (totalBudgetWithThisStage > stats.budgetedHours) {
+        setStageError(`Total stages budgeted hours (${totalBudgetWithThisStage}h) cannot exceed project budget (${stats.budgetedHours}h)`);
+        return;
+      }
+    }
+
+    setStageError("");
 
     const payload = {
       name: stageName.trim(),
       plannedStartDate: plannedStartDate || undefined,
       plannedEndDate: plannedEndDate || undefined,
+      budgetedHours: parsedBudget || undefined,
     };
 
     if (editingStage) {
@@ -100,7 +136,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
           toast.success("Stage updated successfully");
           setIsStageDialogOpen(false);
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message || "Failed to update stage")
+        onError: (err: any) => toast.error(err.message || "Failed to update stage")
       });
     } else {
       createMutation.mutate({ 
@@ -112,16 +148,19 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
           toast.success("Stage created successfully");
           setIsStageDialogOpen(false);
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message || "Failed to create stage")
+        onError: (err: any) => toast.error(err.message || "Failed to create stage")
       });
     }
   };
 
-  const handleDeleteStage = (stageId: string) => {
-    if (confirm("Are you sure you want to delete this stage?")) {
-      deleteMutation.mutate(stageId, {
-        onSuccess: () => toast.success("Stage deleted successfully"),
-        onError: () => toast.error("Failed to delete stage")
+  const confirmDeleteStage = () => {
+    if (stageToDelete) {
+      deleteMutation.mutate(stageToDelete, {
+        onSuccess: () => {
+          toast.success("Stage deleted successfully");
+          setStageToDelete(null);
+        },
+        onError: (err: any) => toast.error(err.message || "Failed to delete stage")
       });
     }
   };
@@ -139,14 +178,14 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
     updateStatusMutation.mutate({
       stageId: statusStage._id,
       status: newStatus,
-      note: statusNote.trim() || undefined
+      note: statusNote.trim()
     }, {
       onSuccess: () => {
         toast.success(`Stage marked as ${newStatus}`);
         setIsStatusDialogOpen(false);
       },
       onError: (err: any) => {
-        toast.error(err?.response?.data?.message || "Failed to update stage status");
+        toast.error(err.message || "Failed to update stage status");
       }
     });
   };
@@ -167,7 +206,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
     const payload = newStages.map((s, i) => ({ stageId: s._id, order: i + 1 }));
     reorderMutation.mutate({ stages: payload }, {
       onSuccess: () => toast.success("Stages reordered"),
-      onError: () => toast.error("Failed to reorder stages")
+      onError: (err: any) => toast.error(err.message || "Failed to reorder stages")
     });
   };
 
@@ -241,7 +280,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
           <div className="flex flex-col">
             <span className="text-gray-500 text-xs font-medium uppercase tracking-wider">Dates</span>
             <span className="font-medium text-gray-900">
-              {project.estimatedStartDate ? new Date(project.estimatedStartDate).toLocaleDateString() : "--"} - {project.estimatedEndDate ? new Date(project.estimatedEndDate).toLocaleDateString() : "--"}
+              {formatDisplayDate(project.estimatedStartDate)} - {formatDisplayDate(project.estimatedEndDate)}
             </span>
           </div>
           
@@ -259,13 +298,27 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                     <span className="text-gray-500">Budget Usage</span>
                     <span className={(stats.totalHours || 0) > stats.budgetedHours ? "text-red-600" : "text-gray-900"}>
                       {stats.totalHours || 0} / {stats.budgetedHours}h
+                      {(stats.totalHours || 0) > stats.budgetedHours && ` (+${((stats.totalHours || 0) - stats.budgetedHours).toFixed(1)}h extra)`}
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-1.5">
-                    <div 
-                      className={`h-1.5 rounded-full ${(stats.totalHours || 0) > stats.budgetedHours ? 'bg-red-500' : 'bg-primary'}`}
-                      style={{ width: `${Math.min(((stats.totalHours || 0) / stats.budgetedHours) * 100, 100)}%` }}
-                    />
+                  <div className="w-full bg-gray-200 rounded-full h-1.5 flex overflow-hidden">
+                    {(stats.totalHours || 0) <= stats.budgetedHours ? (
+                      <div 
+                        className="h-1.5 bg-primary transition-all duration-500"
+                        style={{ width: `${Math.min(((stats.totalHours || 0) / stats.budgetedHours) * 100, 100)}%` }}
+                      />
+                    ) : (
+                      <>
+                        <div 
+                          className="h-1.5 bg-primary opacity-60 transition-all duration-500"
+                          style={{ width: `${(stats.budgetedHours / (stats.totalHours || 1)) * 100}%` }}
+                        />
+                        <div 
+                          className="h-1.5 bg-red-500 transition-all duration-500"
+                          style={{ width: `${(((stats.totalHours || 0) - stats.budgetedHours) / (stats.totalHours || 1)) * 100}%` }}
+                        />
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -293,14 +346,19 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
       {/* Main Content */}
       <div className="flex-1 overflow-auto bg-gray-50/50 p-6">
         {activeTab === "list" && (
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm min-w-[800px]">
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm min-w-[1000px] overflow-x-auto">
           {/* Table Header */}
-          <div className="grid grid-cols-[auto_1fr_120px_160px_160px] items-center gap-4 p-3 border-b border-gray-200 bg-gray-50/80 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            <div className="w-16 flex justify-center">Order</div>
+          <div className="grid grid-cols-[48px_minmax(150px,1fr)_100px_100px_100px_70px_70px_70px_70px_70px] items-center gap-4 p-3 border-b border-gray-200 bg-gray-50/80 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+            <div className="flex justify-center">Order</div>
             <div>Stage Name</div>
             <div>Status</div>
             <div>Start Date</div>
             <div>End Date</div>
+            <div className="text-right">Budget</div>
+            <div className="text-right">Billable</div>
+            <div className="text-right">Non-Bill</div>
+            <div className="text-right">OT</div>
+            <div className="text-right">Total</div>
           </div>
 
           {/* Table Body */}
@@ -319,19 +377,20 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                 <ContextMenu key={stage._id}>
                   <ContextMenuTrigger render={<div />}>
                     <div 
-                      className={`grid grid-cols-[auto_1fr_120px_160px_160px] items-center gap-4 p-3 text-sm transition-colors hover:bg-blue-50/30 group ${stage.status === 'active' ? 'bg-primary/[0.02]' : ''}`}
+                      onClick={() => setViewingStageId(stage._id)}
+                      className={`grid grid-cols-[48px_minmax(150px,1fr)_100px_100px_100px_70px_70px_70px_70px_70px] items-center gap-4 p-3 text-sm transition-colors hover:bg-blue-50/30 cursor-pointer group ${stage.status === 'active' ? 'bg-primary/[0.02]' : ''}`}
                     >
                       {/* Order / Grip */}
-                      <div className="w-16 flex items-center justify-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
                         <button 
-                          onClick={() => moveStage(index, 'up')} 
+                          onClick={(e) => { e.stopPropagation(); moveStage(index, 'up'); }} 
                           disabled={index === 0 || reorderMutation.isPending}
                           className="p-1 hover:text-gray-900 disabled:opacity-30 cursor-pointer"
                         >
                           <ArrowUp className="w-3.5 h-3.5" />
                         </button>
                         <button 
-                          onClick={() => moveStage(index, 'down')} 
+                          onClick={(e) => { e.stopPropagation(); moveStage(index, 'down'); }} 
                           disabled={index === stages.length - 1 || reorderMutation.isPending}
                           className="p-1 hover:text-gray-900 disabled:opacity-30 cursor-pointer"
                         >
@@ -366,15 +425,21 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
 
                       {/* Start Date */}
                       <div className="text-gray-500 flex items-center gap-1.5 text-xs">
-                        <Calendar className="w-3.5 h-3.5 opacity-70" />
-                        {stage.plannedStartDate ? new Date(stage.plannedStartDate).toLocaleDateString() : "--"}
+                        <Calendar className="w-3 h-3 opacity-70" />
+                        {formatDisplayDate(stage.plannedStartDate)}
                       </div>
 
                       {/* End Date */}
                       <div className="text-gray-500 flex items-center gap-1.5 text-xs">
-                        <Clock className="w-3.5 h-3.5 opacity-70" />
-                        {stage.plannedEndDate ? new Date(stage.plannedEndDate).toLocaleDateString() : "--"}
+                        <Clock className="w-3 h-3 opacity-70" />
+                        {formatDisplayDate(stage.plannedEndDate)}
                       </div>
+
+                      <div className="text-right text-gray-600 text-xs font-medium">{stage.budgetedHours ? `${stage.budgetedHours}h` : '--'}</div>
+                      <div className="text-right text-emerald-600 text-xs font-medium">{stage.totalBillableHours ? `${stage.totalBillableHours}h` : '0h'}</div>
+                      <div className="text-right text-amber-600 text-xs font-medium">{stage.totalNonBillableHours ? `${stage.totalNonBillableHours}h` : '0h'}</div>
+                      <div className="text-right text-purple-600 text-xs font-medium">{stage.totalOvertimeHours ? `${stage.totalOvertimeHours}h` : '0h'}</div>
+                      <div className="text-right text-gray-900 text-xs font-bold">{stage.totalHours ? `${stage.totalHours}h` : '0h'}</div>
                     </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="w-48 p-1">
@@ -402,7 +467,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                       <span>Edit Stage</span>
                     </ContextMenuItem>
                     <ContextMenuSeparator className="my-1" />
-                    <ContextMenuItem onClick={() => handleDeleteStage(stage._id)} className="flex items-center gap-2 py-1.5 text-xs text-red-600 hover:text-red-700 focus:text-red-700">
+                    <ContextMenuItem onClick={() => setStageToDelete(stage._id)} className="flex items-center gap-2 py-1.5 text-xs text-red-600 hover:text-red-700 focus:text-red-700">
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>Delete</span>
                     </ContextMenuItem>
@@ -432,10 +497,14 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
               <label className="text-sm font-medium text-gray-700 mb-1 block">Stage Name <span className="text-red-500">*</span></label>
               <Input 
                 value={stageName} 
-                onChange={(e) => setStageName(e.target.value)} 
+                onChange={(e) => {
+                  setStageName(e.target.value);
+                  if (stageError) setStageError("");
+                }} 
                 placeholder="e.g. Design Phase"
-                className="h-9"
+                className={`h-9 ${stageError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
               />
+              {stageError && <p className="text-xs text-red-500 mt-1">{stageError}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -456,6 +525,26 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                   className="h-9"
                 />
               </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block flex justify-between items-center">
+                <span>Budgeted Hours</span>
+                {stats?.budgetedHours && (
+                  <span className="text-xs text-gray-500 font-normal">Project limit: {stats.budgetedHours}h</span>
+                )}
+              </label>
+              <Input 
+                type="number"
+                min="0"
+                step="0.5"
+                value={budgetedHours} 
+                onChange={(e) => {
+                  setBudgetedHours(e.target.value);
+                  if (stageError) setStageError("");
+                }} 
+                placeholder="e.g. 40"
+                className="h-9"
+              />
             </div>
           </div>
           <DialogFooter>
@@ -536,11 +625,35 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                 <div className="flex gap-6 mt-3 text-sm text-gray-500">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-4 h-4 opacity-70" />
-                    <span>Planned: {stageDetails.plannedStartDate ? new Date(stageDetails.plannedStartDate).toLocaleDateString() : "--"} - {stageDetails.plannedEndDate ? new Date(stageDetails.plannedEndDate).toLocaleDateString() : "--"}</span>
+                    <span>Planned: {formatDisplayDate(stageDetails.plannedStartDate)} - {formatDisplayDate(stageDetails.plannedEndDate)}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Clock className="w-4 h-4 opacity-70" />
-                    <span>Actual: {stageDetails.actualStartDate ? new Date(stageDetails.actualStartDate).toLocaleDateString() : "--"} - {stageDetails.actualEndDate ? new Date(stageDetails.actualEndDate).toLocaleDateString() : "--"}</span>
+                    <span>Actual: {formatDisplayDate(stageDetails.actualStartDate)} - {formatDisplayDate(stageDetails.actualEndDate)}</span>
+                  </div>
+                </div>
+                
+                {/* Hours Breakdown */}
+                <div className="mt-4 grid grid-cols-5 gap-3 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                  <div className="text-center">
+                    <div className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">Budget</div>
+                    <div className="text-sm font-semibold text-gray-900">{stageDetails.budgetedHours || 0}h</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">Billable</div>
+                    <div className="text-sm font-semibold text-emerald-600">{stageDetails.totalBillableHours || 0}h</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">Non-Billable</div>
+                    <div className="text-sm font-semibold text-amber-600">{stageDetails.totalNonBillableHours || 0}h</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">Overtime</div>
+                    <div className="text-sm font-semibold text-purple-600">{stageDetails.totalOvertimeHours || 0}h</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">Total</div>
+                    <div className="text-sm font-bold text-gray-900">{stageDetails.totalHours || 0}h</div>
                   </div>
                 </div>
               </div>
@@ -589,6 +702,15 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
           )}
         </DialogContent>
       </Dialog>
+      
+      <DeleteDialog
+        title="Delete Stage"
+        itemName="stage"
+        isOpen={!!stageToDelete}
+        onClose={() => setStageToDelete(null)}
+        onConfirm={confirmDeleteStage}
+        isDeleting={deleteMutation.isPending}
+      />
 
     </div>
   );

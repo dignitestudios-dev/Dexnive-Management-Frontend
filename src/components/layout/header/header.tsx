@@ -7,6 +7,7 @@ import { logout } from "@/store/slices/auth.slice";
 import { useRouter } from "next-nprogress-bar";
 import { useLogoutMutation } from "@/features/auth/api/auth.mutations";
 import { useGetMyUserQuery } from "@/features/users/api/users.queries";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function Header() {
   const { user: localUser } = useAuth();
@@ -16,6 +17,7 @@ export function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const logoutMutation = useLogoutMutation();
 
@@ -27,6 +29,7 @@ export function Header() {
         localStorage.removeItem("auth-token");
         localStorage.removeItem("auth-user");
         document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        queryClient.clear();
         dispatch(logout());
         router.push("/auth/login");
       }

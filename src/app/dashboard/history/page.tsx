@@ -189,7 +189,7 @@ export default function MyWorklogsHistoryPage() {
           <span className="text-xs font-medium text-gray-500">Applied Filters:</span>
           
           <span className="inline-flex items-center px-2 py-1 rounded-md bg-white border border-gray-200 text-xs font-medium text-gray-700 shadow-sm">
-            Date: {appliedFilters.startDate} to {appliedFilters.endDate}
+            Date: {format(new Date(appliedFilters.startDate), "MMM d, yyyy")} to {format(new Date(appliedFilters.endDate), "MMM d, yyyy")}
           </span>
           
           {appliedFilters.project !== "all" && (

@@ -44,11 +44,6 @@ axiosInstance.interceptors.response.use(
         message = data.error.map((err: { message: string; path: string }) => err.message).join(", ");
         if (data) data.message = message;
       }
-      
-      // Show global toast for Unprocessable Entity
-      if (typeof window !== "undefined") {
-        toast.error(message);
-      }
     }
 
     // Override the generic axios error message with the backend message
