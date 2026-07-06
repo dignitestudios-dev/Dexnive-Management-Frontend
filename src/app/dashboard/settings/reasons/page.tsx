@@ -213,7 +213,7 @@ export default function ManageReasonsPage() {
             <DialogTitle>{editingId ? "Edit Reason" : "Add Reason"}</DialogTitle>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4 pb-2">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="name"

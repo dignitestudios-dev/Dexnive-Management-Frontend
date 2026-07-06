@@ -198,7 +198,7 @@ export default function DepartmentsPage() {
               {editingDept ? "Edit Department" : "Add Department"}
             </DialogTitle>
           </DialogHeader>
-          <div className="pt-4 pb-2 space-y-4">
+          <div className="space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Department Name <span className="text-red-500">*</span></label>
               <Input 

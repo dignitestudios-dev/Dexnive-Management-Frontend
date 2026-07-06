@@ -188,7 +188,7 @@ export default function DivisionsPage() {
               {editingDiv ? "Edit Division" : "Add Division"}
             </DialogTitle>
           </DialogHeader>
-          <div className="pt-4 pb-2">
+          <div className="space-y-4">
             <label className="text-sm font-medium text-gray-700 mb-1 block">Division Name <span className="text-red-500">*</span></label>
             <Input 
               value={name} 

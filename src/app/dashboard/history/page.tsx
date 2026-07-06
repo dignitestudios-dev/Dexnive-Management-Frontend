@@ -21,7 +21,15 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { ChevronsUpDown, Check, Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function MyWorklogsHistoryPage() {
+import { useSearchParams, usePathname } from "next/navigation";
+import { useRouter } from "next-nprogress-bar";
+import { Suspense, useEffect } from "react";
+
+function MyWorklogsHistoryContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const formatMins = (mins: number) => {
     const h = Math.floor(mins / 60);
     const m = mins % 60;
@@ -36,10 +44,10 @@ export default function MyWorklogsHistoryPage() {
   const defaultEndDate = () => format(new Date(), "yyyy-MM-dd");
 
   const [draftFilters, setDraftFilters] = useState({
-    project: "all",
-    status: "all",
-    startDate: defaultStartDate(),
-    endDate: defaultEndDate(),
+    project: searchParams.get("project") || "all",
+    status: searchParams.get("status") || "all",
+    startDate: searchParams.get("startDate") || defaultStartDate(),
+    endDate: searchParams.get("endDate") || defaultEndDate(),
   });
   const [appliedFilters, setAppliedFilters] = useState(draftFilters);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -71,6 +79,53 @@ export default function MyWorklogsHistoryPage() {
     setDraftFilters(cleared);
     setAppliedFilters(cleared);
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    let hasChanges = false;
+
+    if (appliedFilters.project && appliedFilters.project !== "all") {
+      if (params.get("project") !== appliedFilters.project) {
+        params.set("project", appliedFilters.project);
+        hasChanges = true;
+      }
+    } else {
+      if (params.has("project")) {
+        params.delete("project");
+        hasChanges = true;
+      }
+    }
+
+    if (appliedFilters.status && appliedFilters.status !== "all") {
+      if (params.get("status") !== appliedFilters.status) {
+        params.set("status", appliedFilters.status);
+        hasChanges = true;
+      }
+    } else {
+      if (params.has("status")) {
+        params.delete("status");
+        hasChanges = true;
+      }
+    }
+
+    if (appliedFilters.startDate) {
+      if (params.get("startDate") !== appliedFilters.startDate) {
+        params.set("startDate", appliedFilters.startDate);
+        hasChanges = true;
+      }
+    }
+
+    if (appliedFilters.endDate) {
+      if (params.get("endDate") !== appliedFilters.endDate) {
+        params.set("endDate", appliedFilters.endDate);
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+  }, [appliedFilters, pathname, router, searchParams]);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white relative">
@@ -285,6 +340,18 @@ export default function MyWorklogsHistoryPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function MyWorklogsHistoryPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex-1 flex items-center justify-center h-full bg-white">
+        <Loader className="w-6 h-6 text-primary-500" />
+      </div>
+    }>
+      <MyWorklogsHistoryContent />
+    </Suspense>
   );
 }
 

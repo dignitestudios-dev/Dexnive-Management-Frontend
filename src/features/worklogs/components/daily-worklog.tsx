@@ -513,18 +513,24 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
             </div>
           ) : isSubmitted ? (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { label: "Total Time", val: worklog.totalLoggedMinutes, color: "text-gray-900", bg: "bg-gray-50 border-gray-100" },
-                  { label: "Billable", val: worklog.totalBillableMinutes, color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-100" },
-                  { label: "Non-Billable", val: worklog.totalNonBillableMinutes, color: "text-amber-700", bg: "bg-amber-50 border-amber-100" },
-                  { label: "Overtime", val: worklog.totalOvertimeMinutes, color: "text-purple-700", bg: "bg-purple-50 border-purple-100" }
-                ].map((stat, i) => (
-                  <div key={i} className={`p-4 rounded-lg border ${stat.bg}`}>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{stat.label}</p>
-                    <p className={`text-lg font-semibold ${stat.color}`}>{formatMins(stat.val)}</p>
-                  </div>
-                ))}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-lg border bg-gray-50 border-gray-100">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total Time</p>
+                  <p className="text-lg font-semibold text-gray-900">{formatMins(worklog.totalLoggedMinutes)}</p>
+                </div>
+                <div className="p-4 rounded-lg border bg-emerald-50 border-emerald-100">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Billable</p>
+                  <p className="text-lg font-semibold text-emerald-700">
+                    {formatMins(worklog.totalBillableMinutes)}
+                    {worklog.totalOvertimeMinutes > 0 ? <span className="text-xs ml-1 opacity-80">({formatMins(worklog.totalOvertimeMinutes)} OT)</span> : null}
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg border bg-amber-50 border-amber-100">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Non-Billable</p>
+                  <p className="text-lg font-semibold text-amber-700">
+                    {formatMins(worklog.totalNonBillableMinutes)}
+                  </p>
+                </div>
               </div>
 
               <div>
@@ -551,19 +557,15 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                         
                         <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
                            <div className="flex flex-wrap gap-2 justify-start md:justify-end">
-                            {entry.billableMinutes > 0 && (
+                            {(entry.billableMinutes > 0 || entry.overtimeMinutes > 0) && (
                               <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 font-medium">
                                 {formatMins(entry.billableMinutes)} Billable
+                                {entry.overtimeMinutes > 0 ? ` (${formatMins(entry.overtimeMinutes)} OT)` : ""}
                               </Badge>
                             )}
                             {entry.nonBillableMinutes > 0 && (
                               <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200 font-medium">
                                 {formatMins(entry.nonBillableMinutes)} Non-Billable
-                              </Badge>
-                            )}
-                            {entry.overtimeMinutes > 0 && (
-                              <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200 font-medium">
-                                {formatMins(entry.overtimeMinutes)} Overtime
                               </Badge>
                             )}
                           </div>

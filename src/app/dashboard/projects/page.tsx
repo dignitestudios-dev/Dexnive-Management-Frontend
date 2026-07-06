@@ -470,15 +470,16 @@ function ProjectsPageContent() {
               <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
                 <div>
                   <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Total Billable</p>
-                  <p className="text-sm font-medium text-green-700">{projectStats.totalBillableHours || 0}h</p>
+                  <p className="text-sm font-medium text-green-700">
+                    {projectStats.totalBillableHours || 0}h
+                    {projectStats.totalOvertimeHours ? ` (${projectStats.totalOvertimeHours}h OT)` : ""}
+                  </p>
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Total Non-Billable</p>
-                  <p className="text-sm font-medium text-amber-700">{projectStats.totalNonBillableHours || 0}h</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Total Overtime</p>
-                  <p className="text-sm font-medium text-purple-700">{projectStats.totalOvertimeHours || 0}h</p>
+                  <p className="text-sm font-medium text-amber-700">
+                    {projectStats.totalNonBillableHours || 0}h
+                  </p>
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-1">Total Hours</p>

@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import { useInfiniteUsersQuery } from "@/features/users/api/users.queries";
 import { useGetRolesQuery, useGetDepartmentsQuery } from "@/features/users/api/options.queries";
 import { useUpdateUserMutation } from "@/features/users/api/users.mutations";
-import { useGetSummaryQuery } from "@/features/worklogs/api/worklogs.queries";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useRouter } from "next-nprogress-bar";
@@ -224,18 +223,6 @@ function UsersPageContent() {
 
   const users = React.useMemo(() => data?.pages.flatMap((page) => page.data) || [], [data]);
 
-  const { data: summaryResponse, isLoading: isLoadingSummary } = useGetSummaryQuery({});
-  
-  const overallStats = React.useMemo(() => {
-    if (!summaryResponse?.data) return { logged: 0, billable: 0, nonBillable: 0, overtime: 0 };
-    return summaryResponse.data.reduce((acc, curr) => ({
-      logged: acc.logged + curr.totalLoggedHours,
-      billable: acc.billable + curr.totalBillableHours,
-      nonBillable: acc.nonBillable + curr.totalNonBillableHours,
-      overtime: acc.overtime + curr.totalOvertimeHours
-    }), { logged: 0, billable: 0, nonBillable: 0, overtime: 0 });
-  }, [summaryResponse]);
-
   // Intersection Observer for Infinite Scroll
   const observerTarget = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -321,32 +308,7 @@ function UsersPageContent() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="rounded-xl border-gray-200/60 shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Logged</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{overallStats.logged.toFixed(1)}h</p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-xl border-gray-200/60 shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Billable</p>
-            <p className="text-2xl font-bold text-emerald-700 mt-1">{overallStats.billable.toFixed(1)}h</p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-xl border-gray-200/60 shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Non-Billable</p>
-            <p className="text-2xl font-bold text-amber-700 mt-1">{overallStats.nonBillable.toFixed(1)}h</p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-xl border-gray-200/60 shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider">Overtime</p>
-            <p className="text-2xl font-bold text-purple-700 mt-1">{overallStats.overtime.toFixed(1)}h</p>
-          </CardContent>
-        </Card>
-      </div>
+
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-4 border-b border-gray-200 flex flex-col gap-4 bg-gray-50">

@@ -348,7 +348,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
         {activeTab === "list" && (
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm min-w-[1000px] overflow-x-auto">
           {/* Table Header */}
-          <div className="grid grid-cols-[48px_minmax(150px,1fr)_100px_100px_100px_70px_70px_70px_70px_70px] items-center gap-4 p-3 border-b border-gray-200 bg-gray-50/80 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="grid grid-cols-[48px_minmax(150px,1fr)_100px_100px_100px_70px_70px_100px_70px] items-center gap-4 p-3 border-b border-gray-200 bg-gray-50/80 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
             <div className="flex justify-center">Order</div>
             <div>Stage Name</div>
             <div>Status</div>
@@ -357,7 +357,6 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
             <div className="text-right">Budget</div>
             <div className="text-right">Billable</div>
             <div className="text-right">Non-Bill</div>
-            <div className="text-right">OT</div>
             <div className="text-right">Total</div>
           </div>
 
@@ -378,7 +377,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                   <ContextMenuTrigger render={<div />}>
                     <div 
                       onClick={() => setViewingStageId(stage._id)}
-                      className={`grid grid-cols-[48px_minmax(150px,1fr)_100px_100px_100px_70px_70px_70px_70px_70px] items-center gap-4 p-3 text-sm transition-colors hover:bg-blue-50/30 cursor-pointer group ${stage.status === 'active' ? 'bg-primary/[0.02]' : ''}`}
+                      className={`grid grid-cols-[48px_minmax(150px,1fr)_100px_100px_100px_70px_70px_100px_70px] items-center gap-4 p-3 text-sm transition-colors hover:bg-blue-50/30 cursor-pointer group ${stage.status === 'active' ? 'bg-primary/[0.02]' : ''}`}
                     >
                       {/* Order / Grip */}
                       <div className="flex items-center justify-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
@@ -436,9 +435,13 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                       </div>
 
                       <div className="text-right text-gray-600 text-xs font-medium">{stage.budgetedHours ? `${stage.budgetedHours}h` : '--'}</div>
-                      <div className="text-right text-emerald-600 text-xs font-medium">{stage.totalBillableHours ? `${stage.totalBillableHours}h` : '0h'}</div>
-                      <div className="text-right text-amber-600 text-xs font-medium">{stage.totalNonBillableHours ? `${stage.totalNonBillableHours}h` : '0h'}</div>
-                      <div className="text-right text-purple-600 text-xs font-medium">{stage.totalOvertimeHours ? `${stage.totalOvertimeHours}h` : '0h'}</div>
+                      <div className="text-right text-emerald-600 text-xs font-medium">
+                        {stage.totalBillableHours ? `${stage.totalBillableHours}h` : '0h'}
+                        {stage.totalOvertimeHours ? <span className="block text-[10px] opacity-75">({stage.totalOvertimeHours}h OT)</span> : null}
+                      </div>
+                      <div className="text-right text-amber-600 text-xs font-medium">
+                        {stage.totalNonBillableHours ? `${stage.totalNonBillableHours}h` : '0h'}
+                      </div>
                       <div className="text-right text-gray-900 text-xs font-bold">{stage.totalHours ? `${stage.totalHours}h` : '0h'}</div>
                     </div>
                   </ContextMenuTrigger>
@@ -641,15 +644,16 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                   </div>
                   <div className="text-center">
                     <div className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">Billable</div>
-                    <div className="text-sm font-semibold text-emerald-600">{stageDetails.totalBillableHours || 0}h</div>
+                    <div className="text-sm font-semibold text-emerald-600">
+                      {stageDetails.totalBillableHours || 0}h
+                      {stageDetails.totalOvertimeHours ? <span className="text-[10px] opacity-75 ml-1">({stageDetails.totalOvertimeHours}h OT)</span> : null}
+                    </div>
                   </div>
                   <div className="text-center">
                     <div className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">Non-Billable</div>
-                    <div className="text-sm font-semibold text-amber-600">{stageDetails.totalNonBillableHours || 0}h</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">Overtime</div>
-                    <div className="text-sm font-semibold text-purple-600">{stageDetails.totalOvertimeHours || 0}h</div>
+                    <div className="text-sm font-semibold text-amber-600">
+                      {stageDetails.totalNonBillableHours || 0}h
+                    </div>
                   </div>
                   <div className="text-center">
                     <div className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">Total</div>

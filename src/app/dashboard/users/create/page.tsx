@@ -85,11 +85,9 @@ export default function CreateUserPage() {
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-8 w-full">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/users">
-          <Button variant="outline" size="icon" className="rounded-full w-10 h-10 border-gray-200">
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
-          </Button>
-        </Link>
+        <Button variant="outline" size="icon" onClick={() => router.back()} className="rounded-full w-10 h-10 border-gray-200">
+          <ArrowLeft className="w-5 h-5 text-gray-600" />
+        </Button>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Add New User</h1>
           <p className="text-sm text-gray-500 mt-1">Create a new team member and assign their role.</p>

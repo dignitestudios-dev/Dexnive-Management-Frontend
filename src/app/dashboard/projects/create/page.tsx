@@ -14,7 +14,7 @@ export default function CreateProjectPage() {
         <Button 
           variant="outline" 
           size="icon" 
-          onClick={() => router.push("/dashboard/projects")}
+          onClick={() => router.back()}
           className="rounded-full w-10 h-10 border-gray-200"
         >
           <ArrowLeft className="w-5 h-5 text-gray-600" />

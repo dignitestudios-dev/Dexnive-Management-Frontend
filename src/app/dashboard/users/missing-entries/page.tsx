@@ -14,11 +14,14 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { ChevronsUpDown, Check, Filter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
+import { useRouter } from "next-nprogress-bar";
 import { Suspense, useEffect } from "react";
 
 function MissingEntriesPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const defaultStartDate = () => {
     const d = new Date();
     d.setDate(1);
@@ -71,6 +74,41 @@ function MissingEntriesPageContent() {
     setDraftFilters(cleared);
     setAppliedFilters(cleared);
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    let hasChanges = false;
+
+    if (appliedFilters.department && appliedFilters.department !== "all_departments") {
+      if (params.get("department") !== appliedFilters.department) {
+        params.set("department", appliedFilters.department);
+        hasChanges = true;
+      }
+    } else {
+      if (params.has("department")) {
+        params.delete("department");
+        hasChanges = true;
+      }
+    }
+
+    if (appliedFilters.startDate) {
+      if (params.get("startDate") !== appliedFilters.startDate) {
+        params.set("startDate", appliedFilters.startDate);
+        hasChanges = true;
+      }
+    }
+
+    if (appliedFilters.endDate) {
+      if (params.get("endDate") !== appliedFilters.endDate) {
+        params.set("endDate", appliedFilters.endDate);
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+  }, [appliedFilters, pathname, router, searchParams]);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white relative">
