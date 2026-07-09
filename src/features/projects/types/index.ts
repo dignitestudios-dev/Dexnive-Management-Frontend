@@ -25,6 +25,18 @@ export interface Project {
   totalOvertimeHours?: number;
   totalHours?: number;
   budgetUsedPercent?: number | null;
+  scheduleStatus?: string | null;
+  auditLog?: {
+    previousStatus: ProjectStatus;
+    newStatus: ProjectStatus;
+    changedBy: {
+      _id: string;
+      name: string;
+      email: string;
+    };
+    changedAt: string;
+    note?: string | null;
+  }[];
 }
 
 export interface GetProjectsParams {
@@ -34,6 +46,7 @@ export interface GetProjectsParams {
   status?: ProjectStatus | ProjectStatus[];
   projectType?: ProjectType | ProjectType[];
   division?: string | string[];
+  availableForLogging?: boolean;
 }
 
 export interface PaginatedProjectsResponse {
@@ -72,6 +85,7 @@ export interface ProjectStage {
   name: string;
   order: number;
   status: StageStatus;
+  scheduleStatus?: string | null;
   isTemplateBased: boolean;
   plannedStartDate?: string;
   plannedEndDate?: string;
@@ -82,6 +96,8 @@ export interface ProjectStage {
   totalNonBillableHours?: number;
   totalOvertimeHours?: number;
   totalHours?: number;
+  budgetUsedPercent?: number | null;
+  budgetStatus?: string;
   auditLog: {
     status: StageStatus;
     changedAt: string;

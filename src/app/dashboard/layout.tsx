@@ -1,7 +1,6 @@
 "use client";
 
-import { PrimarySidebar } from "@/components/layout/sidebar/primary-sidebar";
-import { SecondarySidebar } from "@/components/layout/sidebar/secondary-sidebar";
+import { Sidebar } from "@/components/layout/sidebar/sidebar";
 import { Header } from "@/components/layout/header/header";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useRouter } from "next-nprogress-bar";
@@ -34,9 +33,8 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-white">
-      {/* Sidebars */}
-      <PrimarySidebar />
-      <SecondarySidebar />
+      {/* Sidebar */}
+      <Sidebar />
 
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 min-w-0">

@@ -18,6 +18,11 @@ export const projectStagesService = {
     return data;
   },
 
+  getStageEntries: async (stageId: string) => {
+    const { data } = await axiosInstance.get<{ message: string; data: any[] }>(`/project-stages/${stageId}/entries`);
+    return data;
+  },
+
   createStage: async (payload: CreateProjectStagePayload) => {
     const { data } = await axiosInstance.post<{ message: string; data: ProjectStage }>("/project-stages", payload);
     return data;

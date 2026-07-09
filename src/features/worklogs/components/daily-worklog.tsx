@@ -80,7 +80,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   const today = defaultDateOnly || format(new Date(), "yyyy-MM-dd");
   
   const { data: myWorklog, isLoading: isLoadingWorklog, refetch } = useGetMyWorklogByDateQuery(today);
-  const { data: projectsData } = useGetProjectsQuery({ status: "active", limit: 100 });
+  const { data: projectsData } = useGetProjectsQuery({ availableForLogging: true, limit: 100 });
   const { data: reasonsData } = useGetNonBillableReasonsQuery();
 
   const { data: missingEntriesData } = useGetMyMissingEntriesQuery({

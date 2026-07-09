@@ -22,3 +22,11 @@ export function useGetStageByIdQuery(stageId: string) {
     enabled: !!stageId,
   });
 }
+
+export function useGetStageEntriesQuery(stageId: string) {
+  return useQuery({
+    queryKey: [...projectStagesKeys.detail(stageId), "entries"],
+    queryFn: () => projectStagesService.getStageEntries(stageId),
+    enabled: !!stageId,
+  });
+}

@@ -71,13 +71,8 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
   const [statusNote, setStatusNote] = useState("");
   const [stageToDelete, setStageToDelete] = useState<string | null>(null);
   
-  // View Details State
-  const [viewingStageId, setViewingStageId] = useState<string | null>(null);
-  const { data: stageDetailsData, isLoading: isLoadingStageDetails } = useGetStageByIdQuery(viewingStageId || "");
-  const stageDetails = stageDetailsData?.data;
-
   // Tab State
-  const [activeTab, setActiveTab] = useState<"list" | "timeline">("list");
+  const [activeTab, setActiveTab] = useState<"list" | "timeline" | "audit">("list");
 
   const handleOpenStageDialog = (stage?: ProjectStage) => {
     if (stage) {
@@ -255,6 +250,15 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
               }`}>
               {project.status}
             </span>
+            {project.scheduleStatus && (
+              <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded ${
+                  project.scheduleStatus === 'Completed On Time' || project.scheduleStatus === 'On Track'
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-amber-100 text-amber-700'
+                }`}>
+                {project.scheduleStatus}
+              </span>
+            )}
             <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded bg-primary/10 text-primary">
               {project.projectType}
             </span>
@@ -288,7 +292,11 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
           {stats && (
             <div className="flex items-center gap-6 md:ml-auto w-full md:w-auto">
               <div className="flex items-center gap-4 text-xs font-medium">
-                <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500"></div> Billable: {stats.totalBillableHours || 0}h</div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div> 
+                  Billable: {stats.totalBillableHours || 0}h
+                  {stats.totalOvertimeHours ? <span className="opacity-75 text-[10px]">({stats.totalOvertimeHours}h OT)</span> : null}
+                </div>
                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Non-Billable: {stats.totalNonBillableHours || 0}h</div>
                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500"></div> Total: {stats.totalHours || 0}h</div>
               </div>
@@ -341,6 +349,12 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
         >
           Activity Timeline
         </button>
+        <button 
+          onClick={() => setActiveTab("audit")}
+          className={`py-3 border-b-2 transition-colors ${activeTab === "audit" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-900"}`}
+        >
+          Project Audit Log
+        </button>
       </div>
 
       {/* Main Content */}
@@ -376,7 +390,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                 <ContextMenu key={stage._id}>
                   <ContextMenuTrigger render={<div />}>
                     <div 
-                      onClick={() => setViewingStageId(stage._id)}
+                      onClick={() => router.push(`/dashboard/projects/${projectId}/stages/${stage._id}`)}
                       className={`grid grid-cols-[48px_minmax(150px,1fr)_100px_100px_100px_70px_70px_100px_70px] items-center gap-4 p-3 text-sm transition-colors hover:bg-blue-50/30 cursor-pointer group ${stage.status === 'active' ? 'bg-primary/[0.02]' : ''}`}
                     >
                       {/* Order / Grip */}
@@ -408,7 +422,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                       </div>
 
                       {/* Status */}
-                      <div>
+                      <div className="flex flex-col gap-1">
                         <span className={`inline-flex items-center px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider rounded-md border ${
                           stage.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                           stage.status === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
@@ -420,6 +434,13 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                           ) : null}
                           {stage.status.replace('-', ' ')}
                         </span>
+                        {stage.scheduleStatus && (
+                          <span className={`text-[10px] font-medium truncate ${
+                            stage.scheduleStatus === 'Completed On Time' || stage.scheduleStatus === 'On Track' ? 'text-emerald-600' : 'text-amber-600'
+                          }`}>
+                            {stage.scheduleStatus}
+                          </span>
+                        )}
                       </div>
 
                       {/* Start Date */}
@@ -434,7 +455,14 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                         {formatDisplayDate(stage.plannedEndDate)}
                       </div>
 
-                      <div className="text-right text-gray-600 text-xs font-medium">{stage.budgetedHours ? `${stage.budgetedHours}h` : '--'}</div>
+                      <div className="flex flex-col items-end justify-center">
+                        <div className="text-gray-600 text-xs font-medium">{stage.budgetedHours ? `${stage.budgetedHours}h` : '--'}</div>
+                        {stage.budgetStatus && (
+                          <div className={`text-[9px] mt-0.5 ${stage.budgetStatus === 'Over Budget' ? 'text-red-600 font-semibold' : 'text-emerald-600 font-medium'}`}>
+                            {stage.budgetStatus}
+                          </div>
+                        )}
+                      </div>
                       <div className="text-right text-emerald-600 text-xs font-medium">
                         {stage.totalBillableHours ? `${stage.totalBillableHours}h` : '0h'}
                         {stage.totalOvertimeHours ? <span className="block text-[10px] opacity-75">({stage.totalOvertimeHours}h OT)</span> : null}
@@ -461,7 +489,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                     {(stage.status === 'not-started' || stage.status === 'delayed' || stage.status === 'active') && (
                       <ContextMenuSeparator className="my-1" />
                     )}
-                    <ContextMenuItem onClick={() => setViewingStageId(stage._id)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
+                    <ContextMenuItem onClick={() => router.push(`/dashboard/projects/${projectId}/stages/${stage._id}`)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
                       <Eye className="w-3.5 h-3.5 text-gray-500" />
                       <span>View Details</span>
                     </ContextMenuItem>
@@ -484,6 +512,52 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
 
         {activeTab === "timeline" && (
           <ProjectTimeline projectId={projectId} />
+        )}
+
+        {activeTab === "audit" && (
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 max-w-4xl mx-auto">
+            <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2 mb-6">
+              <FileText className="w-4 h-4 text-gray-400" />
+              Project Status History & Audit Log
+            </h4>
+            
+            {project.auditLog && project.auditLog.length > 0 ? (
+              <div className="space-y-4">
+                {project.auditLog.map((log: any, idx: number) => {
+                  const auditLogLength = project.auditLog?.length ?? 0;
+                  return (
+                    <div key={idx} className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                          <User className="w-4 h-4" />
+                        </div>
+                        {idx < auditLogLength - 1 && (
+                          <div className="w-px h-full bg-gray-200 mt-2"></div>
+                        )}
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded-lg p-3 flex-1 mb-2">
+                        <div className="flex justify-between items-start mb-1">
+                          <div className="text-sm text-gray-900">
+                            <span className="font-medium">{log.changedBy?.name || "User"}</span> changed status from <span className="font-semibold uppercase text-xs text-amber-600">{log.previousStatus || "N/A"}</span> to <span className="font-semibold uppercase text-xs text-emerald-600">{log.newStatus}</span>
+                          </div>
+                          <span className="text-xs text-gray-400">{new Date(log.changedAt).toLocaleString()}</span>
+                        </div>
+                        {log.note && (
+                          <p className="text-sm text-gray-600 mt-2 bg-gray-50 p-2 rounded border border-gray-100">
+                            "{log.note}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-sm text-gray-500">
+                No status history found for this project.
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -604,108 +678,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
         </DialogContent>
       </Dialog>
 
-      {/* View Stage Details Dialog */}
-      <Dialog open={!!viewingStageId} onOpenChange={(open) => !open && setViewingStageId(null)}>
-        <DialogContent className="sm:max-w-2xl rounded-xl p-0 overflow-hidden bg-gray-50">
-          {isLoadingStageDetails || !stageDetails ? (
-            <div className="p-12 flex justify-center">
-              <Loader className="w-8 h-8 text-primary" />
-            </div>
-          ) : (
-            <>
-              <div className="bg-white px-6 py-4 border-b border-gray-200">
-                <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  {stageDetails.name}
-                  <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-md border ${
-                    stageDetails.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                    stageDetails.status === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                    stageDetails.status === 'delayed' ? 'bg-red-50 text-red-700 border-red-200' :
-                    'bg-gray-50 text-gray-600 border-gray-200'
-                  }`}>
-                    {stageDetails.status.replace('-', ' ')}
-                  </span>
-                </DialogTitle>
-                <div className="flex gap-6 mt-3 text-sm text-gray-500">
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4 opacity-70" />
-                    <span>Planned: {formatDisplayDate(stageDetails.plannedStartDate)} - {formatDisplayDate(stageDetails.plannedEndDate)}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 opacity-70" />
-                    <span>Actual: {formatDisplayDate(stageDetails.actualStartDate)} - {formatDisplayDate(stageDetails.actualEndDate)}</span>
-                  </div>
-                </div>
-                
-                {/* Hours Breakdown */}
-                <div className="mt-4 grid grid-cols-5 gap-3 bg-gray-50 rounded-lg p-3 border border-gray-100">
-                  <div className="text-center">
-                    <div className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">Budget</div>
-                    <div className="text-sm font-semibold text-gray-900">{stageDetails.budgetedHours || 0}h</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">Billable</div>
-                    <div className="text-sm font-semibold text-emerald-600">
-                      {stageDetails.totalBillableHours || 0}h
-                      {stageDetails.totalOvertimeHours ? <span className="text-[10px] opacity-75 ml-1">({stageDetails.totalOvertimeHours}h OT)</span> : null}
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">Non-Billable</div>
-                    <div className="text-sm font-semibold text-amber-600">
-                      {stageDetails.totalNonBillableHours || 0}h
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">Total</div>
-                    <div className="text-sm font-bold text-gray-900">{stageDetails.totalHours || 0}h</div>
-                  </div>
-                </div>
-              </div>
 
-              <div className="p-6 max-h-[60vh] overflow-y-auto">
-                <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2 mb-4">
-                  <FileText className="w-4 h-4 text-gray-400" />
-                  Audit Log & Status History
-                </h4>
-                
-                {stageDetails.auditLog && stageDetails.auditLog.length > 0 ? (
-                  <div className="space-y-4">
-                    {stageDetails.auditLog.map((log: any, idx: number) => (
-                      <div key={idx} className="flex gap-4">
-                        <div className="flex flex-col items-center">
-                          <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                            <User className="w-4 h-4" />
-                          </div>
-                          {idx < stageDetails.auditLog.length - 1 && (
-                            <div className="w-px h-full bg-gray-200 mt-2"></div>
-                          )}
-                        </div>
-                        <div className="bg-white border border-gray-200 rounded-lg p-3 flex-1 mb-2">
-                          <div className="flex justify-between items-start mb-1">
-                            <div className="text-sm text-gray-900">
-                              <span className="font-medium">{log.changedBy?.name || "User"}</span> changed status to <span className="font-semibold uppercase text-xs">{log.newStatus}</span>
-                            </div>
-                            <span className="text-xs text-gray-400">{new Date(log.changedAt).toLocaleString()}</span>
-                          </div>
-                          {log.note && (
-                            <p className="text-sm text-gray-600 mt-2 bg-gray-50 p-2 rounded border border-gray-100">
-                              "{log.note}"
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-sm text-gray-500">
-                    No status history found for this stage.
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
       
       <DeleteDialog
         title="Delete Stage"

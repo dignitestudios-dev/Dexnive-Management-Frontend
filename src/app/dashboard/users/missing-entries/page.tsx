@@ -300,7 +300,15 @@ function MissingEntriesPageContent() {
                     <td className="px-6 py-4 font-medium text-gray-900">
                       <div>
                         <p>{entry.userName}</p>
-                        <p className="text-xs text-gray-500 font-normal">{entry.employeeCode}</p>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs text-gray-500 font-normal mt-0.5">
+                          <span>{entry.employeeCode}</span>
+                          {entry.userEmail && (
+                            <>
+                              <span className="hidden sm:inline text-gray-300">•</span>
+                              <span className="text-gray-400">{entry.userEmail}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-gray-600">
