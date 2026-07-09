@@ -386,7 +386,7 @@ function SidebarLink({
         className={cn(
           "flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer text-sm transition-colors group relative",
           active
-            ? "bg-primary-600/95 text-white font-semibold shadow-md shadow-primary-900/10 border border-primary-500/20"
+            ? "bg-primary-600/15 text-primary-300 font-semibold border border-primary-500/20"
             : "text-slate-300 hover:bg-slate-800/80 hover:text-white",
           nested && !isCollapsed && "pl-5"
         )}
@@ -395,7 +395,7 @@ function SidebarLink({
         <div
           className={cn(
             "shrink-0 transition-colors",
-            active ? "text-white" : "text-slate-400 group-hover:text-white"
+            active ? "text-primary-400" : "text-slate-400 group-hover:text-white"
           )}
         >
           {icon}
@@ -404,7 +404,7 @@ function SidebarLink({
 
         {/* Active side-indicator */}
         {active && !isCollapsed && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-white rounded-r-full" />
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary-500 rounded-r-full" />
         )}
       </div>
     </Link>
