@@ -78,8 +78,8 @@ export function Sidebar() {
     >
       {/* Sidebar Header */}
       <div className="h-14 flex items-center justify-between px-4 border-b border-slate-900 bg-slate-950/40">
-        <div 
-          onClick={() => router.push("/dashboard")} 
+        <Link 
+          href="/dashboard"
           className="flex items-center gap-2 cursor-pointer overflow-hidden py-1.5"
         >
           <div className="w-8 h-8 flex items-center justify-center shrink-0 rounded bg-slate-900">
@@ -90,7 +90,7 @@ export function Sidebar() {
               DEXNIVE
             </span>
           )}
-        </div>
+        </Link>
 
         {/* Sidebar Collapse Toggle Button */}
         {!isCollapsed && (

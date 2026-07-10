@@ -19,6 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { parseISO } from "date-fns";
+import { cn } from "@/utils/cn";
+import { 
+  Users, 
+  Building2, 
+  Calendar, 
+  History, 
+  ChevronRight 
+} from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -45,15 +53,74 @@ export default function DashboardPage() {
 
   if (isAdmin) {
     return (
-      <div className="w-full p-6 md:p-8">
-        <div className="w-full max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4 tracking-tight">
-            Welcome back, {user?.name || "User"}!
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Welcome to the Dexnive Management Portal. From here, you can manage projects, track worklogs, oversee user accounts, and maintain organizational structures like departments and divisions. 
-            Use the sidebar navigation to access different modules.
-          </p>
+      <div className="w-full p-6 md:p-8 bg-gray-50/50 min-h-screen">
+        <div className="w-full max-w-5xl mx-auto space-y-8 animate-in fade-in duration-300">
+          {/* Welcome Card */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-2 text-center md:text-left">
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+                Welcome back, {user?.name || "User"}!
+              </h1>
+              <p className="text-sm text-gray-500 max-w-2xl leading-relaxed">
+                Welcome to the Dexnive Management Portal. Manage projects, track worklogs, oversee user accounts, and maintain organizational structures like departments and divisions.
+              </p>
+            </div>
+            <div className="shrink-0 flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-50 border border-primary-100 text-primary-500">
+              <CalendarCheck className="w-8 h-8 animate-pulse" />
+            </div>
+          </div>
+
+          {/* Quick Actions Section */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-primary-500" /> Quick Actions
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <QuickActionCard
+                icon={<Users className="w-6 h-6 text-indigo-500" />}
+                title="Users Management"
+                description="Manage company employees, permissions, and roles."
+                href="/dashboard/users"
+                borderColor="border-indigo-100/70"
+              />
+              <QuickActionCard
+                icon={<Clock className="w-6 h-6 text-red-500" />}
+                title="Missing Entries"
+                description="Track and review missing worklog submissions."
+                href="/dashboard/users/missing-entries"
+                borderColor="border-red-100/70"
+              />
+              <QuickActionCard
+                icon={<Briefcase className="w-6 h-6 text-emerald-500" />}
+                title="Projects"
+                description="Track and manage projects, budgets, and stages."
+                href="/dashboard/projects"
+                borderColor="border-emerald-100/70"
+              />
+              <QuickActionCard
+                icon={<History className="w-6 h-6 text-amber-500" />}
+                title="All Worklogs"
+                description="Audit and review logged hours across the entire team."
+                href="/dashboard/users/all-worklogs"
+                borderColor="border-amber-100/70"
+              />
+              <QuickActionCard
+                icon={<Building2 className="w-6 h-6 text-blue-500" />}
+                title="Departments & Divisions"
+                description="Organize structure, departments, and sub-divisions."
+                href="/dashboard/departments"
+                borderColor="border-blue-100/70"
+              />
+              <QuickActionCard
+                icon={<Calendar className="w-6 h-6 text-pink-500" />}
+                title="Company Holidays"
+                description="Schedule company holidays and calendar events."
+                href="/dashboard/settings/holidays"
+                borderColor="border-pink-100/70"
+              />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -238,3 +305,40 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+function QuickActionCard({
+  icon,
+  title,
+  description,
+  href,
+  borderColor,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  href: string;
+  borderColor: string;
+}) {
+  return (
+    <Link href={href}>
+      <Card className={cn(
+        "p-5 border transition-all duration-300 flex flex-col justify-between h-36 cursor-pointer group shadow-sm bg-white hover:shadow-md hover:border-primary-500/30",
+        borderColor
+      )}>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="p-2 rounded-xl bg-gray-50 border border-gray-100 group-hover:scale-105 transition-transform duration-300 shrink-0">
+              {icon}
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-900 group-hover:translate-x-1 transition-all duration-300" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900 text-sm group-hover:text-primary-600 transition-colors">{title}</h3>
+            <p className="text-xs text-gray-500 font-normal mt-0.5 leading-relaxed">{description}</p>
+          </div>
+        </div>
+      </Card>
+    </Link>
+  );
+}
+
