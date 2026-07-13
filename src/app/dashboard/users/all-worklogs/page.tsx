@@ -411,7 +411,14 @@ function AllWorklogsContent() {
                       </span>
                     </td>
                     <td className="px-6 py-4 font-medium">{formatMins(log.totalLoggedMinutes)}</td>
-                    <td className="px-6 py-4 text-emerald-600 font-medium">{formatMins(log.totalBillableMinutes)}</td>
+                    <td className="px-6 py-4 text-emerald-600 font-medium whitespace-nowrap">
+                      {formatMins(log.totalBillableMinutes)}
+                      {log.totalOvertimeMinutes > 0 && (
+                        <span className="text-xs ml-1.5 opacity-80 text-gray-500 font-normal">
+                          ({formatMins(log.totalOvertimeMinutes)} OT)
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-amber-600 font-medium">{formatMins(log.totalNonBillableMinutes)}</td>
                   </tr>
                 ))}

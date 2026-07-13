@@ -120,13 +120,7 @@ export default function DashboardPage() {
                 href="/dashboard/departments"
                 borderColor="border-blue-100/70"
               />
-              <QuickActionCard
-                icon={<Calendar className="w-6 h-6 text-pink-500" />}
-                title="Company Holidays"
-                description="Schedule company holidays and calendar events."
-                href="/dashboard/settings/holidays"
-                borderColor="border-pink-100/70"
-              />
+
             </div>
           </div>
         </div>

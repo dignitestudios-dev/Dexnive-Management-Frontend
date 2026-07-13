@@ -198,7 +198,14 @@ export default function MyTimesheetPage() {
                 {selectedDay.workedMinutes > 0 && (
                   <div className="text-right">
                     <p className="text-sm text-gray-500 font-medium mb-1">Total Time</p>
-                    <p className="text-xl font-bold text-gray-900">{formatMins(selectedDay.workedMinutes)}</p>
+                    <p className="text-xl font-bold text-gray-900 whitespace-nowrap">
+                      {formatMins(selectedDay.workedMinutes)}
+                      {selectedDay.totalOvertimeMinutes > 0 && (
+                        <span className="text-xs ml-1.5 text-gray-500 font-normal">
+                          ({formatMins(selectedDay.totalOvertimeMinutes)} OT)
+                        </span>
+                      )}
+                    </p>
                   </div>
                 )}
               </div>
@@ -222,7 +229,14 @@ export default function MyTimesheetPage() {
                         </div>
                         <div className="text-right flex-shrink-0">
                           <span className="text-[10px] uppercase text-gray-500 font-bold block mb-0.5 tracking-wider">Time</span>
-                          <span className="font-bold text-gray-900 text-base">{formatMins(p.loggedMinutes)}</span>
+                          <span className="font-bold text-gray-900 text-base whitespace-nowrap">
+                            {formatMins(p.loggedMinutes)}
+                            {p.overtimeMinutes > 0 && (
+                              <span className="text-xs ml-1 text-gray-500 font-normal">
+                                ({formatMins(p.overtimeMinutes)} OT)
+                              </span>
+                            )}
+                          </span>
                         </div>
                       </div>
                       {p.description && (
