@@ -297,7 +297,6 @@ function MyWorklogsHistoryContent() {
                   <th className="px-6 py-4">Logged Hours</th>
                   <th className="px-6 py-4">Billable</th>
                   <th className="px-6 py-4">Non-Billable</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -314,24 +313,15 @@ function MyWorklogsHistoryContent() {
                       </span>
                     </td>
                     <td className="px-6 py-4 font-medium">{formatMins(log.totalLoggedMinutes)}</td>
-                    <td className="px-6 py-4 text-emerald-600 font-medium">{formatMins(log.totalBillableMinutes)}</td>
-                    <td className="px-6 py-4 text-amber-600 font-medium">{formatMins(log.totalNonBillableMinutes)}</td>
-                    <td className="px-6 py-4 text-right">
-                      {log.status === "draft" && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="h-8 text-xs bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
-                          onClick={() => {
-                            const d = new Date(log.shiftDate);
-                            const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                            window.location.href = `/dashboard/daily-log?date=${ds}`;
-                          }}
-                        >
-                          Complete Draft
-                        </Button>
+                    <td className="px-6 py-4 text-emerald-600 font-medium whitespace-nowrap">
+                      {formatMins(log.totalBillableMinutes)}
+                      {log.totalOvertimeMinutes > 0 && (
+                        <span className="text-xs ml-1.5 opacity-80 text-gray-500 font-normal">
+                          ({formatMins(log.totalOvertimeMinutes)} OT)
+                        </span>
                       )}
                     </td>
+                    <td className="px-6 py-4 text-amber-600 font-medium">{formatMins(log.totalNonBillableMinutes)}</td>
                   </tr>
                 ))}
               </tbody>

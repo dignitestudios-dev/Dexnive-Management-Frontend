@@ -124,13 +124,7 @@ export function Sidebar() {
                 active={pathname === "/dashboard/my-timesheet"}
                 isCollapsed={isCollapsed}
               />
-              <SidebarLink
-                icon={<FileText className="w-4 h-4" />}
-                label="Add Daily Log"
-                href="/dashboard/daily-log"
-                active={pathname === "/dashboard/daily-log"}
-                isCollapsed={isCollapsed}
-              />
+
               <SidebarLink
                 icon={<History className="w-4 h-4" />}
                 label="Logs History"
