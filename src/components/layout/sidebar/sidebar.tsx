@@ -41,6 +41,7 @@ export function Sidebar() {
     team: true,
     org: true,
     projects: true,
+    reports: true,
     ops: true,
     settings: true,
   });
@@ -240,16 +241,13 @@ export function Sidebar() {
               />
             </SidebarGroup>
 
-            {/* Operations Group */}
+            {/* Reports Group */}
             <SidebarGroup
-              label="Operations"
-              isOpen={groupsOpen.ops}
-              onToggle={() => toggleGroup("ops")}
+              label="Reports"
+              isOpen={groupsOpen.reports}
+              onToggle={() => toggleGroup("reports")}
               isCollapsed={isCollapsed}
               isActive={isGroupActive([
-                "/dashboard/settings/holidays",
-                "/dashboard/settings/rates",
-                "/dashboard/settings/reasons",
                 "/dashboard/reports",
                 "/dashboard/reports/breakdown",
               ])}
@@ -270,6 +268,20 @@ export function Sidebar() {
                 isCollapsed={isCollapsed}
                 nested
               />
+            </SidebarGroup>
+
+            {/* Operations Group */}
+            <SidebarGroup
+              label="Operations"
+              isOpen={groupsOpen.ops}
+              onToggle={() => toggleGroup("ops")}
+              isCollapsed={isCollapsed}
+              isActive={isGroupActive([
+                "/dashboard/settings/holidays",
+                "/dashboard/settings/rates",
+                "/dashboard/settings/reasons",
+              ])}
+            >
               <SidebarLink
                 icon={<Calendar className="w-4 h-4" />}
                 label="Holidays"
