@@ -261,7 +261,7 @@ export function Sidebar() {
             >
               <SidebarLink
                 icon={<BarChart3 className="w-4 h-4" />}
-                label="Reports"
+                label="Production Hours"
                 href="/dashboard/reports"
                 active={pathname === "/dashboard/reports"}
                 isCollapsed={isCollapsed}

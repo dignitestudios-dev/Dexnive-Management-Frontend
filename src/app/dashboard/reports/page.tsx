@@ -5,12 +5,12 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader } from "@/components/ui/loader";
 import { cn } from "@/utils/cn";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import {
   Popover,
@@ -46,13 +46,23 @@ const MONTH_NAMES = [
   { value: 12, label: "Dec", fullName: "December" },
 ];
 
-const YEARS = Array.from({ length: 7 }, (_, i) => 2024 + i);
-
 export default function ReportsPage() {
   const currentDate = new Date();
-  const [month, setMonth] = useState<number | undefined>(currentDate.getMonth() + 1);
-  const [year, setYear] = useState<number | undefined>(currentDate.getFullYear());
-  const [showBreakdown, setShowBreakdown] = useState<boolean>(false);
+  const currentMonthValue = currentDate.getMonth() + 1;
+  const currentYearValue = currentDate.getFullYear();
+
+  // Populate years dynamically from 2024 (inception of logs) to the current year
+  const YEARS = Array.from({ length: currentYearValue - 2024 + 1 }, (_, i) => 2024 + i);
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const [month, setMonth] = useState<number>(currentMonthValue);
+  const [year, setYear] = useState<number>(currentYearValue);
+
+  // Manage showBreakdown via search parameters to persist on reload
+  const showBreakdown = searchParams.get("showBreakdown") === "true";
 
   const { data: reportsData, isLoading, error } = useGetProjectHoursBreakdownQuery({
     month,
@@ -63,8 +73,6 @@ export default function ReportsPage() {
   const result = responseData?.result || [];
   const metrics = responseData?.metrics;
 
-  const activeFilterCount = (month ? 1 : 0) + (year ? 1 : 0);
-
   // Extract department names dynamically from the first result item's hours mapping keys
   const departmentNames = result.length > 0 && result[0].hours
     ? Object.keys(result[0].hours).sort()
@@ -72,14 +80,41 @@ export default function ReportsPage() {
 
   const displayDeptName = (name: string) => name === "Project Management" ? "PM" : name;
 
-  const selectedMonthObj = month ? MONTH_NAMES.find(m => m.value === month) : null;
-  const subtext = selectedMonthObj && year 
-    ? `${selectedMonthObj.label} ${year}` 
-    : year 
-    ? `${year}` 
-    : selectedMonthObj 
-    ? `${selectedMonthObj.label}` 
-    : "Overall";
+  const selectedMonthObj = MONTH_NAMES.find(m => m.value === month);
+  const subtext = selectedMonthObj ? `${selectedMonthObj.label} ${year}` : `${year}`;
+
+  const isCurrentDefault = month === currentMonthValue && year === currentYearValue;
+
+  const handleClearMonth = () => {
+    setMonth(currentMonthValue);
+  };
+
+  const handleClearYear = () => {
+    setYear(currentYearValue);
+  };
+
+  const handleClearAll = () => {
+    setMonth(currentMonthValue);
+    setYear(currentYearValue);
+  };
+
+  const handleYearChange = (selectedYear: number) => {
+    setYear(selectedYear);
+    // If selecting current year and current month is in the future, automatically reset month to current month
+    if (selectedYear === currentYearValue && month > currentMonthValue) {
+      setMonth(currentMonthValue);
+    }
+  };
+
+  const handleToggleBreakdown = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (showBreakdown) {
+      params.delete("showBreakdown");
+    } else {
+      params.set("showBreakdown", "true");
+    }
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6 w-full animate-in fade-in duration-300">
@@ -92,15 +127,17 @@ export default function ReportsPage() {
 
         {/* Right actions: Toggle + Filters */}
         <div className="flex items-center gap-4 self-end sm:self-auto">
-          {/* Toggle "Show Hours Breakdown" */}
-          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md px-3 py-1.5 shadow-sm">
-            <span className="text-xs font-medium text-gray-700 select-none">Show Hours Breakdown</span>
+          {/* Toggle "Show Hours Breakdown" persisted via searchParams */}
+          <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-md px-3.5 py-2 shadow-sm">
+            <span className="text-xs font-semibold text-gray-700 select-none">Show Hours Breakdown</span>
             <button
               type="button"
-              onClick={() => setShowBreakdown(!showBreakdown)}
+              role="switch"
+              aria-checked={showBreakdown}
+              onClick={handleToggleBreakdown}
               className={cn(
-                "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                showBreakdown ? "bg-purple-650" : "bg-gray-250"
+                "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2",
+                showBreakdown ? "bg-primary-600" : "bg-gray-200"
               )}
             >
               <span
@@ -116,15 +153,15 @@ export default function ReportsPage() {
           <Popover>
             <PopoverTrigger className={cn(
               "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input rounded-md px-4 py-2 h-9 gap-2 shadow-sm cursor-pointer",
-              activeFilterCount > 0 
+              !isCurrentDefault
                 ? "bg-purple-600 hover:bg-purple-700 text-white border-0" 
                 : "bg-white hover:bg-accent hover:text-accent-foreground"
             )}>
               <Filter className="w-4 h-4" />
               Filters
-              {activeFilterCount > 0 && (
+              {!isCurrentDefault && (
                 <span className="flex items-center justify-center h-5 w-5 rounded-full bg-white/20 text-xs font-semibold">
-                  {activeFilterCount}
+                  2
                 </span>
               )}
             </PopoverTrigger>
@@ -139,19 +176,28 @@ export default function ReportsPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-gray-500">Month</label>
                   <Select
-                    value={month?.toString() || "none"}
-                    onValueChange={(val) => setMonth(val === "none" ? undefined : Number(val))}
+                    value={month.toString()}
+                    onValueChange={(val) => setMonth(Number(val))}
                   >
                     <SelectTrigger className="w-full h-9 text-xs">
-                      <SelectValue placeholder="Select Month" />
+                      <span className="flex-1 text-left truncate">
+                        {MONTH_NAMES.find((m) => m.value === month)?.fullName || "Select Month"}
+                      </span>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none" className="text-xs">All Months</SelectItem>
-                      {MONTH_NAMES.map((m) => (
-                        <SelectItem key={m.value} value={m.value.toString()} className="text-xs">
-                          {m.fullName}
-                        </SelectItem>
-                      ))}
+                      {MONTH_NAMES.map((m) => {
+                        const isFutureMonth = year === currentYearValue && m.value > currentMonthValue;
+                        return (
+                          <SelectItem 
+                            key={m.value} 
+                            value={m.value.toString()} 
+                            className="text-xs"
+                            disabled={isFutureMonth}
+                          >
+                            {m.fullName}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -159,14 +205,15 @@ export default function ReportsPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-gray-500">Year</label>
                   <Select
-                    value={year?.toString() || "none"}
-                    onValueChange={(val) => setYear(val === "none" ? undefined : Number(val))}
+                    value={year.toString()}
+                    onValueChange={(val) => handleYearChange(Number(val))}
                   >
                     <SelectTrigger className="w-full h-9 text-xs">
-                      <SelectValue placeholder="Select Year" />
+                      <span className="flex-1 text-left truncate">
+                        {year || "Select Year"}
+                      </span>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none" className="text-xs">All Years</SelectItem>
                       {YEARS.map((y) => (
                         <SelectItem key={y} value={y.toString()} className="text-xs">
                           {y}
@@ -182,48 +229,45 @@ export default function ReportsPage() {
       </div>
 
       {/* Active Filter Badges */}
-      {activeFilterCount > 0 && (
-        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mt-2 bg-gray-50 border border-gray-200 p-2.5 rounded-xl">
-          <span className="font-medium text-gray-500 mr-1 text-xs">Active filters:</span>
-          {month && (
-            <Badge 
-              variant="secondary" 
-              className="flex items-center gap-1 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 px-2.5 py-1 rounded-lg text-xs font-medium"
+      <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mt-2 bg-gray-50 border border-gray-200 p-2.5 rounded-xl">
+        <span className="font-medium text-gray-500 mr-1 text-xs select-none">Selected Filters:</span>
+        <Badge 
+          variant="secondary" 
+          className="flex items-center gap-1 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 px-2.5 py-1 rounded-lg text-xs font-medium"
+        >
+          Month: {MONTH_NAMES.find((m) => m.value === month)?.label}
+          {month !== currentMonthValue && (
+            <button 
+              onClick={handleClearMonth} 
+              className="hover:text-purple-950 font-bold ml-1.5 focus:outline-none"
             >
-              Month: {MONTH_NAMES.find((m) => m.value === month)?.label}
-              <button 
-                onClick={() => setMonth(undefined)} 
-                className="hover:text-purple-950 font-bold ml-1.5 focus:outline-none"
-              >
-                ×
-              </button>
-            </Badge>
+              ×
+            </button>
           )}
-          {year && (
-            <Badge 
-              variant="secondary" 
-              className="flex items-center gap-1 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 px-2.5 py-1 rounded-lg text-xs font-medium"
+        </Badge>
+        <Badge 
+          variant="secondary" 
+          className="flex items-center gap-1 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 px-2.5 py-1 rounded-lg text-xs font-medium"
+        >
+          Year: {year}
+          {year !== currentYearValue && (
+            <button 
+              onClick={handleClearYear} 
+              className="hover:text-purple-950 font-bold ml-1.5 focus:outline-none"
             >
-              Year: {year}
-              <button 
-                onClick={() => setYear(undefined)} 
-                className="hover:text-purple-950 font-bold ml-1.5 focus:outline-none"
-              >
-                ×
-              </button>
-            </Badge>
+              ×
+            </button>
           )}
+        </Badge>
+        {!isCurrentDefault && (
           <button 
-            onClick={() => {
-              setMonth(undefined);
-              setYear(undefined);
-            }} 
+            onClick={handleClearAll} 
             className="text-purple-600 hover:text-purple-800 font-semibold hover:underline text-xs ml-2 focus:outline-none"
           >
-            Clear all
+            Reset to default
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Loading state */}
       {isLoading && (
@@ -237,7 +281,7 @@ export default function ReportsPage() {
       {error && !isLoading && (
         <div className="flex flex-col items-center justify-center p-8 bg-red-50 border border-red-200 rounded-2xl gap-3 text-center">
           <AlertCircle className="w-8 h-8 text-red-600" />
-          <h3 className="font-semibold text-red-900">Failed to load report</h3>
+          <h3 className="font-semibold text-red-950">Failed to load report</h3>
           <p className="text-sm text-red-700 max-w-md">
             {(error as any)?.response?.data?.message || "An unexpected error occurred while fetching report data."}
           </p>
@@ -247,46 +291,46 @@ export default function ReportsPage() {
       {/* Reports Dashboard Metrics & Table */}
       {!isLoading && !error && (
         <div className="space-y-6">
-          {/* KPI Cards Grid */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <KpiCard
-                title="TOTAL HOURS"
-                value={metrics?.totalHours != null ? metrics.totalHours.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
-                subtext={subtext}
-                icon={<Clock className="w-4 h-4 text-purple-600" />}
-              />
-              <KpiCard
-                title="BILLABLE HOURS"
-                value={metrics?.billableHours != null ? metrics.billableHours.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
-                subtext={subtext}
-                icon={<DollarSign className="w-4 h-4 text-purple-600" />}
-              />
-              <KpiCard
-                title="NON-BILLABLE HOURS"
-                value={metrics?.nonBillableHours != null ? metrics.nonBillableHours.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
-                subtext={subtext}
-                icon={<Briefcase className="w-4 h-4 text-purple-600" />}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-              <KpiCard
-                title="WORKING DAYS"
-                value={metrics?.totalWorkingDays ?? "0"}
-                subtext={subtext}
-                icon={<Calendar className="w-4 h-4 text-purple-600" />}
-              />
-              <KpiCard
-                title="ACTIVE EMPLOYEES"
-                value={metrics?.activeEmployeesCount ?? "0"}
-                subtext={subtext}
-                icon={<Users className="w-4 h-4 text-purple-600" />}
-              />
-            </div>
+          {/* Sleek Metrics Ribbon with Color-Coded Accent Icons */}
+          <div className="bg-white border border-gray-300 rounded-2xl shadow-sm overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200 grid grid-cols-2 md:grid-cols-5">
+            <RibbonMetric
+              title="TOTAL HOURS"
+              value={metrics?.totalHours != null ? metrics.totalHours.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+              subtext={subtext}
+              icon={<Clock className="w-3.5 h-3.5" />}
+              colorTheme="purple"
+            />
+            <RibbonMetric
+              title="BILLABLE HOURS"
+              value={metrics?.billableHours != null ? metrics.billableHours.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+              subtext={subtext}
+              icon={<DollarSign className="w-3.5 h-3.5" />}
+              colorTheme="emerald"
+            />
+            <RibbonMetric
+              title="NON-BILLABLE HOURS"
+              value={metrics?.nonBillableHours != null ? metrics.nonBillableHours.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+              subtext={subtext}
+              icon={<Briefcase className="w-3.5 h-3.5" />}
+              colorTheme="amber"
+            />
+            <RibbonMetric
+              title="WORKING DAYS"
+              value={metrics?.totalWorkingDays ?? "0"}
+              subtext={subtext}
+              icon={<Calendar className="w-3.5 h-3.5" />}
+              colorTheme="blue"
+            />
+            <RibbonMetric
+              title="ACTIVE EMPLOYEES"
+              value={metrics?.activeEmployeesCount ?? "0"}
+              subtext={subtext}
+              icon={<Users className="w-3.5 h-3.5" />}
+              colorTheme="indigo"
+            />
           </div>
 
-          {/* Table Card container */}
+          {/* Table Card container with max-height and scrolling */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-300 overflow-hidden">
             {result.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-12 text-center gap-3">
@@ -297,33 +341,33 @@ export default function ReportsPage() {
                 </p>
               </div>
             ) : (
-              <div className="w-full overflow-x-auto">
+              <div className="w-full overflow-x-auto max-h-[650px] overflow-y-auto custom-scrollbar">
                 <table className="w-full border-collapse border border-gray-300">
-                  <thead className="text-[11px] font-bold uppercase tracking-wider text-purple-700 bg-purple-50/70">
-                    <tr className="border-b border-purple-250">
-                      <th rowSpan={2} className="px-4 py-3 text-left border-r border-purple-250 font-semibold w-10">#</th>
-                      <th rowSpan={2} className="px-6 py-3 text-left border-r border-purple-250 font-semibold w-52 min-w-[180px]">Project</th>
-                      <th rowSpan={2} className="px-4 py-3 text-center border-r border-purple-250 font-semibold w-24">Type</th>
-                      <th rowSpan={2} className="px-6 py-3 text-left border-r border-purple-250 font-semibold w-40">Division</th>
-                      <th colSpan={departmentNames.length + 1} className="px-4 py-2 text-center border-b border-r border-purple-250 font-bold bg-purple-100/30">Hours</th>
-                      <th colSpan={departmentNames.length + 1} className="px-4 py-2 text-center border-b border-purple-250 font-bold bg-purple-100/30">Amounts</th>
+                  <thead className="text-xs font-bold uppercase tracking-wider text-purple-700 bg-purple-50 sticky top-0 z-20">
+                    <tr className="border-b border-purple-250 bg-purple-50">
+                      <th rowSpan={2} className="px-4 py-3 text-left border-r border-purple-250 font-semibold w-10 bg-purple-50 sticky top-0 z-30">#</th>
+                      <th rowSpan={2} className="px-6 py-3 text-left border-r border-purple-250 font-semibold w-52 min-w-[180px] bg-purple-50 sticky top-0 z-30">Project</th>
+                      <th rowSpan={2} className="px-4 py-3 text-center border-r border-purple-250 font-semibold w-24 bg-purple-50 sticky top-0 z-30">Type</th>
+                      <th rowSpan={2} className="px-6 py-3 text-left border-r border-purple-250 font-semibold w-40 bg-purple-50 sticky top-0 z-30">Division</th>
+                      <th colSpan={departmentNames.length + 1} className="px-4 py-2 text-center border-b border-r border-purple-250 font-bold bg-purple-50 sticky top-0">Hours</th>
+                      <th colSpan={departmentNames.length + 1} className="px-4 py-2 text-center border-b border-purple-250 font-bold bg-purple-50 sticky top-0">Amounts</th>
                     </tr>
-                    <tr className="bg-purple-50/30 border-b border-purple-250">
+                    <tr className="bg-purple-50 border-b border-purple-250">
                       {/* Hours departments list */}
                       {departmentNames.map((dept) => (
-                        <th key={`hours-${dept}`} className="px-3 py-2 text-center border-r border-purple-200 font-medium normal-case w-20 text-[10px] text-gray-500">
+                        <th key={`hours-${dept}`} className="px-3 py-2 text-center border-r border-purple-200 font-medium normal-case w-20 text-[11px] text-gray-500 bg-purple-50 sticky top-[38px] z-20">
                           {displayDeptName(dept)}
                         </th>
                       ))}
-                      <th className="px-3 py-2 text-center border-r border-purple-250 font-bold bg-purple-100/20 w-24">Total</th>
+                      <th className="px-3 py-2 text-center border-r border-purple-250 font-bold bg-purple-50 w-24 sticky top-[38px] z-20">Total</th>
 
                       {/* Amounts departments list */}
                       {departmentNames.map((dept) => (
-                        <th key={`amounts-${dept}`} className="px-3 py-2 text-center border-r border-purple-200 font-medium normal-case w-20 text-[10px] text-gray-500">
+                        <th key={`amounts-${dept}`} className="px-3 py-2 text-center border-r border-purple-200 font-medium normal-case w-20 text-[11px] text-gray-500 bg-purple-50 sticky top-[38px] z-20">
                           {displayDeptName(dept)}
                         </th>
                       ))}
-                      <th className="px-3 py-2 text-center font-bold bg-purple-100/20 w-24">Total</th>
+                      <th className="px-3 py-2 text-center font-bold bg-purple-50 w-24 sticky top-[38px] z-20">Total</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white text-xs text-gray-700">
@@ -334,7 +378,7 @@ export default function ReportsPage() {
                       return (
                         <tr key={index} className="hover:bg-gray-50/50 transition-colors">
                           <td className="px-4 py-3 border-r border-gray-300 border-b border-gray-300 font-medium text-gray-400 text-center">{index + 1}</td>
-                          <td className="px-6 py-3 border-r border-gray-300 border-b border-gray-300 font-semibold text-gray-900 whitespace-nowrap">{row.name}</td>
+                          <td className="px-6 py-3 border-r border-gray-300 border-b border-gray-300 font-semibold text-gray-950 whitespace-nowrap">{row.name}</td>
                           <td className="px-4 py-3 border-r border-gray-300 border-b border-gray-300 text-center">
                             <Badge 
                               variant="outline" 
@@ -350,7 +394,7 @@ export default function ReportsPage() {
                           </td>
                           <td className="px-6 py-3 border-r border-gray-300 border-b border-gray-300 text-gray-600 whitespace-nowrap">{row.division}</td>
                           
-                          {/* Hours departments cells */}
+                          {/* Hours departments cells - NORMAL font weight */}
                           {departmentNames.map((dept) => {
                             const deptData = row.hours?.[dept];
                             const totalVal = deptData?.total ?? 0;
@@ -358,43 +402,49 @@ export default function ReportsPage() {
                             const nonBillableVal = deptData?.nonBillable ?? 0;
                             
                             return (
-                              <td key={`hours-cell-${dept}`} className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-medium">
-                                <div className="flex flex-col items-center justify-center">
-                                  <span className="text-gray-900 font-semibold">
+                              <td key={`hours-cell-${dept}`} className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-normal text-gray-700">
+                                <div className="flex flex-col items-center justify-center py-1">
+                                  <span className="text-gray-900 font-normal text-sm">
                                     {totalVal > 0 ? totalVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
                                   </span>
-                                  {showBreakdown && (billableVal > 0 || nonBillableVal > 0) && (
-                                    <span className="text-[10px] text-gray-500 font-normal mt-0.5 whitespace-nowrap block">
-                                      B: {billableVal} • NB: {nonBillableVal}
-                                    </span>
+                                  {showBreakdown && totalVal > 0 && (
+                                    <div className="flex items-center justify-center gap-1.5 text-[10px] mt-1 whitespace-nowrap bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-md font-semibold select-none">
+                                      <span className="text-emerald-700">B: {billableVal}</span>
+                                      <span className="text-gray-300 font-normal">|</span>
+                                      <span className="text-amber-700">NB: {nonBillableVal}</span>
+                                    </div>
                                   )}
                                 </div>
                               </td>
                             );
                           })}
-                          <td className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-bold bg-purple-50/10 text-gray-900">
-                            <div className="flex flex-col items-center justify-center">
-                              <span>
+                          {/* Hours Total cell - BOLD font weight */}
+                          <td className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-bold bg-[#efeaf7]/30 text-gray-955">
+                            <div className="flex flex-col items-center justify-center py-1">
+                              <span className="text-gray-950 font-bold text-sm">
                                 {row.total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                               </span>
                               {showBreakdown && (rowBillable > 0 || rowNonBillable > 0) && (
-                                <span className="text-[10px] text-purple-700 font-semibold mt-0.5 whitespace-nowrap block">
-                                  B: {rowBillable} • NB: {rowNonBillable}
-                                </span>
+                                <div className="flex items-center justify-center gap-1.5 text-[10px] mt-1 whitespace-nowrap bg-purple-50 border border-purple-200/50 px-2 py-0.5 rounded-md font-bold select-none text-purple-700">
+                                  <span>B: {rowBillable}</span>
+                                  <span className="text-purple-300 font-normal">|</span>
+                                  <span>NB: {rowNonBillable}</span>
+                                </div>
                               )}
                             </div>
                           </td>
 
-                          {/* Amounts departments cells */}
+                          {/* Amounts departments cells - NORMAL font weight */}
                           {departmentNames.map((dept) => {
                             const value = row.amounts?.[dept]?.total ?? 0;
                             return (
-                              <td key={`amounts-cell-${dept}`} className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-medium">
+                              <td key={`amounts-cell-${dept}`} className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-normal text-gray-700">
                                 {value > 0 ? value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
                               </td>
                             );
                           })}
-                          <td className="px-3 py-2 border-b border-gray-300 text-center font-bold bg-purple-50/10 text-gray-900">
+                          {/* Amounts Total cell - BOLD font weight */}
+                          <td className="px-3 py-2 border-b border-gray-300 text-center font-bold bg-[#efeaf7]/30 text-gray-955">
                             {row.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                           </td>
                         </tr>
@@ -411,27 +461,43 @@ export default function ReportsPage() {
   );
 }
 
-function KpiCard({
-  title,
-  value,
-  subtext,
-  icon,
-}: {
+interface RibbonMetricProps {
   title: string;
   value: string | number;
   subtext: string;
   icon: React.ReactNode;
-}) {
+  colorTheme: "purple" | "emerald" | "amber" | "blue" | "indigo";
+}
+
+function RibbonMetric({
+  title,
+  value,
+  subtext,
+  icon,
+  colorTheme,
+}: RibbonMetricProps) {
+  const themeClasses = {
+    purple: "bg-purple-50 text-purple-600 border-purple-100/70",
+    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100/70",
+    amber: "bg-amber-50 text-amber-600 border-amber-100/70",
+    blue: "bg-blue-50 text-blue-600 border-blue-100/70",
+    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100/70",
+  };
+
+  const currentThemeClass = themeClasses[colorTheme];
+
   return (
-    <Card className="p-4 border border-gray-200 shadow-sm bg-white hover:shadow-md transition-all duration-200 flex items-center justify-between rounded-xl">
-      <div className="space-y-1">
-        <span className="text-[11px] font-semibold text-gray-500 tracking-wider uppercase select-none">{title}</span>
-        <h3 className="text-xl font-bold text-gray-900 tracking-tight">{value}</h3>
-        <p className="text-[10px] text-gray-400 select-none">{subtext}</p>
+    <div className="p-5 flex flex-col justify-between min-h-[96px] space-y-2 hover:bg-gray-50/30 transition-colors duration-200">
+      <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 select-none uppercase tracking-wider">
+        <div className={cn("w-6 h-6 rounded-full border flex items-center justify-center shrink-0", currentThemeClass)}>
+          {icon}
+        </div>
+        <span>{title}</span>
       </div>
-      <div className="w-9 h-9 rounded-full bg-purple-50/70 border border-purple-100 flex items-center justify-center shrink-0">
-        {icon}
+      <div>
+        <h3 className="text-xl font-extrabold text-gray-950 tracking-tight">{value}</h3>
+        <p className="text-[10px] text-gray-400 font-medium select-none mt-0.5">{subtext}</p>
       </div>
-    </Card>
+    </div>
   );
 }
