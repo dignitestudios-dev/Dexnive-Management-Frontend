@@ -251,6 +251,7 @@ export function Sidebar() {
                 "/dashboard/settings/rates",
                 "/dashboard/settings/reasons",
                 "/dashboard/reports",
+                "/dashboard/reports/breakdown",
               ])}
             >
               <SidebarLink
@@ -258,6 +259,14 @@ export function Sidebar() {
                 label="Production Hours"
                 href="/dashboard/reports"
                 active={pathname === "/dashboard/reports"}
+                isCollapsed={isCollapsed}
+                nested
+              />
+              <SidebarLink
+                icon={<Layers className="w-4 h-4" />}
+                label="Hours Breakdown"
+                href="/dashboard/reports/breakdown"
+                active={pathname === "/dashboard/reports/breakdown"}
                 isCollapsed={isCollapsed}
                 nested
               />

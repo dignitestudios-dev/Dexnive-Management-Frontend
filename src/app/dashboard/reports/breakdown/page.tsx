@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Loader } from "@/components/ui/loader";
 import { cn } from "@/utils/cn";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Select,
   SelectContent,
@@ -46,16 +45,15 @@ const MONTH_NAMES = [
   { value: 12, label: "Dec", fullName: "December" },
 ];
 
-export default function ReportsPage() {
+export default function HoursBreakdownPage() {
   const currentDate = new Date();
   const currentMonthValue = currentDate.getMonth() + 1;
   const currentYearValue = currentDate.getFullYear();
 
-  // Populate years dynamically from 2024 (inception of logs) to the current year
+  // Populate years dynamically from 2024 to current year
   const YEARS = Array.from({ length: currentYearValue - 2024 + 1 }, (_, i) => 2024 + i);
 
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const [month, setMonth] = useState<number>(currentMonthValue);
@@ -70,27 +68,12 @@ export default function ReportsPage() {
   const result = responseData?.result || [];
   const metrics = responseData?.metrics;
 
-  // Extract department names dynamically from the first result item's hours mapping keys
+  // Extract department names dynamically
   const departmentNames = result.length > 0 && result[0].hours
     ? Object.keys(result[0].hours).sort()
     : [];
 
   const displayDeptName = (name: string) => name === "Project Management" ? "PM" : name;
-
-  // Sum calculations for column totals
-  const colHoursTotals = departmentNames.reduce((acc, dept) => {
-    acc[dept] = result.reduce((sum, row) => sum + (row.hours?.[dept]?.total || 0), 0);
-    return acc;
-  }, {} as Record<string, number>);
-
-  const overallHoursTotal = result.reduce((sum, row) => sum + (row.total || 0), 0);
-
-  const colAmountsTotals = departmentNames.reduce((acc, dept) => {
-    acc[dept] = result.reduce((sum, row) => sum + (row.amounts?.[dept]?.total || 0), 0);
-    return acc;
-  }, {} as Record<string, number>);
-
-  const overallAmountsTotal = result.reduce((sum, row) => sum + (row.totalAmount || 0), 0);
 
   const selectedMonthObj = MONTH_NAMES.find(m => m.value === month);
   const subtext = selectedMonthObj ? `${selectedMonthObj.label} ${year}` : `${year}`;
@@ -112,19 +95,60 @@ export default function ReportsPage() {
 
   const handleYearChange = (selectedYear: number) => {
     setYear(selectedYear);
-    // If selecting current year and current month is in the future, automatically reset month to current month
     if (selectedYear === currentYearValue && month > currentMonthValue) {
       setMonth(currentMonthValue);
     }
   };
+
+  // Sum calculations for Hours column totals
+  const colHoursBillableTotals = departmentNames.reduce((acc, dept) => {
+    acc[dept] = result.reduce((sum, row) => sum + (row.hours?.[dept]?.billable || 0), 0);
+    return acc;
+  }, {} as Record<string, number>);
+
+  const colHoursNonBillableTotals = departmentNames.reduce((acc, dept) => {
+    acc[dept] = result.reduce((sum, row) => sum + (row.hours?.[dept]?.nonBillable || 0), 0);
+    return acc;
+  }, {} as Record<string, number>);
+
+  const overallHoursBillableTotal = result.reduce((sum, row) => {
+    const rowBillable = Object.values(row.hours || {}).reduce((acc: number, curr: any) => acc + (curr.billable || 0), 0);
+    return sum + rowBillable;
+  }, 0);
+
+  const overallHoursNonBillableTotal = result.reduce((sum, row) => {
+    const rowNonBillable = Object.values(row.hours || {}).reduce((acc: number, curr: any) => acc + (curr.nonBillable || 0), 0);
+    return sum + rowNonBillable;
+  }, 0);
+
+  // Sum calculations for Amounts column totals
+  const colAmountsBillableTotals = departmentNames.reduce((acc, dept) => {
+    acc[dept] = result.reduce((sum, row) => sum + (row.amounts?.[dept]?.billable || 0), 0);
+    return acc;
+  }, {} as Record<string, number>);
+
+  const colAmountsNonBillableTotals = departmentNames.reduce((acc, dept) => {
+    acc[dept] = result.reduce((sum, row) => sum + (row.amounts?.[dept]?.nonBillable || 0), 0);
+    return acc;
+  }, {} as Record<string, number>);
+
+  const overallAmountsBillableTotal = result.reduce((sum, row) => {
+    const rowBillable = Object.values(row.amounts || {}).reduce((acc: number, curr: any) => acc + (curr.billable || 0), 0);
+    return sum + rowBillable;
+  }, 0);
+
+  const overallAmountsNonBillableTotal = result.reduce((sum, row) => {
+    const rowNonBillable = Object.values(row.amounts || {}).reduce((acc: number, curr: any) => acc + (curr.nonBillable || 0), 0);
+    return sum + rowNonBillable;
+  }, 0);
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6 w-full animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Production Hours</h1>
-          <p className="text-sm text-gray-500 mt-1">Project hours & amount breakdown by department</p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Hours Breakdown</h1>
+          <p className="text-sm text-gray-500 mt-1">Detailed billable & non-billable hours and amounts breakdown by department</p>
         </div>
 
         {/* Right actions: Filters */}
@@ -253,7 +277,7 @@ export default function ReportsPage() {
       {isLoading && (
         <div className="flex flex-col items-center justify-center h-64 bg-white border border-gray-200 rounded-2xl shadow-sm gap-3">
           <Loader className="w-8 h-8 text-purple-600" />
-          <span className="text-sm font-medium text-gray-500">Generating report breakdown...</span>
+          <span className="text-sm font-medium text-gray-500">Generating breakdown...</span>
         </div>
       )}
 
@@ -261,7 +285,7 @@ export default function ReportsPage() {
       {error && !isLoading && (
         <div className="flex flex-col items-center justify-center p-8 bg-red-50 border border-red-200 rounded-2xl gap-3 text-center">
           <AlertCircle className="w-8 h-8 text-red-600" />
-          <h3 className="font-semibold text-red-950">Failed to load report</h3>
+          <h3 className="font-semibold text-red-955">Failed to load report</h3>
           <p className="text-sm text-red-700 max-w-md">
             {(error as any)?.response?.data?.message || "An unexpected error occurred while fetching report data."}
           </p>
@@ -324,34 +348,80 @@ export default function ReportsPage() {
               <div className="w-full overflow-x-auto max-h-[650px] overflow-y-auto custom-scrollbar">
                 <table className="w-full border-collapse border border-gray-300">
                   <thead className="text-xs font-bold uppercase tracking-wider text-purple-700 bg-purple-50 sticky top-0 z-20">
-                    <tr className="border-b border-purple-250 bg-purple-50">
-                      <th rowSpan={2} className="px-4 py-3 text-left border-r border-purple-250 font-semibold w-10 bg-purple-50 sticky top-0 z-30">#</th>
-                      <th rowSpan={2} className="px-6 py-3 text-left border-r border-purple-250 font-semibold w-52 min-w-[180px] bg-purple-50 sticky top-0 z-30">Project</th>
-                      <th rowSpan={2} className="px-4 py-3 text-center border-r border-purple-250 font-semibold w-24 bg-purple-50 sticky top-0 z-30">Type</th>
-                      <th rowSpan={2} className="px-6 py-3 text-left border-r border-purple-250 font-semibold w-40 bg-purple-50 sticky top-0 z-30">Division</th>
-                      <th colSpan={departmentNames.length + 1} className="px-4 py-2 text-center border-b border-r border-purple-250 font-bold bg-purple-50 sticky top-0">Hours</th>
-                      <th colSpan={departmentNames.length + 1} className="px-4 py-2 text-center border-b border-purple-250 font-bold bg-purple-50 sticky top-0">Amounts</th>
+                    {/* Row 1: High Level categories */}
+                    <tr className="border-b border-purple-200 bg-purple-50">
+                      <th rowSpan={3} className="px-4 py-3 text-left border-r border-purple-200 font-semibold w-10 bg-purple-50 sticky top-0 z-30">#</th>
+                      <th rowSpan={3} className="px-6 py-3 text-left border-r border-purple-200 font-semibold w-52 min-w-[180px] bg-purple-50 sticky top-0 z-30">Project</th>
+                      <th rowSpan={3} className="px-4 py-3 text-center border-r border-purple-200 font-semibold w-24 bg-purple-50 sticky top-0 z-30">Type</th>
+                      <th rowSpan={3} className="px-6 py-3 text-left border-r border-purple-200 font-semibold w-40 bg-purple-50 sticky top-0 z-30">Division</th>
+                      <th colSpan={(departmentNames.length * 2) + 2} className="px-4 py-2 text-center border-b border-r border-purple-200 font-bold bg-purple-50 sticky top-0 z-30">Hours</th>
+                      <th colSpan={(departmentNames.length * 2) + 2} className="px-4 py-2 text-center border-b border-purple-200 font-bold bg-purple-50 sticky top-0 z-30">Amounts</th>
                     </tr>
-                    <tr className="bg-purple-50 border-b border-purple-250">
+                    {/* Row 2: Department Names */}
+                    <tr className="bg-purple-50 border-b border-purple-200">
                       {/* Hours departments list */}
                       {departmentNames.map((dept) => (
-                        <th key={`hours-${dept}`} className="px-3 py-2 text-center border-r border-purple-200 font-medium normal-case w-20 text-[11px] text-gray-500 bg-purple-50 sticky top-[38px] z-20">
+                        <th key={`hours-dept-${dept}`} colSpan={2} className="px-3 py-2 text-center border-r border-b border-purple-200 font-bold bg-purple-50 sticky top-[38px] z-25">
                           {displayDeptName(dept)}
                         </th>
                       ))}
-                      <th className="px-3 py-2 text-center border-r border-purple-250 font-bold bg-purple-50 w-24 sticky top-[38px] z-20">Total</th>
+                      <th colSpan={2} className="px-3 py-2 text-center border-r border-b border-purple-200 font-bold bg-purple-50 sticky top-[38px] z-25">Total</th>
 
                       {/* Amounts departments list */}
                       {departmentNames.map((dept) => (
-                        <th key={`amounts-${dept}`} className="px-3 py-2 text-center border-r border-purple-200 font-medium normal-case w-20 text-[11px] text-gray-500 bg-purple-50 sticky top-[38px] z-20">
+                        <th key={`amounts-dept-${dept}`} colSpan={2} className="px-3 py-2 text-center border-r border-b border-purple-200 font-bold bg-purple-50 sticky top-[38px] z-25">
                           {displayDeptName(dept)}
                         </th>
                       ))}
-                      <th className="px-3 py-2 text-center font-bold bg-purple-50 w-24 sticky top-[38px] z-20">Total</th>
+                      <th colSpan={2} className="px-3 py-2 text-center border-b border-purple-200 font-bold bg-purple-50 sticky top-[38px] z-25">Total</th>
+                    </tr>
+                    {/* Row 3: Sub headers (Billable & Non-Billable) */}
+                    <tr className="bg-purple-50 border-b border-purple-200">
+                      {/* Hours Columns */}
+                      {departmentNames.map((dept) => (
+                        <React.Fragment key={`hours-sub-${dept}`}>
+                          <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-semibold whitespace-nowrap text-[10px] text-emerald-700 bg-purple-50 sticky top-[76px] z-20">
+                            Billable
+                          </th>
+                          <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-semibold whitespace-nowrap text-[10px] text-amber-700 bg-purple-50 sticky top-[76px] z-20">
+                            Non-Billable
+                          </th>
+                        </React.Fragment>
+                      ))}
+                      <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-bold whitespace-nowrap text-[10px] text-emerald-700 bg-purple-50 sticky top-[76px] z-20">
+                        Billable
+                      </th>
+                      <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-bold whitespace-nowrap text-[10px] text-amber-700 bg-purple-50 sticky top-[76px] z-20">
+                        Non-Billable
+                      </th>
+
+                      {/* Amounts Columns */}
+                      {departmentNames.map((dept) => (
+                        <React.Fragment key={`amounts-sub-${dept}`}>
+                          <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-semibold whitespace-nowrap text-[10px] text-emerald-700 bg-purple-50 sticky top-[76px] z-20">
+                            Billable
+                          </th>
+                          <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-semibold whitespace-nowrap text-[10px] text-amber-700 bg-purple-50 sticky top-[76px] z-20">
+                            Non-Billable
+                          </th>
+                        </React.Fragment>
+                      ))}
+                      <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-bold whitespace-nowrap text-[10px] text-emerald-700 bg-purple-50 sticky top-[76px] z-20">
+                        Billable
+                      </th>
+                      <th className="px-2.5 py-2 text-center border-t border-b border-purple-200 font-bold whitespace-nowrap text-[10px] text-amber-700 bg-purple-50 sticky top-[76px] z-20">
+                        Non-Billable
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white text-xs text-gray-700">
                     {result.map((row, index) => {
+                      const rowHoursBillable = Object.values(row.hours || {}).reduce((acc: number, curr: any) => acc + (curr.billable || 0), 0);
+                      const rowHoursNonBillable = Object.values(row.hours || {}).reduce((acc: number, curr: any) => acc + (curr.nonBillable || 0), 0);
+
+                      const rowAmountsBillable = Object.values(row.amounts || {}).reduce((acc: number, curr: any) => acc + (curr.billable || 0), 0);
+                      const rowAmountsNonBillable = Object.values(row.amounts || {}).reduce((acc: number, curr: any) => acc + (curr.nonBillable || 0), 0);
+
                       return (
                         <tr key={index} className="hover:bg-gray-50/50 transition-colors">
                           <td className="px-4 py-3 border-r border-gray-300 border-b border-gray-300 font-medium text-gray-400 text-center">{index + 1}</td>
@@ -371,42 +441,55 @@ export default function ReportsPage() {
                           </td>
                           <td className="px-6 py-3 border-r border-gray-300 border-b border-gray-300 text-gray-600 whitespace-nowrap">{row.division}</td>
                           
-                          {/* Hours departments cells - NORMAL font weight */}
+                          {/* Department Hours cells */}
                           {departmentNames.map((dept) => {
                             const deptData = row.hours?.[dept];
-                            const totalVal = deptData?.total ?? 0;
-                            
+                            const billableVal = deptData?.billable ?? 0;
+                            const nonBillableVal = deptData?.nonBillable ?? 0;
+
                             return (
-                              <td key={`hours-cell-${dept}`} className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-normal text-gray-700">
-                                <div className="flex flex-col items-center justify-center py-1">
-                                  <span className="text-gray-900 font-normal text-sm">
-                                    {totalVal > 0 ? totalVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
-                                  </span>
-                                </div>
-                              </td>
+                              <React.Fragment key={`hours-cells-${dept}`}>
+                                <td className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-normal text-emerald-600 bg-emerald-50/10">
+                                  {billableVal > 0 ? billableVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+                                </td>
+                                <td className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-normal text-amber-600 bg-amber-50/10">
+                                  {nonBillableVal > 0 ? nonBillableVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+                                </td>
+                              </React.Fragment>
                             );
                           })}
-                          {/* Hours Total cell - BOLD font weight */}
-                          <td className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-bold bg-[#efeaf7]/30 text-gray-955">
-                            <div className="flex flex-col items-center justify-center py-1">
-                              <span className="text-gray-955 font-bold text-sm">
-                                {row.total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                              </span>
-                            </div>
+                          
+                          {/* Hours Total cells */}
+                          <td className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-bold bg-emerald-50 text-emerald-700 text-sm">
+                            {rowHoursBillable > 0 ? rowHoursBillable.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+                          </td>
+                          <td className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-bold bg-amber-50 text-amber-700 text-sm">
+                            {rowHoursNonBillable > 0 ? rowHoursNonBillable.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
                           </td>
 
-                          {/* Amounts departments cells - NORMAL font weight */}
+                          {/* Amounts departments cells */}
                           {departmentNames.map((dept) => {
-                            const value = row.amounts?.[dept]?.total ?? 0;
+                            const deptData = row.amounts?.[dept];
+                            const billableVal = deptData?.billable ?? 0;
+                            const nonBillableVal = deptData?.nonBillable ?? 0;
+
                             return (
-                              <td key={`amounts-cell-${dept}`} className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-normal text-gray-700">
-                                {value > 0 ? value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
-                              </td>
+                              <React.Fragment key={`amounts-cells-${dept}`}>
+                                <td className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-normal text-emerald-600 bg-emerald-50/10">
+                                  {billableVal > 0 ? billableVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+                                </td>
+                                <td className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-normal text-amber-600 bg-amber-50/10">
+                                  {nonBillableVal > 0 ? nonBillableVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+                                </td>
+                              </React.Fragment>
                             );
                           })}
-                          {/* Amounts Total cell - BOLD font weight */}
-                          <td className="px-3 py-2 border-b border-gray-300 text-center font-bold bg-[#efeaf7]/30 text-gray-955">
-                            {row.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                          {/* Amounts Total cells */}
+                          <td className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-bold bg-emerald-50 text-emerald-700 text-sm">
+                            {rowAmountsBillable > 0 ? rowAmountsBillable.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+                          </td>
+                          <td className="px-3 py-2 border-b border-gray-300 text-center font-bold bg-amber-50 text-amber-700 text-sm">
+                            {rowAmountsNonBillable > 0 ? rowAmountsNonBillable.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
                           </td>
                         </tr>
                       );
@@ -419,30 +502,48 @@ export default function ReportsPage() {
                       <td className="px-4 py-3 border-r border-gray-300"></td>
                       <td className="px-6 py-3 border-r border-gray-300"></td>
 
-                      {/* Hours departments totals */}
+                      {/* Hours sub-column totals */}
                       {departmentNames.map((dept) => {
-                        const total = colHoursTotals[dept] || 0;
+                        const billableTotal = colHoursBillableTotals[dept] || 0;
+                        const nonBillableTotal = colHoursNonBillableTotals[dept] || 0;
                         return (
-                          <td key={`total-hours-${dept}`} className="px-3 py-3 border-r border-gray-300 text-center text-gray-900">
-                            {total > 0 ? total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
-                          </td>
+                          <React.Fragment key={`total-hours-${dept}`}>
+                            <td className="px-3 py-3 border-r border-gray-300 text-center text-emerald-700 bg-emerald-50/20">
+                              {billableTotal > 0 ? billableTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+                            </td>
+                            <td className="px-3 py-3 border-r border-gray-300 text-center text-amber-700 bg-amber-50/20">
+                              {nonBillableTotal > 0 ? nonBillableTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+                            </td>
+                          </React.Fragment>
                         );
                       })}
-                      <td className="px-3 py-3 border-r border-gray-300 text-center bg-[#efeaf7]/50 text-purple-950 font-extrabold text-sm">
-                        {overallHoursTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                      <td className="px-3 py-3 border-r border-gray-300 text-center bg-emerald-100 text-emerald-800 font-extrabold text-sm">
+                        {overallHoursBillableTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-3 py-3 border-r border-gray-300 text-center bg-amber-100 text-amber-800 font-extrabold text-sm">
+                        {overallHoursNonBillableTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                       </td>
 
-                      {/* Amounts departments totals */}
+                      {/* Amounts sub-column totals */}
                       {departmentNames.map((dept) => {
-                        const total = colAmountsTotals[dept] || 0;
+                        const billableTotal = colAmountsBillableTotals[dept] || 0;
+                        const nonBillableTotal = colAmountsNonBillableTotals[dept] || 0;
                         return (
-                          <td key={`total-amounts-${dept}`} className="px-3 py-3 border-r border-gray-300 text-center text-gray-900">
-                            {total > 0 ? total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
-                          </td>
+                          <React.Fragment key={`total-amounts-${dept}`}>
+                            <td className="px-3 py-3 border-r border-gray-300 text-center text-emerald-700 bg-emerald-50/20">
+                              {billableTotal > 0 ? billableTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+                            </td>
+                            <td className="px-3 py-3 border-r border-gray-300 text-center text-amber-700 bg-amber-50/20">
+                              {nonBillableTotal > 0 ? nonBillableTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+                            </td>
+                          </React.Fragment>
                         );
                       })}
-                      <td className="px-3 py-3 text-center bg-[#efeaf7]/50 text-purple-950 font-extrabold text-sm">
-                        {overallAmountsTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                      <td className="px-3 py-3 border-r border-gray-300 text-center bg-emerald-100 text-emerald-800 font-extrabold text-sm">
+                        {overallAmountsBillableTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-3 py-3 text-center bg-amber-100 text-amber-800 font-extrabold text-sm">
+                        {overallAmountsNonBillableTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                       </td>
                     </tr>
                   </tfoot>
@@ -490,7 +591,7 @@ function RibbonMetric({
         <span>{title}</span>
       </div>
       <div>
-        <h3 className="text-xl font-extrabold text-gray-950 tracking-tight">{value}</h3>
+        <h3 className="text-xl font-extrabold text-gray-955 tracking-tight">{value}</h3>
         <p className="text-[10px] text-gray-400 font-medium select-none mt-0.5">{subtext}</p>
       </div>
     </div>
