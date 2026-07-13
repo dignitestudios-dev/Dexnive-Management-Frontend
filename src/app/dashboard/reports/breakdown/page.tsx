@@ -347,7 +347,7 @@ export default function HoursBreakdownPage() {
             ) : (
               <div className="w-full overflow-x-auto max-h-[650px] overflow-y-auto custom-scrollbar">
                 <table className="w-full border-collapse border border-gray-300">
-                  <thead className="text-xs font-bold uppercase tracking-wider text-purple-700 bg-purple-50 sticky top-0 z-20">
+                  <thead className="text-sm font-bold uppercase tracking-wider text-purple-700 bg-purple-50 sticky top-0 z-20">
                     {/* Row 1: High Level categories */}
                     <tr className="border-b border-purple-200 bg-purple-50">
                       <th rowSpan={3} className="px-4 py-3 text-left border-r border-purple-200 font-semibold w-10 bg-purple-50 sticky top-0 z-30">#</th>
@@ -361,60 +361,60 @@ export default function HoursBreakdownPage() {
                     <tr className="bg-purple-50 border-b border-purple-200">
                       {/* Hours departments list */}
                       {departmentNames.map((dept) => (
-                        <th key={`hours-dept-${dept}`} colSpan={2} className="px-3 py-2 text-center border-r border-b border-purple-200 font-bold bg-purple-50 sticky top-[38px] z-25">
+                        <th key={`hours-dept-${dept}`} colSpan={2} className="px-3 py-2 text-center border-r border-b border-purple-200 font-bold bg-purple-50 sticky top-[38px] z-25 text-xs">
                           {displayDeptName(dept)}
                         </th>
                       ))}
-                      <th colSpan={2} className="px-3 py-2 text-center border-r border-b border-purple-200 font-bold bg-purple-50 sticky top-[38px] z-25">Total</th>
+                      <th colSpan={2} className="px-3 py-2 text-center border-r border-b border-purple-200 font-bold bg-purple-50 sticky top-[38px] z-25 text-xs">Total</th>
 
                       {/* Amounts departments list */}
                       {departmentNames.map((dept) => (
-                        <th key={`amounts-dept-${dept}`} colSpan={2} className="px-3 py-2 text-center border-r border-b border-purple-200 font-bold bg-purple-50 sticky top-[38px] z-25">
+                        <th key={`amounts-dept-${dept}`} colSpan={2} className="px-3 py-2 text-center border-r border-b border-purple-200 font-bold bg-purple-50 sticky top-[38px] z-25 text-xs">
                           {displayDeptName(dept)}
                         </th>
                       ))}
-                      <th colSpan={2} className="px-3 py-2 text-center border-b border-purple-200 font-bold bg-purple-50 sticky top-[38px] z-25">Total</th>
+                      <th colSpan={2} className="px-3 py-2 text-center border-b border-purple-200 font-bold bg-purple-50 sticky top-[38px] z-25 text-xs">Total</th>
                     </tr>
                     {/* Row 3: Sub headers (Billable & Non-Billable) */}
                     <tr className="bg-purple-50 border-b border-purple-200">
                       {/* Hours Columns */}
                       {departmentNames.map((dept) => (
                         <React.Fragment key={`hours-sub-${dept}`}>
-                          <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-semibold whitespace-nowrap text-[10px] text-emerald-700 bg-purple-50 sticky top-[76px] z-20">
+                          <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-semibold whitespace-nowrap text-xs text-emerald-700 bg-purple-50 sticky top-[76px] z-20">
                             Billable
                           </th>
-                          <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-semibold whitespace-nowrap text-[10px] text-amber-700 bg-purple-50 sticky top-[76px] z-20">
+                          <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-semibold whitespace-nowrap text-xs text-amber-700 bg-purple-50 sticky top-[76px] z-20">
                             Non-Billable
                           </th>
                         </React.Fragment>
                       ))}
-                      <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-bold whitespace-nowrap text-[10px] text-emerald-700 bg-purple-50 sticky top-[76px] z-20">
+                      <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-bold whitespace-nowrap text-xs text-emerald-700 bg-purple-50 sticky top-[76px] z-20">
                         Billable
                       </th>
-                      <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-bold whitespace-nowrap text-[10px] text-amber-700 bg-purple-50 sticky top-[76px] z-20">
+                      <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-bold whitespace-nowrap text-xs text-amber-700 bg-purple-50 sticky top-[76px] z-20">
                         Non-Billable
                       </th>
 
                       {/* Amounts Columns */}
                       {departmentNames.map((dept) => (
                         <React.Fragment key={`amounts-sub-${dept}`}>
-                          <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-semibold whitespace-nowrap text-[10px] text-emerald-700 bg-purple-50 sticky top-[76px] z-20">
+                          <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-semibold whitespace-nowrap text-xs text-emerald-700 bg-purple-50 sticky top-[76px] z-20">
                             Billable
                           </th>
-                          <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-semibold whitespace-nowrap text-[10px] text-amber-700 bg-purple-50 sticky top-[76px] z-20">
+                          <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-semibold whitespace-nowrap text-xs text-amber-700 bg-purple-50 sticky top-[76px] z-20">
                             Non-Billable
                           </th>
                         </React.Fragment>
                       ))}
-                      <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-bold whitespace-nowrap text-[10px] text-emerald-700 bg-purple-50 sticky top-[76px] z-20">
+                      <th className="px-2.5 py-2 text-center border-r border-t border-b border-purple-200 font-bold whitespace-nowrap text-xs text-emerald-700 bg-purple-50 sticky top-[76px] z-20">
                         Billable
                       </th>
-                      <th className="px-2.5 py-2 text-center border-t border-b border-purple-200 font-bold whitespace-nowrap text-[10px] text-amber-700 bg-purple-50 sticky top-[76px] z-20">
+                      <th className="px-2.5 py-2 text-center border-t border-b border-purple-200 font-bold whitespace-nowrap text-xs text-amber-700 bg-purple-50 sticky top-[76px] z-20">
                         Non-Billable
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white text-xs text-gray-700">
+                  <tbody className="bg-white text-sm text-gray-700">
                     {result.map((row, index) => {
                       const rowHoursBillable = Object.values(row.hours || {}).reduce((acc: number, curr: any) => acc + (curr.billable || 0), 0);
                       const rowHoursNonBillable = Object.values(row.hours || {}).reduce((acc: number, curr: any) => acc + (curr.nonBillable || 0), 0);
@@ -495,7 +495,7 @@ export default function HoursBreakdownPage() {
                       );
                     })}
                   </tbody>
-                  <tfoot className="bg-purple-50/70 font-bold border-t-2 border-b-2 border-purple-250 text-xs text-gray-900 sticky bottom-0 z-10">
+                  <tfoot className="bg-purple-50/70 font-bold border-t-2 border-b-2 border-purple-200 text-sm text-gray-900 sticky bottom-0 z-10">
                     <tr className="bg-purple-50">
                       <td className="px-4 py-3 border-r border-gray-300 text-center"></td>
                       <td className="px-6 py-3 border-r border-gray-300 text-left whitespace-nowrap text-gray-900">Total</td>
