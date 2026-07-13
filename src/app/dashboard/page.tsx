@@ -25,7 +25,8 @@ import {
   Building2, 
   Calendar, 
   History, 
-  ChevronRight 
+  ChevronRight,
+  BarChart3
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -97,6 +98,13 @@ export default function DashboardPage() {
                 description="Track and manage projects, budgets, and stages."
                 href="/dashboard/projects"
                 borderColor="border-emerald-100/70"
+              />
+              <QuickActionCard
+                icon={<BarChart3 className="w-6 h-6 text-purple-500" />}
+                title="Reports"
+                description="View monthly project hours and department billing breakdown."
+                href="/dashboard/reports"
+                borderColor="border-purple-100/70"
               />
               <QuickActionCard
                 icon={<History className="w-6 h-6 text-amber-500" />}

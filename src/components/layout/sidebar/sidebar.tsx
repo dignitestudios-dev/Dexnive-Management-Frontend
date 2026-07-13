@@ -23,7 +23,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  LockKeyhole
+  LockKeyhole,
+  BarChart3
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 
@@ -255,8 +256,17 @@ export function Sidebar() {
                 "/dashboard/settings/holidays",
                 "/dashboard/settings/rates",
                 "/dashboard/settings/reasons",
+                "/dashboard/reports",
               ])}
             >
+              <SidebarLink
+                icon={<BarChart3 className="w-4 h-4" />}
+                label="Reports"
+                href="/dashboard/reports"
+                active={pathname === "/dashboard/reports"}
+                isCollapsed={isCollapsed}
+                nested
+              />
               <SidebarLink
                 icon={<Calendar className="w-4 h-4" />}
                 label="Holidays"
