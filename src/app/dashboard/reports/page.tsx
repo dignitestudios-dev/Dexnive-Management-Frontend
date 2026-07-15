@@ -28,8 +28,10 @@ import {
   Filter,
   AlertCircle,
   FileBarChart,
+  Download,
 } from "lucide-react";
 import { useGetProjectHoursBreakdownQuery } from "@/features/reports/api/reports.queries";
+import XLSX from "xlsx-js-style";
 
 const MONTH_NAMES = [
   { value: 1, label: "Jan", fullName: "January" },
@@ -118,6 +120,152 @@ export default function ReportsPage() {
     }
   };
 
+  const handleExportExcel = () => {
+    if (result.length === 0) return;
+
+    const monthLabel = MONTH_NAMES.find(m => m.value === month)?.label || month.toString();
+
+    const wb = XLSX.utils.book_new();
+
+    const headerRow1 = [
+      "#", "Project", "Type", "Division",
+      "Hours", ...Array(departmentNames.length).fill(""),
+      "Amounts", ...Array(departmentNames.length).fill("")
+    ];
+
+    const headerRow2 = [
+      "", "", "", "",
+      ...departmentNames.map(dept => displayDeptName(dept)),
+      "Total",
+      ...departmentNames.map(dept => displayDeptName(dept)),
+      "Total"
+    ];
+
+    const rawRows = [headerRow1, headerRow2];
+
+    result.forEach((row, index) => {
+      const rowData = [
+        (index + 1).toString(),
+        row.name,
+        row.type,
+        row.division,
+        ...departmentNames.map(dept => {
+          const val = row.hours?.[dept]?.total ?? 0;
+          return val > 0 ? val : 0;
+        }),
+        row.total ?? 0,
+        ...departmentNames.map(dept => {
+          const val = row.amounts?.[dept]?.total ?? 0;
+          return val > 0 ? val : 0;
+        }),
+        row.totalAmount ?? 0
+      ];
+      rawRows.push(rowData as any[]);
+    });
+
+    const totalRow = [
+      "",
+      "Total",
+      "",
+      "",
+      ...departmentNames.map(dept => colHoursTotals[dept] ?? 0),
+      overallHoursTotal,
+      ...departmentNames.map(dept => colAmountsTotals[dept] ?? 0),
+      overallAmountsTotal
+    ];
+    rawRows.push(totalRow as any[]);
+
+    const ws = XLSX.utils.aoa_to_sheet(rawRows);
+
+    // Apply styles and center alignments dynamically to all cells
+    const range = XLSX.utils.decode_range(ws["!ref"] || "A1:A1");
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const cell_address = XLSX.utils.encode_cell({ r, c });
+        if (!ws[cell_address]) {
+          ws[cell_address] = { t: "s", v: "" };
+        }
+        const cell = ws[cell_address];
+        
+        const defaultBorder = {
+          top: { style: "thin", color: { rgb: "D1D5DB" } },
+          bottom: { style: "thin", color: { rgb: "D1D5DB" } },
+          left: { style: "thin", color: { rgb: "D1D5DB" } },
+          right: { style: "thin", color: { rgb: "D1D5DB" } }
+        };
+
+        cell.s = {
+          font: { name: "Arial", sz: 10 },
+          alignment: { vertical: "center", horizontal: "center" },
+          border: defaultBorder
+        };
+
+        if (c === 1 || c === 3) {
+          cell.s.alignment.horizontal = "left";
+        }
+
+        // Header styles (Row 1 & 2)
+        if (r === 0) {
+          cell.s.font = { name: "Arial", sz: 11, bold: true };
+          cell.s.alignment.horizontal = "center";
+        } else if (r === 1) {
+          cell.s.font = { name: "Arial", sz: 10, bold: true };
+          cell.s.alignment.horizontal = "center";
+        }
+        // Total row styles
+        else if (r === range.e.r) {
+          cell.s.font = { name: "Arial", sz: 10, bold: true };
+        }
+        // Highlight total column cells
+        else {
+          if (c === 4 + departmentNames.length || c === 5 + departmentNames.length * 2) {
+            cell.s.font = { name: "Arial", sz: 10, bold: true };
+          }
+        }
+      }
+    }
+
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } },
+      { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } },
+      { s: { r: 0, c: 2 }, e: { r: 1, c: 2 } },
+      { s: { r: 0, c: 3 }, e: { r: 1, c: 3 } },
+      { s: { r: 0, c: 4 }, e: { r: 0, c: 4 + departmentNames.length } },
+      { s: { r: 0, c: 5 + departmentNames.length }, e: { r: 0, c: 5 + (departmentNames.length * 2) } }
+    ];
+
+    ws["!cols"] = [
+      { wch: 6 },
+      { wch: 25 },
+      { wch: 12 },
+      { wch: 18 },
+      ...departmentNames.map(() => ({ wch: 12 })),
+      { wch: 14 },
+      ...departmentNames.map(() => ({ wch: 12 })),
+      { wch: 14 }
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, "Production Hours");
+
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "binary" });
+
+    function s2ab(s: string) {
+      const buf = new ArrayBuffer(s.length);
+      const view = new Uint8Array(buf);
+      for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
+      return buf;
+    }
+
+    const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `production_hours_report_${monthLabel}_${year}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6 w-full animate-in fade-in duration-300">
       {/* Header */}
@@ -128,7 +276,17 @@ export default function ReportsPage() {
         </div>
 
         {/* Right actions: Filters */}
-        <div className="flex items-center gap-4 self-end sm:self-auto">
+        <div className="flex items-center gap-3 self-end sm:self-auto">
+          {/* Export button */}
+          <button
+            onClick={handleExportExcel}
+            disabled={result.length === 0}
+            className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-purple-200 rounded-lg px-3.5 py-2 h-9 gap-2 shadow-sm bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+
           {/* Filter Popup Trigger */}
           <Popover>
             <PopoverTrigger className={cn(

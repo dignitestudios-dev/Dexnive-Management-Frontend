@@ -27,8 +27,10 @@ import {
   Filter,
   AlertCircle,
   FileBarChart,
+  Download,
 } from "lucide-react";
 import { useGetProjectHoursBreakdownQuery } from "@/features/reports/api/reports.queries";
+import XLSX from "xlsx-js-style";
 
 const MONTH_NAMES = [
   { value: 1, label: "Jan", fullName: "January" },
@@ -142,6 +144,202 @@ export default function HoursBreakdownPage() {
     return sum + rowNonBillable;
   }, 0);
 
+  const handleExportExcel = () => {
+    if (result.length === 0) return;
+
+    const monthLabel = MONTH_NAMES.find(m => m.value === month)?.label || month.toString();
+
+    const wb = XLSX.utils.book_new();
+
+    const H_len = (departmentNames.length * 2) + 2;
+
+    // Row 1
+    const headerRow1 = [
+      "#", "Project", "Type", "Division",
+      "Hours", ...Array(H_len - 1).fill(""),
+      "Amounts", ...Array(H_len - 1).fill("")
+    ];
+
+    // Row 2
+    const headerRow2 = [
+      "", "", "", "",
+      ...departmentNames.flatMap(dept => [displayDeptName(dept), ""]),
+      "Total", "",
+      ...departmentNames.flatMap(dept => [displayDeptName(dept), ""]),
+      "Total", ""
+    ];
+
+    // Row 3
+    const headerRow3 = [
+      "", "", "", "",
+      ...departmentNames.flatMap(() => ["Billable", "Non-Billable"]),
+      "Billable", "Non-Billable",
+      ...departmentNames.flatMap(() => ["Billable", "Non-Billable"]),
+      "Billable", "Non-Billable"
+    ];
+
+    const rawRows = [headerRow1, headerRow2, headerRow3];
+
+    result.forEach((row, index) => {
+      const rowHoursBillable = Object.values(row.hours || {}).reduce((acc: number, curr: any) => acc + (curr.billable || 0), 0);
+      const rowHoursNonBillable = Object.values(row.hours || {}).reduce((acc: number, curr: any) => acc + (curr.nonBillable || 0), 0);
+
+      const rowAmountsBillable = Object.values(row.amounts || {}).reduce((acc: number, curr: any) => acc + (curr.billable || 0), 0);
+      const rowAmountsNonBillable = Object.values(row.amounts || {}).reduce((acc: number, curr: any) => acc + (curr.nonBillable || 0), 0);
+
+      const rowData = [
+        (index + 1).toString(),
+        row.name,
+        row.type,
+        row.division,
+        ...departmentNames.flatMap(dept => {
+          const valB = row.hours?.[dept]?.billable ?? 0;
+          const valNB = row.hours?.[dept]?.nonBillable ?? 0;
+          return [valB > 0 ? valB : 0, valNB > 0 ? valNB : 0];
+        }),
+        rowHoursBillable,
+        rowHoursNonBillable,
+        ...departmentNames.flatMap(dept => {
+          const valB = row.amounts?.[dept]?.billable ?? 0;
+          const valNB = row.amounts?.[dept]?.nonBillable ?? 0;
+          return [valB > 0 ? valB : 0, valNB > 0 ? valNB : 0];
+        }),
+        rowAmountsBillable,
+        rowAmountsNonBillable
+      ];
+      rawRows.push(rowData as any[]);
+    });
+
+    const totalRow = [
+      "",
+      "Total",
+      "",
+      "",
+      ...departmentNames.flatMap(dept => {
+        const valB = colHoursBillableTotals[dept] ?? 0;
+        const valNB = colHoursNonBillableTotals[dept] ?? 0;
+        return [valB, valNB];
+      }),
+      overallHoursBillableTotal,
+      overallHoursNonBillableTotal,
+      ...departmentNames.flatMap(dept => {
+        const valB = colAmountsBillableTotals[dept] ?? 0;
+        const valNB = colAmountsNonBillableTotals[dept] ?? 0;
+        return [valB, valNB];
+      }),
+      overallAmountsBillableTotal,
+      overallAmountsNonBillableTotal
+    ];
+    rawRows.push(totalRow as any[]);
+
+    const ws = XLSX.utils.aoa_to_sheet(rawRows);
+
+    // Apply styles, colors, alignments, and borders dynamically to all cells
+    const range = XLSX.utils.decode_range(ws["!ref"] || "A1:A1");
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const cell_address = XLSX.utils.encode_cell({ r, c });
+        if (!ws[cell_address]) {
+          ws[cell_address] = { t: "s", v: "" };
+        }
+        const cell = ws[cell_address];
+        
+        const defaultBorder = {
+          top: { style: "thin", color: { rgb: "D1D5DB" } },
+          bottom: { style: "thin", color: { rgb: "D1D5DB" } },
+          left: { style: "thin", color: { rgb: "D1D5DB" } },
+          right: { style: "thin", color: { rgb: "D1D5DB" } }
+        };
+
+        cell.s = {
+          font: { name: "Arial", sz: 10 },
+          alignment: { vertical: "center", horizontal: "center" },
+          border: defaultBorder
+        };
+
+        if (c === 1 || c === 3) {
+          cell.s.alignment.horizontal = "left";
+        }
+
+        // Header Rows (0, 1, 2)
+        if (r === 0) {
+          cell.s.font = { name: "Arial", sz: 11, bold: true };
+          cell.s.alignment.horizontal = "center";
+        } else if (r === 1) {
+          cell.s.font = { name: "Arial", sz: 10, bold: true };
+          cell.s.alignment.horizontal = "center";
+        } else if (r === 2) {
+          cell.s.font = { name: "Arial", sz: 9, bold: true };
+          cell.s.alignment.horizontal = "center";
+        }
+        // Totals Row
+        else if (r === range.e.r) {
+          cell.s.font = { name: "Arial", sz: 10, bold: true };
+        }
+        // Data Rows
+        else {
+          if (c >= 4) {
+            const isTotalCol = c === 4 + departmentNames.length * 2 || c === 5 + departmentNames.length * 2 || 
+                               c === 4 + H_len + departmentNames.length * 2 || c === 5 + H_len + departmentNames.length * 2;
+            
+            if (isTotalCol) {
+              cell.s.font = { name: "Arial", sz: 10, bold: true };
+            }
+          }
+        }
+      }
+    }
+
+    const merges = [
+      { s: { r: 0, c: 0 }, e: { r: 2, c: 0 } },
+      { s: { r: 0, c: 1 }, e: { r: 2, c: 1 } },
+      { s: { r: 0, c: 2 }, e: { r: 2, c: 2 } },
+      { s: { r: 0, c: 3 }, e: { r: 2, c: 3 } },
+      { s: { r: 0, c: 4 }, e: { r: 0, c: 4 + H_len - 1 } },
+      { s: { r: 0, c: 4 + H_len }, e: { r: 0, c: 4 + H_len * 2 - 1 } }
+    ];
+
+    for (let i = 0; i <= departmentNames.length; i++) {
+      const c = 4 + i * 2;
+      merges.push({ s: { r: 1, c: c }, e: { r: 1, c: c + 1 } });
+    }
+
+    for (let i = 0; i <= departmentNames.length; i++) {
+      const c = 4 + H_len + i * 2;
+      merges.push({ s: { r: 1, c: c }, e: { r: 1, c: c + 1 } });
+    }
+
+    ws["!merges"] = merges;
+
+    ws["!cols"] = [
+      { wch: 6 },
+      { wch: 25 },
+      { wch: 12 },
+      { wch: 18 },
+      ...Array(H_len * 2).fill(null).map((_, i) => ({ wch: i % 2 === 0 ? 12 : 14 }))
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, "Hours Breakdown");
+
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "binary" });
+
+    function s2ab(s: string) {
+      const buf = new ArrayBuffer(s.length);
+      const view = new Uint8Array(buf);
+      for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
+      return buf;
+    }
+
+    const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `hours_breakdown_report_${monthLabel}_${year}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6 w-full animate-in fade-in duration-300">
       {/* Header */}
@@ -152,7 +350,17 @@ export default function HoursBreakdownPage() {
         </div>
 
         {/* Right actions: Filters */}
-        <div className="flex items-center gap-4 self-end sm:self-auto">
+        <div className="flex items-center gap-3 self-end sm:self-auto">
+          {/* Export button */}
+          <button
+            onClick={handleExportExcel}
+            disabled={result.length === 0}
+            className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-purple-200 rounded-lg px-3.5 py-2 h-9 gap-2 shadow-sm bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+
           {/* Filter Popup Trigger */}
           <Popover>
             <PopoverTrigger className={cn(
