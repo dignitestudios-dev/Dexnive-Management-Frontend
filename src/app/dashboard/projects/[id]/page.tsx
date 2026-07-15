@@ -275,6 +275,12 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
 
+        {project.description && (
+          <p className="text-base text-gray-500 mt-1 max-w-4xl leading-relaxed">
+            {project.description}
+          </p>
+        )}
+
         {/* Quick Stats Toolbar */}
         <div className="flex flex-wrap items-center gap-8 text-base pt-2">
           <div className="flex flex-col">
@@ -360,12 +366,13 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
       {/* Main Content */}
       <div className="flex-1 overflow-auto bg-gray-50/50 p-6">
         {activeTab === "list" && (
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm min-w-[1000px] overflow-x-auto">
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm min-w-[1150px] overflow-x-auto">
           {/* Table Header */}
-          <div className="grid grid-cols-[48px_minmax(150px,1fr)_100px_100px_100px_70px_70px_100px_70px] items-center gap-4 p-3 border-b border-gray-200 bg-gray-50/80 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="grid grid-cols-[48px_minmax(150px,1.2fr)_130px_130px_100px_100px_75px_75px_75px_75px] items-center gap-4 p-3 border-b border-gray-200 bg-gray-50/80 text-xs font-semibold text-gray-500 uppercase tracking-wider">
             <div className="flex justify-center">Order</div>
             <div>Stage Name</div>
             <div>Status</div>
+            <div>Scheduled Status</div>
             <div>Start Date</div>
             <div>End Date</div>
             <div className="text-right">Budget</div>
@@ -391,7 +398,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                   <ContextMenuTrigger render={<div />}>
                     <div 
                       onClick={() => router.push(`/dashboard/projects/${projectId}/stages/${stage._id}`)}
-                      className={`grid grid-cols-[48px_minmax(150px,1fr)_100px_100px_100px_70px_70px_100px_70px] items-center gap-4 p-3 text-base transition-colors hover:bg-blue-50/30 cursor-pointer group ${stage.status === 'active' ? 'bg-primary/[0.02]' : ''}`}
+                      className={`grid grid-cols-[48px_minmax(150px,1.2fr)_130px_130px_100px_100px_75px_75px_75px_75px] items-center gap-4 p-3 text-base transition-colors hover:bg-blue-50/30 cursor-pointer group ${stage.status === 'active' ? 'bg-primary/[0.02]' : ''}`}
                     >
                       {/* Order / Grip */}
                       <div className="flex items-center justify-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
@@ -422,24 +429,32 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                       </div>
 
                       {/* Status */}
-                      <div className="flex flex-col gap-1">
-                        <span className={`inline-flex items-center px-2 py-0.5 text-xs font-semibold uppercase tracking-wider rounded-md border ${
+                      <div>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider rounded-md border ${
                           stage.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                           stage.status === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                           stage.status === 'delayed' ? 'bg-red-50 text-red-700 border-red-200' :
                           'bg-gray-50 text-gray-600 border-gray-200'
                         }`}>
                           {stage.status === 'active' ? (
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse shrink-0"></span>
                           ) : null}
                           {stage.status.replace('-', ' ')}
                         </span>
-                        {stage.scheduleStatus && (
-                          <span className={`text-xs font-medium truncate ${
-                            stage.scheduleStatus === 'Completed On Time' || stage.scheduleStatus === 'On Track' ? 'text-emerald-600' : 'text-amber-600'
+                      </div>
+
+                      {/* Scheduled Status */}
+                      <div className="flex items-center">
+                        {stage.scheduleStatus ? (
+                          <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-md ${
+                            stage.scheduleStatus === 'Completed On Time' || stage.scheduleStatus === 'On Track'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                              : 'bg-amber-50 text-amber-700 border border-amber-100'
                           }`}>
                             {stage.scheduleStatus}
                           </span>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">Not Available</span>
                         )}
                       </div>
 

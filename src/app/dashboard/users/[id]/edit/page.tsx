@@ -212,7 +212,9 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingRoles}>
                     <SelectTrigger className={errors.role ? "border-red-500" : ""}>
-                      <SelectValue placeholder="Select a role..." />
+                      <span className="flex-1 text-left truncate">
+                        {field.value ? (roles.find((r) => r._id === field.value)?.name || "") : "Select a role..."}
+                      </span>
                     </SelectTrigger>
                     <SelectContent>
                       {roles.map((r) => (
@@ -235,7 +237,9 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingDepts}>
                     <SelectTrigger className={errors.department ? "border-red-500" : ""}>
-                      <SelectValue placeholder="Select a department..." />
+                      <span className="flex-1 text-left truncate">
+                        {field.value ? (departments.find((d) => d._id === field.value)?.name || "") : "Select a department..."}
+                      </span>
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map((d) => (

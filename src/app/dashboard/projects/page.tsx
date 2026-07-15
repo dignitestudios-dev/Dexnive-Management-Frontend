@@ -341,46 +341,106 @@ function ProjectsPageContent() {
               No projects found.
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
               {projects.map((proj) => (
                 <ContextMenu key={proj._id}>
                   <ContextMenuTrigger>
                     <div 
                       onClick={() => router.push(`/dashboard/projects/${proj._id}`)}
-                      className="bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all group overflow-hidden flex flex-col cursor-pointer h-[230px]"
+                      className="bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all group overflow-hidden flex flex-col cursor-pointer"
                     >
-                      <div className="p-4 flex-1 flex flex-col gap-3">
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm font-semibold text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded border border-primary-100 uppercase">
-                                {proj.code}
-                              </span>
-                              <span className={`text-xs font-bold px-1.5 py-0.5 rounded uppercase ${
-                                proj.status?.toLowerCase() === 'active' ? 'bg-green-100 text-green-700' :
-                                proj.status?.toLowerCase() === 'on-hold' ? 'bg-amber-100 text-amber-700' :
-                                proj.status?.toLowerCase() === 'completed' ? 'bg-blue-100 text-blue-700' :
-                                'bg-gray-100 text-gray-700'
-                              }`}>
-                                {proj.status}
-                              </span>
-                            </div>
-                            <h3 className="font-semibold text-gray-900 line-clamp-2 text-lg" title={proj.name}>{proj.name}</h3>
+                      <div className="p-4 flex flex-col gap-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded border border-primary-100 uppercase">
+                            {proj.code}
+                          </span>
+                          <span className={`text-xs font-bold px-1.5 py-0.5 rounded uppercase ${
+                            proj.status?.toLowerCase() === 'active' ? 'bg-green-100 text-green-700' :
+                            proj.status?.toLowerCase() === 'on-hold' ? 'bg-amber-100 text-amber-700' :
+                            proj.status?.toLowerCase() === 'completed' ? 'bg-blue-100 text-blue-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {proj.status}
+                          </span>
+                        </div>
+                        
+                        <div>
+                          <h3 className="font-semibold text-gray-900 line-clamp-1 text-base animate-duration-500" title={proj.name}>
+                            {proj.name}
+                          </h3>
+                          {proj.description ? (
+                            <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{proj.description}</p>
+                          ) : (
+                            <p className="text-xs text-gray-400 italic line-clamp-1 mt-0.5">No description provided</p>
+                          )}
+                        </div>
+                        
+                        {/* Hours Breakdown */}
+                        <div className="flex items-center justify-between text-xs text-gray-500 font-medium border-t border-gray-100/50 pt-2 mt-0.5">
+                          <div className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0"></span>
+                            <span>B: {proj.totalBillableHours || 0}h</span>
+                            {proj.totalOvertimeHours ? (
+                              <span className="text-[10px] opacity-75">({proj.totalOvertimeHours}h)</span>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
+                            <span>NB: {proj.totalNonBillableHours || 0}h</span>
+                          </div>
+                          <div className="flex items-center gap-1 font-semibold text-gray-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
+                            <span>Total: {proj.totalHours || 0}h</span>
                           </div>
                         </div>
-                        {proj.description && (
-                          <p className="text-sm text-gray-500 line-clamp-2">{proj.description}</p>
-                        )}
+
+                        {/* Budget Usage Progress Bar */}
+                        <div className="flex flex-col gap-1 mt-0.5">
+                          <div className="flex justify-between text-[11px] font-medium">
+                            <span className="text-gray-500">Budget Usage</span>
+                            {proj.budgetedHours ? (
+                              <span className={(proj.totalHours || 0) > proj.budgetedHours ? "text-red-600 font-bold" : "text-gray-900 font-semibold"}>
+                                {proj.totalHours || 0} / {proj.budgetedHours}h
+                              </span>
+                            ) : (
+                              <span className="text-gray-900 font-semibold">{proj.totalHours || 0}h</span>
+                            )}
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1 flex overflow-hidden">
+                            {proj.budgetedHours && (proj.totalHours || 0) <= proj.budgetedHours ? (
+                              <div 
+                                className="h-1 bg-primary transition-all duration-500"
+                                style={{ width: `${Math.min(((proj.totalHours || 0) / proj.budgetedHours) * 100, 100)}%` }}
+                              />
+                            ) : proj.budgetedHours ? (
+                              <>
+                                <div 
+                                  className="h-1 bg-primary opacity-60 transition-all duration-500"
+                                  style={{ width: `${(proj.budgetedHours / (proj.totalHours || 1)) * 100}%` }}
+                                />
+                                <div 
+                                  className="h-1 bg-red-500 transition-all duration-500"
+                                  style={{ width: `${(((proj.totalHours || 0) - proj.budgetedHours) / (proj.totalHours || 1)) * 100}%` }}
+                                />
+                              </>
+                            ) : (
+                              <div 
+                                className="h-1 bg-primary transition-all duration-500"
+                                style={{ width: '0%' }}
+                              />
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="bg-gray-50 p-3 border-t border-gray-100 flex justify-between items-center">
-                        <div className="flex flex-col">
-                          <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">Type</span>
-                          <span className="text-sm text-gray-700 font-medium capitalize">{proj.projectType}</span>
+                      <div className="bg-gray-50 p-2.5 px-4 border-t border-gray-100 flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-gray-400 font-medium uppercase text-[10px] tracking-wider">Type:</span>
+                          <span className="text-gray-700 font-medium capitalize">{proj.projectType}</span>
                         </div>
                         {proj.budgetedHours !== undefined && proj.budgetedHours !== null && (
-                          <div className="flex flex-col items-end">
-                            <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">Budget</span>
-                            <span className="text-sm text-gray-700 font-medium">{proj.budgetedHours}h</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-gray-400 font-medium uppercase text-[10px] tracking-wider">Budget:</span>
+                            <span className="text-gray-700 font-medium">{proj.budgetedHours}h</span>
                           </div>
                         )}
                       </div>
