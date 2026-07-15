@@ -116,8 +116,8 @@ function MissingEntriesPageContent() {
       <div className="flex-shrink-0 border-b border-gray-200 bg-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Missing Entries</h1>
-            <p className="text-sm text-gray-500 mt-1">Track and review missing worklog entries for users</p>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Missing Entries</h1>
+            <p className="text-base text-gray-500 mt-1">Track and review missing worklog entries for users</p>
           </div>
           <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <DialogTrigger render={
@@ -279,13 +279,13 @@ function MissingEntriesPageContent() {
           </div>
         ) : (
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-medium">
+            <table className="w-full text-base text-left">
+              <thead className="bg-gray-50 border-b border-gray-200 text-gray-700 font-semibold text-base">
                 <tr>
-                  <th className="px-6 py-4">User</th>
-                  <th className="px-6 py-4">Email</th>
-                  <th className="px-6 py-4">Department</th>
-                  <th className="px-6 py-4 text-right">Missing Days</th>
+                  <th className="px-6 py-4 font-semibold text-gray-900">User</th>
+                  <th className="px-6 py-4 font-semibold text-gray-900">Email</th>
+                  <th className="px-6 py-4 font-semibold text-gray-900">Department</th>
+                  <th className="px-6 py-4 font-semibold text-gray-900 text-right">Missing Days</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -298,20 +298,20 @@ function MissingEntriesPageContent() {
                       setIsDetailsOpen(true);
                     }}
                   >
-                    <td className="px-6 py-4 font-medium text-gray-900">
+                    <td className="px-6 py-4 font-medium text-gray-900 text-base">
                       <div>
-                        <p>{entry.userName}</p>
-                        <p className="text-xs text-gray-500 font-normal">{entry.employeeCode}</p>
+                        <p className="text-base font-semibold text-gray-900">{entry.userName}</p>
+                        <p className="text-sm text-gray-500 font-normal mt-0.5">{entry.employeeCode}</p>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">
+                    <td className="px-6 py-4 text-gray-600 text-base">
                       {entry.userEmail || "N/A"}
                     </td>
-                    <td className="px-6 py-4 text-gray-600">
+                    <td className="px-6 py-4 text-gray-600 text-base">
                       {entry.department?.name || "N/A"}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-700">
                         {entry.missingEntriesCount}
                       </span>
                     </td>
@@ -332,30 +332,30 @@ function MissingEntriesPageContent() {
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <div>
-                  <p className="text-xs text-gray-500 font-medium">Name</p>
-                  <p className="text-sm font-semibold text-gray-900">{selectedEntry.userName}</p>
+                  <p className="text-sm text-gray-500 font-medium">Name</p>
+                  <p className="text-base font-semibold text-gray-900">{selectedEntry.userName}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-medium">Email</p>
-                  <p className="text-sm font-semibold text-gray-900">{selectedEntry.userEmail || "N/A"}</p>
+                  <p className="text-sm text-gray-500 font-medium">Email</p>
+                  <p className="text-base font-semibold text-gray-900">{selectedEntry.userEmail || "N/A"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-medium">Employee Code</p>
-                  <p className="text-sm font-semibold text-gray-900">{selectedEntry.employeeCode || "N/A"}</p>
+                  <p className="text-sm text-gray-500 font-medium">Employee Code</p>
+                  <p className="text-base font-semibold text-gray-900">{selectedEntry.employeeCode || "N/A"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-medium">Department</p>
-                  <p className="text-sm font-semibold text-gray-900">{selectedEntry.department?.name || "N/A"}</p>
+                  <p className="text-sm text-gray-500 font-medium">Department</p>
+                  <p className="text-base font-semibold text-gray-900">{selectedEntry.department?.name || "N/A"}</p>
                 </div>
               </div>
               
               <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-2 border-b border-gray-100 pb-2">
+                <h4 className="text-base font-semibold text-gray-900 mb-2 border-b border-gray-100 pb-2">
                   Missing Dates ({selectedEntry.missingEntriesCount})
                 </h4>
                 <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-2">
                   {selectedEntry.missingDates?.map((d: string, idx: number) => (
-                    <div key={idx} className="px-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs text-gray-700 shadow-sm flex items-center justify-between">
+                    <div key={idx} className="px-3 py-1.5 bg-white border border-gray-200 rounded-md text-sm text-gray-700 shadow-sm flex items-center justify-between">
                       <span className="font-medium">{format(new Date(d), "MMM d, yyyy")}</span>
                       <span className="text-gray-400">{format(new Date(d), "EEE")}</span>
                     </div>

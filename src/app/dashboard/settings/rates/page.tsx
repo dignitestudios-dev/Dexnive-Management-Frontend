@@ -2,7 +2,7 @@
 import { Loader } from "@/components/ui/loader";
 
 import { useState } from "react";
-import { DollarSign, Edit, Check } from "lucide-react";
+import { Edit, Check, Settings } from "lucide-react";
 import { useGetRatesQuery } from "@/features/rates/api/rates.queries";
 import { useUpdateRatesMutation } from "@/features/rates/api/rates.mutations";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -37,7 +37,7 @@ export default function RatesPage() {
       <div className="h-16 flex items-center justify-between px-6 border-b border-gray-100 flex-shrink-0">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Rates Management</h1>
-          <p className="text-sm text-gray-500">Manage monthly rates for departments (All amounts are in USD $)</p>
+          <p className="text-sm text-gray-500">Manage monthly rates for departments</p>
         </div>
         <div className="flex items-center gap-3">
           <Select value={year} onValueChange={(val) => setYear(val || "")}>
@@ -65,7 +65,7 @@ export default function RatesPage() {
           </div>
         ) : ratesData.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-500 border border-dashed rounded-lg bg-gray-50/50">
-            <DollarSign className="w-8 h-8 mb-2 text-gray-400" />
+            <Settings className="w-8 h-8 mb-2 text-gray-400" />
             <p>No rates data found for {year}</p>
           </div>
         ) : (
@@ -182,7 +182,7 @@ function UpdateRatesDialog({ open, onOpenChange, year }: { open: boolean, onOpen
         <div className="px-5 py-4 border-b border-gray-100 bg-white z-10 flex-shrink-0">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-primary-600" />
+              <Edit className="w-4 h-4 text-primary-600" />
               Bulk Update Rates for {year}
             </DialogTitle>
           </DialogHeader>
@@ -209,19 +209,13 @@ function UpdateRatesDialog({ open, onOpenChange, year }: { open: boolean, onOpen
               New Hourly Rate
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="text-gray-500 font-medium text-sm">$</span>
-              </div>
               <Input 
                 type="number" 
                 placeholder="0.00" 
                 value={rate} 
                 onChange={(e) => setRate(e.target.value)}
-                className="pl-7 text-sm font-mono h-10 rounded-md border-gray-300 focus-visible:ring-primary-500"
+                className="text-sm font-mono h-10 rounded-md border-gray-300 focus-visible:ring-primary-500"
               />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <span className="text-xs text-gray-400">USD/hr</span>
-              </div>
             </div>
           </div>
 

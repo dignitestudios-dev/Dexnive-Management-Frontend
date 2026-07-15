@@ -132,7 +132,7 @@ function ProjectsPageContent() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Projects</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage external and internal projects.</p>
+          <p className="text-base text-gray-500 mt-1">Manage external and internal projects.</p>
         </div>
         <Button onClick={() => router.push("/dashboard/projects/create")} className="rounded-md px-4 py-2 gap-2 shadow-md">
           <Plus className="w-4 h-4" />
@@ -347,16 +347,16 @@ function ProjectsPageContent() {
                   <ContextMenuTrigger>
                     <div 
                       onClick={() => router.push(`/dashboard/projects/${proj._id}`)}
-                      className="bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all group overflow-hidden flex flex-col cursor-pointer h-[210px]"
+                      className="bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all group overflow-hidden flex flex-col cursor-pointer h-[230px]"
                     >
                       <div className="p-4 flex-1 flex flex-col gap-3">
                         <div className="flex justify-between items-start gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs font-semibold text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded border border-primary-100 uppercase">
+                              <span className="text-sm font-semibold text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded border border-primary-100 uppercase">
                                 {proj.code}
                               </span>
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                              <span className={`text-xs font-bold px-1.5 py-0.5 rounded uppercase ${
                                 proj.status?.toLowerCase() === 'active' ? 'bg-green-100 text-green-700' :
                                 proj.status?.toLowerCase() === 'on-hold' ? 'bg-amber-100 text-amber-700' :
                                 proj.status?.toLowerCase() === 'completed' ? 'bg-blue-100 text-blue-700' :
@@ -365,44 +365,44 @@ function ProjectsPageContent() {
                                 {proj.status}
                               </span>
                             </div>
-                            <h3 className="font-semibold text-gray-900 line-clamp-2" title={proj.name}>{proj.name}</h3>
+                            <h3 className="font-semibold text-gray-900 line-clamp-2 text-lg" title={proj.name}>{proj.name}</h3>
                           </div>
                         </div>
                         {proj.description && (
-                          <p className="text-xs text-gray-500 line-clamp-2">{proj.description}</p>
+                          <p className="text-sm text-gray-500 line-clamp-2">{proj.description}</p>
                         )}
                       </div>
                       <div className="bg-gray-50 p-3 border-t border-gray-100 flex justify-between items-center">
                         <div className="flex flex-col">
-                          <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Type</span>
-                          <span className="text-xs text-gray-700 font-medium capitalize">{proj.projectType}</span>
+                          <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">Type</span>
+                          <span className="text-sm text-gray-700 font-medium capitalize">{proj.projectType}</span>
                         </div>
                         {proj.budgetedHours !== undefined && proj.budgetedHours !== null && (
                           <div className="flex flex-col items-end">
-                            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Budget</span>
-                            <span className="text-xs text-gray-700 font-medium">{proj.budgetedHours}h</span>
+                            <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">Budget</span>
+                            <span className="text-sm text-gray-700 font-medium">{proj.budgetedHours}h</span>
                           </div>
                         )}
                       </div>
                     </div>
                   </ContextMenuTrigger>
-                  <ContextMenuContent className="w-48 p-1">
-                    <ContextMenuItem onClick={() => setStatsProjectId(proj._id)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
-                      <BarChart2 className="w-3.5 h-3.5 text-gray-500" />
+                  <ContextMenuContent className="w-52 p-1">
+                    <ContextMenuItem onClick={() => setStatsProjectId(proj._id)} className="flex items-center gap-2 py-1.5 text-sm text-gray-700">
+                      <BarChart2 className="w-4 h-4 text-gray-500" />
                       <span>View Stats</span>
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => setTimelineProjectId(proj._id)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
-                      <Clock className="w-3.5 h-3.5 text-gray-500" />
+                    <ContextMenuItem onClick={() => setTimelineProjectId(proj._id)} className="flex items-center gap-2 py-1.5 text-sm text-gray-700">
+                      <Clock className="w-4 h-4 text-gray-500" />
                       <span>View Timeline</span>
                     </ContextMenuItem>
                     <ContextMenuSeparator className="my-1" />
-                    <ContextMenuItem onClick={() => router.push(`/dashboard/projects/${proj._id}/edit`)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
-                      <Pencil className="w-3.5 h-3.5 text-gray-500" />
+                    <ContextMenuItem onClick={() => router.push(`/dashboard/projects/${proj._id}/edit`)} className="flex items-center gap-2 py-1.5 text-sm text-gray-700">
+                      <Pencil className="w-4 h-4 text-gray-500" />
                       <span>Edit Project</span>
                     </ContextMenuItem>
                     <ContextMenuSeparator className="my-1" />
-                    <ContextMenuItem onClick={() => setProjectToDelete(proj._id)} className="flex items-center gap-2 py-1.5 text-xs text-red-600 hover:text-red-700 focus:text-red-700">
-                      <Trash2 className="w-3.5 h-3.5" />
+                    <ContextMenuItem onClick={() => setProjectToDelete(proj._id)} className="flex items-center gap-2 py-1.5 text-sm text-red-600 hover:text-red-700 focus:text-red-700">
+                      <Trash2 className="w-4 h-4" />
                       <span>Delete Project</span>
                     </ContextMenuItem>
                   </ContextMenuContent>

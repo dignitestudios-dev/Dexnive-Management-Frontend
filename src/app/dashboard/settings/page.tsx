@@ -83,7 +83,7 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
             Settings
           </h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-base text-gray-500">
             Manage your account settings and change your password.
           </p>
         </div>
@@ -95,31 +95,31 @@ export default function SettingsPage() {
             </div>
             <div>
               <h2 className="text-lg font-medium text-gray-900">Change Password</h2>
-              <p className="text-sm text-gray-500">Update your account password securely.</p>
+              <p className="text-base text-gray-500">Update your account password securely.</p>
             </div>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 rounded-md border border-red-100">
+            <div className="mb-4 p-3 text-base text-red-500 bg-red-50 rounded-md border border-red-100">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="mb-4 p-3 text-sm text-green-600 bg-green-50 rounded-md border border-green-100">
+            <div className="mb-4 p-3 text-base text-green-600 bg-green-50 rounded-md border border-green-100">
               {success}
             </div>
           )}
 
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="new-password">New Password</Label>
+              <Label htmlFor="new-password" className="text-base font-semibold">New Password</Label>
               <div className="relative">
                 <Input 
                   id="new-password" 
                   type={showPassword ? "text" : "password"} 
                   placeholder="••••••••" 
-                  className={form.formState.errors.password ? "border-red-500 pr-10" : "pr-10"}
+                  className={form.formState.errors.password ? "border-red-500 pr-10 text-base h-10" : "pr-10 text-base h-10"}
                   {...form.register("password")} 
                 />
                 <button
@@ -140,7 +140,7 @@ export default function SettingsPage() {
                     ) : (
                       <X className="h-3.5 w-3.5 text-gray-300 shrink-0" />
                     )}
-                    <span className={cn("text-[11px] leading-tight transition-colors", check.met ? "text-green-700" : "text-gray-500")}>
+                    <span className={cn("text-sm leading-tight transition-colors", check.met ? "text-green-700 font-semibold" : "text-gray-500")}>
                       {check.label}
                     </span>
                   </div>
@@ -149,13 +149,13 @@ export default function SettingsPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Label htmlFor="confirm-password" className="text-base font-semibold">Confirm Password</Label>
               <div className="relative">
                 <Input 
                   id="confirm-password" 
                   type={showConfirmPassword ? "text" : "password"} 
                   placeholder="••••••••" 
-                  className={form.formState.errors.confirmPassword ? "border-red-500 pr-10" : "pr-10"}
+                  className={form.formState.errors.confirmPassword ? "border-red-500 pr-10 text-base h-10" : "pr-10 text-base h-10"}
                   {...form.register("confirmPassword")} 
                 />
                 <button
@@ -168,13 +168,13 @@ export default function SettingsPage() {
                 </button>
               </div>
               {form.formState.errors.confirmPassword && (
-                <p className="text-xs text-red-500">{form.formState.errors.confirmPassword.message}</p>
+                <p className="text-sm text-red-500">{form.formState.errors.confirmPassword.message}</p>
               )}
             </div>
 
             <Button 
               type="submit" 
-              className="mt-2 w-full" 
+              className="mt-2 w-full text-base font-semibold h-10" 
               disabled={!form.formState.isValid || updatePasswordMutation.isPending}
             >
               {updatePasswordMutation.isPending ? <Loader className="w-5 h-5 text-current" /> : "Update Password"}

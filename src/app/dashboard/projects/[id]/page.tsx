@@ -229,20 +229,20 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
       {/* Header Area */}
       <div className="flex-shrink-0 border-b border-gray-200 px-6 py-4 flex flex-col gap-4">
         {/* Breadcrumb / Top Info */}
-        <div className="flex items-center gap-3 text-sm text-gray-500">
+        <div className="flex items-center gap-3 text-base text-gray-500">
           <button onClick={() => router.push("/dashboard/projects")} className="hover:text-gray-900 transition-colors flex items-center gap-1">
             <ArrowLeft className="w-4 h-4" />
             Projects
           </button>
           <span>/</span>
-          <span className="text-gray-900 font-medium">{project.code}</span>
+          <span className="text-gray-900 font-semibold">{project.code}</span>
         </div>
 
         {/* Title and Primary Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">{project.name}</h1>
-            <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded ${
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{project.name}</h1>
+            <span className={`px-2.5 py-1 text-xs font-bold uppercase tracking-wider rounded ${
                 project.status?.toLowerCase() === 'active' ? 'bg-green-100 text-green-700' :
                 project.status?.toLowerCase() === 'on-hold' ? 'bg-amber-100 text-amber-700' :
                 project.status?.toLowerCase() === 'completed' ? 'bg-blue-100 text-blue-700' :
@@ -251,7 +251,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
               {project.status}
             </span>
             {project.scheduleStatus && (
-              <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded ${
+              <span className={`px-2.5 py-1 text-xs font-bold uppercase tracking-wider rounded ${
                   project.scheduleStatus === 'Completed On Time' || project.scheduleStatus === 'On Track'
                     ? 'bg-emerald-100 text-emerald-700'
                     : 'bg-amber-100 text-amber-700'
@@ -259,7 +259,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                 {project.scheduleStatus}
               </span>
             )}
-            <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded bg-primary/10 text-primary">
+            <span className="px-2.5 py-1 text-xs font-bold uppercase tracking-wider rounded bg-primary/10 text-primary">
               {project.projectType}
             </span>
           </div>
@@ -276,13 +276,13 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
         </div>
 
         {/* Quick Stats Toolbar */}
-        <div className="flex flex-wrap items-center gap-8 text-sm pt-2">
+        <div className="flex flex-wrap items-center gap-8 text-base pt-2">
           <div className="flex flex-col">
-            <span className="text-gray-500 text-xs font-medium uppercase tracking-wider">Division</span>
+            <span className="text-gray-500 text-sm font-medium uppercase tracking-wider">Division</span>
             <span className="font-semibold text-gray-900">{divisionName}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-gray-500 text-xs font-medium uppercase tracking-wider">Dates</span>
+            <span className="text-gray-500 text-sm font-medium uppercase tracking-wider">Dates</span>
             <span className="font-medium text-gray-900">
               {formatDisplayDate(project.estimatedStartDate)} - {formatDisplayDate(project.estimatedEndDate)}
             </span>
@@ -291,20 +291,20 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
           {/* Budget Usage Minibar */}
           {stats && (
             <div className="flex items-center gap-6 md:ml-auto w-full md:w-auto">
-              <div className="flex items-center gap-4 text-xs font-medium">
+              <div className="flex items-center gap-4 text-sm font-medium">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-green-500"></div> 
                   Billable: {stats.totalBillableHours || 0}h
-                  {stats.totalOvertimeHours ? <span className="opacity-75 text-[10px]">({stats.totalOvertimeHours}h OT)</span> : null}
+                  {stats.totalOvertimeHours ? <span className="opacity-75 text-xs">({stats.totalOvertimeHours}h OT)</span> : null}
                 </div>
                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Non-Billable: {stats.totalNonBillableHours || 0}h</div>
                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500"></div> Total: {stats.totalHours || 0}h</div>
               </div>
               {stats.budgetedHours && (
                 <div className="w-48 flex flex-col gap-1.5 hidden lg:flex">
-                  <div className="flex justify-between text-xs font-medium">
+                  <div className="flex justify-between text-sm font-medium">
                     <span className="text-gray-500">Budget Usage</span>
-                    <span className={(stats.totalHours || 0) > stats.budgetedHours ? "text-red-600" : "text-gray-900"}>
+                    <span className={(stats.totalHours || 0) > stats.budgetedHours ? "text-red-600 font-bold" : "text-gray-900"}>
                       {stats.totalHours || 0} / {stats.budgetedHours}h
                       {(stats.totalHours || 0) > stats.budgetedHours && ` (+${((stats.totalHours || 0) - stats.budgetedHours).toFixed(1)}h extra)`}
                     </span>
@@ -336,7 +336,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
       </div>
 
       {/* Tabs */}
-      <div className="flex-shrink-0 px-6 border-b border-gray-200 flex gap-6 text-sm font-medium">
+      <div className="flex-shrink-0 px-6 border-b border-gray-200 flex gap-6 text-base font-semibold">
         <button 
           onClick={() => setActiveTab("list")}
           className={`py-3 border-b-2 transition-colors ${activeTab === "list" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-900"}`}
@@ -362,7 +362,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
         {activeTab === "list" && (
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm min-w-[1000px] overflow-x-auto">
           {/* Table Header */}
-          <div className="grid grid-cols-[48px_minmax(150px,1fr)_100px_100px_100px_70px_70px_100px_70px] items-center gap-4 p-3 border-b border-gray-200 bg-gray-50/80 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="grid grid-cols-[48px_minmax(150px,1fr)_100px_100px_100px_70px_70px_100px_70px] items-center gap-4 p-3 border-b border-gray-200 bg-gray-50/80 text-xs font-semibold text-gray-500 uppercase tracking-wider">
             <div className="flex justify-center">Order</div>
             <div>Stage Name</div>
             <div>Status</div>
@@ -391,7 +391,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                   <ContextMenuTrigger render={<div />}>
                     <div 
                       onClick={() => router.push(`/dashboard/projects/${projectId}/stages/${stage._id}`)}
-                      className={`grid grid-cols-[48px_minmax(150px,1fr)_100px_100px_100px_70px_70px_100px_70px] items-center gap-4 p-3 text-sm transition-colors hover:bg-blue-50/30 cursor-pointer group ${stage.status === 'active' ? 'bg-primary/[0.02]' : ''}`}
+                      className={`grid grid-cols-[48px_minmax(150px,1fr)_100px_100px_100px_70px_70px_100px_70px] items-center gap-4 p-3 text-base transition-colors hover:bg-blue-50/30 cursor-pointer group ${stage.status === 'active' ? 'bg-primary/[0.02]' : ''}`}
                     >
                       {/* Order / Grip */}
                       <div className="flex items-center justify-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
@@ -400,22 +400,22 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                           disabled={index === 0 || reorderMutation.isPending}
                           className="p-1 hover:text-gray-900 disabled:opacity-30 cursor-pointer"
                         >
-                          <ArrowUp className="w-3.5 h-3.5" />
+                          <ArrowUp className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); moveStage(index, 'down'); }} 
                           disabled={index === stages.length - 1 || reorderMutation.isPending}
                           className="p-1 hover:text-gray-900 disabled:opacity-30 cursor-pointer"
                         >
-                          <ArrowDown className="w-3.5 h-3.5" />
+                          <ArrowDown className="w-4 h-4" />
                         </button>
                       </div>
 
                       {/* Name */}
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900 truncate">{stage.name}</span>
+                        <span className="font-semibold text-gray-900 truncate text-base">{stage.name}</span>
                         {stage.isTemplateBased && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded bg-gray-100 text-gray-500">
+                          <span className="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider rounded bg-gray-100 text-gray-500">
                             Template
                           </span>
                         )}
@@ -423,7 +423,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
 
                       {/* Status */}
                       <div className="flex flex-col gap-1">
-                        <span className={`inline-flex items-center px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider rounded-md border ${
+                        <span className={`inline-flex items-center px-2 py-0.5 text-xs font-semibold uppercase tracking-wider rounded-md border ${
                           stage.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                           stage.status === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                           stage.status === 'delayed' ? 'bg-red-50 text-red-700 border-red-200' :
@@ -435,7 +435,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                           {stage.status.replace('-', ' ')}
                         </span>
                         {stage.scheduleStatus && (
-                          <span className={`text-[10px] font-medium truncate ${
+                          <span className={`text-xs font-medium truncate ${
                             stage.scheduleStatus === 'Completed On Time' || stage.scheduleStatus === 'On Track' ? 'text-emerald-600' : 'text-amber-600'
                           }`}>
                             {stage.scheduleStatus}
@@ -444,62 +444,62 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                       </div>
 
                       {/* Start Date */}
-                      <div className="text-gray-500 flex items-center gap-1.5 text-xs">
-                        <Calendar className="w-3 h-3 opacity-70" />
+                      <div className="text-gray-500 flex items-center gap-1.5 text-sm">
+                        <Calendar className="w-4 h-4 opacity-70" />
                         {formatDisplayDate(stage.plannedStartDate)}
                       </div>
 
                       {/* End Date */}
-                      <div className="text-gray-500 flex items-center gap-1.5 text-xs">
-                        <Clock className="w-3 h-3 opacity-70" />
+                      <div className="text-gray-500 flex items-center gap-1.5 text-sm">
+                        <Clock className="w-4 h-4 opacity-70" />
                         {formatDisplayDate(stage.plannedEndDate)}
                       </div>
 
                       <div className="flex flex-col items-end justify-center">
-                        <div className="text-gray-600 text-xs font-medium">{stage.budgetedHours ? `${stage.budgetedHours}h` : '--'}</div>
+                        <div className="text-gray-600 text-sm font-medium">{stage.budgetedHours ? `${stage.budgetedHours}h` : '--'}</div>
                         {stage.budgetStatus && (
-                          <div className={`text-[9px] mt-0.5 ${stage.budgetStatus === 'Over Budget' ? 'text-red-600 font-semibold' : 'text-emerald-600 font-medium'}`}>
+                          <div className={`text-xs mt-0.5 ${stage.budgetStatus === 'Over Budget' ? 'text-red-600 font-semibold' : 'text-emerald-600 font-medium'}`}>
                             {stage.budgetStatus}
                           </div>
                         )}
                       </div>
-                      <div className="text-right text-emerald-600 text-xs font-medium">
+                      <div className="text-right text-emerald-600 text-sm font-medium">
                         {stage.totalBillableHours ? `${stage.totalBillableHours}h` : '0h'}
-                        {stage.totalOvertimeHours ? <span className="block text-[10px] opacity-75">({stage.totalOvertimeHours}h OT)</span> : null}
+                        {stage.totalOvertimeHours ? <span className="block text-xs opacity-75">({stage.totalOvertimeHours}h OT)</span> : null}
                       </div>
-                      <div className="text-right text-amber-600 text-xs font-medium">
+                      <div className="text-right text-amber-600 text-sm font-medium">
                         {stage.totalNonBillableHours ? `${stage.totalNonBillableHours}h` : '0h'}
                       </div>
-                      <div className="text-right text-gray-900 text-xs font-bold">{stage.totalHours ? `${stage.totalHours}h` : '0h'}</div>
+                      <div className="text-right text-gray-900 text-sm font-bold">{stage.totalHours ? `${stage.totalHours}h` : '0h'}</div>
                     </div>
                   </ContextMenuTrigger>
-                  <ContextMenuContent className="w-48 p-1">
+                  <ContextMenuContent className="w-52 p-1">
                     {(stage.status === 'not-started' || stage.status === 'delayed') && (
-                      <ContextMenuItem onClick={() => handleOpenStatusDialog(stage, 'active')} className="flex items-center gap-2 py-1.5 text-xs text-emerald-600">
-                        <PlayCircle className="w-3.5 h-3.5" />
+                      <ContextMenuItem onClick={() => handleOpenStatusDialog(stage, 'active')} className="flex items-center gap-2 py-1.5 text-sm text-emerald-600">
+                        <PlayCircle className="w-4 h-4" />
                         <span>Start Stage</span>
                       </ContextMenuItem>
                     )}
                     {stage.status === 'active' && (
-                      <ContextMenuItem onClick={() => handleOpenStatusDialog(stage, 'completed')} className="flex items-center gap-2 py-1.5 text-xs text-blue-600">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      <ContextMenuItem onClick={() => handleOpenStatusDialog(stage, 'completed')} className="flex items-center gap-2 py-1.5 text-sm text-blue-600">
+                        <CheckCircle2 className="w-4 h-4" />
                         <span>Complete Stage</span>
                       </ContextMenuItem>
                     )}
                     {(stage.status === 'not-started' || stage.status === 'delayed' || stage.status === 'active') && (
                       <ContextMenuSeparator className="my-1" />
                     )}
-                    <ContextMenuItem onClick={() => router.push(`/dashboard/projects/${projectId}/stages/${stage._id}`)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
-                      <Eye className="w-3.5 h-3.5 text-gray-500" />
+                    <ContextMenuItem onClick={() => router.push(`/dashboard/projects/${projectId}/stages/${stage._id}`)} className="flex items-center gap-2 py-1.5 text-sm text-gray-700">
+                      <Eye className="w-4 h-4 text-gray-500" />
                       <span>View Details</span>
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleOpenStageDialog(stage)} className="flex items-center gap-2 py-1.5 text-xs text-gray-700">
-                      <Pencil className="w-3.5 h-3.5 text-gray-500" />
+                    <ContextMenuItem onClick={() => handleOpenStageDialog(stage)} className="flex items-center gap-2 py-1.5 text-sm text-gray-700">
+                      <Pencil className="w-4 h-4 text-gray-500" />
                       <span>Edit Stage</span>
                     </ContextMenuItem>
                     <ContextMenuSeparator className="my-1" />
-                    <ContextMenuItem onClick={() => setStageToDelete(stage._id)} className="flex items-center gap-2 py-1.5 text-xs text-red-600 hover:text-red-700 focus:text-red-700">
-                      <Trash2 className="w-3.5 h-3.5" />
+                    <ContextMenuItem onClick={() => setStageToDelete(stage._id)} className="flex items-center gap-2 py-1.5 text-sm text-red-600 hover:text-red-700 focus:text-red-700">
+                      <Trash2 className="w-4 h-4" />
                       <span>Delete</span>
                     </ContextMenuItem>
                   </ContextMenuContent>
