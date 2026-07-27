@@ -104,7 +104,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+    <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} autoComplete="off" className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
       <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/50">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           
@@ -118,6 +118,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
               }} 
               placeholder="e.g. Website Redesign"
               maxLength={100}
+              autoComplete="off"
               className={`h-9 bg-white ${errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             />
             {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
@@ -133,6 +134,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
               }} 
               placeholder="e.g. WR-01"
               maxLength={10}
+              autoComplete="off"
               className={`h-9 bg-white uppercase ${errors.code ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             />
             {errors.code && <p className="text-xs text-red-500 mt-1">{errors.code}</p>}
@@ -145,6 +147,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
               onChange={(e) => setFormData(p => ({...p, description: e.target.value}))} 
               placeholder="Short description of the project"
               maxLength={300}
+              autoComplete="off"
               className="h-9 bg-white"
             />
           </div>
@@ -205,6 +208,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
               value={formData.budgetedHours} 
               onChange={(e) => setFormData(p => ({...p, budgetedHours: e.target.value}))} 
               placeholder="e.g. 100"
+              autoComplete="off"
               className="h-9 bg-white"
             />
           </div>
@@ -215,6 +219,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
               type="date"
               value={formData.estimatedStartDate} 
               onChange={(e) => setFormData(p => ({...p, estimatedStartDate: e.target.value}))} 
+              autoComplete="off"
               className="h-9 bg-white text-xs"
             />
           </div>
@@ -225,6 +230,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
               type="date"
               value={formData.estimatedEndDate} 
               onChange={(e) => setFormData(p => ({...p, estimatedEndDate: e.target.value}))} 
+              autoComplete="off"
               className="h-9 bg-white text-xs"
             />
           </div>
@@ -247,15 +253,15 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
         </div>
       </div>
       <div className="px-6 py-4 border-t border-gray-100 bg-white flex justify-end gap-3">
-        <Button variant="outline" onClick={() => router.push("/dashboard/projects")} className="rounded-md h-9 text-xs">Cancel</Button>
+        <Button type="button" variant="outline" onClick={() => router.push("/dashboard/projects")} className="rounded-md h-9 text-xs">Cancel</Button>
         <Button 
-          onClick={handleSave} 
+          type="submit"
           className="rounded-md h-9 text-xs"
           disabled={createMutation.isPending || updateMutation.isPending}
         >
           {(createMutation.isPending || updateMutation.isPending) ? <Loader className="w-5 h-5 text-current" /> : (initialData ? "Save Project" : "Create Project")}
         </Button>
       </div>
-    </div>
+    </form>
   );
 }

@@ -95,7 +95,7 @@ export default function CreateUserPage() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-8" autoComplete="off">
           
           {error && (
             <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm border border-red-100 flex items-center gap-2">
@@ -113,6 +113,7 @@ export default function CreateUserPage() {
                 id="name"
                 placeholder="John Doe"
                 maxLength={20}
+                autoComplete="off"
                 {...register("name")}
                 className={errors.name ? "border-red-500" : ""}
               />
@@ -125,6 +126,7 @@ export default function CreateUserPage() {
                 id="email"
                 type="email"
                 placeholder="john.doe@dexnive.com"
+                autoComplete="off"
                 {...register("email")}
                 className={errors.email ? "border-red-500" : ""}
               />
@@ -137,6 +139,7 @@ export default function CreateUserPage() {
                 id="password"
                 type="password"
                 placeholder="••••••••"
+                autoComplete="new-password"
                 {...register("password")}
                 className={errors.password ? "border-red-500" : ""}
               />
@@ -149,6 +152,7 @@ export default function CreateUserPage() {
                 id="employeeCode"
                 placeholder="1001"
                 maxLength={8}
+                autoComplete="off"
                 {...register("employeeCode", {
                   onChange: (e) => {
                     e.target.value = e.target.value.replace(/\D/g, "");
@@ -214,6 +218,7 @@ export default function CreateUserPage() {
               <Input
                 id="joiningDate"
                 type="date"
+                autoComplete="off"
                 {...register("joiningDate")}
                 className={errors.joiningDate ? "border-red-500" : ""}
               />
