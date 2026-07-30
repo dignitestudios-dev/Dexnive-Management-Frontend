@@ -81,8 +81,8 @@ const draftFormSchema = z.object({
 });
 
 
-function BackendTaskFields({ control, entryIndex }: { control: any; entryIndex: number }) {
-  const { fields, append, remove, update } = useFieldArray({
+function BackendTaskFields({ control, entryIndex, getValues, setValue }: { control: any; entryIndex: number; getValues: any; setValue: any }) {
+  const { fields, append, remove, replace } = useFieldArray({
     control,
     name: `entries.${entryIndex}.backendTasks`
   });
@@ -114,125 +114,97 @@ function BackendTaskFields({ control, entryIndex }: { control: any; entryIndex: 
     if (parsedTasks.length > 0) {
       e.preventDefault();
       
-      // Replace the current row with the first pasted task
-      update(index, parsedTasks[0]);
+      const currentTasks = getValues(`entries.${entryIndex}.backendTasks`) || [];
+      const newTasks = [...currentTasks];
+      newTasks.splice(index, 1, ...parsedTasks);
       
-      // Append the rest of the tasks
-      if (parsedTasks.length > 1) {
-        append(parsedTasks.slice(1));
-      }
+      setValue(`entries.${entryIndex}.backendTasks`, newTasks, { shouldValidate: true, shouldDirty: true });
     }
   };
 
   return (
-    <div className="mt-2 w-full">
-      <div className="flex justify-between items-center mb-3">
-        <FormLabel className="text-gray-700 font-semibold text-sm m-0">Backend Tasks</FormLabel>
-        <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Paste Supported</span>
-      </div>
-      
-      <div className="space-y-2 bg-gray-50/50 rounded-xl border border-gray-100 p-3 sm:p-4">
-        {/* Header row for desktop */}
-        <div className="hidden sm:flex items-center gap-3 px-1 mb-2">
-          <div className="flex-[1] text-xs font-semibold text-gray-500 uppercase tracking-wider">Module</div>
-          <div className="flex-[2] text-xs font-semibold text-gray-500 uppercase tracking-wider">Task</div>
-          <div className="w-[120px] text-xs font-semibold text-gray-500 uppercase tracking-wider">Difficulty</div>
-          <div className="w-8"></div>
-        </div>
-
-        {fields.map((field, index) => (
-          <div 
-            key={field.id} 
-            className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-start sm:items-center relative w-full group bg-white p-3 sm:p-1.5 rounded-lg border border-gray-200 sm:border-transparent sm:shadow-none shadow-sm sm:bg-transparent transition-colors hover:bg-white hover:border-gray-200 hover:shadow-sm"
-          >
-            <FormField
-              control={control}
-              name={`entries.${entryIndex}.backendTasks.${index}.module`}
-              render={({ field }) => (
-                <FormItem className="flex-[1] w-full space-y-1 sm:space-y-0">
-                  <FormLabel className="sm:hidden text-xs text-gray-500">Module</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="e.g. Auth" 
-                      className="h-9 bg-white border-gray-200 focus:ring-primary-100 focus:border-primary-300 text-sm"
-                      {...field} 
-                      onPaste={(e) => handlePaste(e, index)} 
-                    />
-                  </FormControl>
-                  <FormMessage className="text-[10px]" />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={control}
-              name={`entries.${entryIndex}.backendTasks.${index}.task`}
-              render={({ field }) => (
-                <FormItem className="flex-[2] w-full space-y-1 sm:space-y-0">
-                  <FormLabel className="sm:hidden text-xs text-gray-500">Task</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="e.g. Implement login API" 
-                      className="h-9 bg-white border-gray-200 focus:ring-primary-100 focus:border-primary-300 text-sm"
-                      {...field} 
-                      onPaste={(e) => handlePaste(e, index)} 
-                    />
-                  </FormControl>
-                  <FormMessage className="text-[10px]" />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={control}
-              name={`entries.${entryIndex}.backendTasks.${index}.difficulty`}
-              render={({ field }) => (
-                <FormItem className="w-full sm:w-[120px] space-y-1 sm:space-y-0">
-                  <FormLabel className="sm:hidden text-xs text-gray-500">Difficulty</FormLabel>
-                  <FormControl>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                      <SelectTrigger className="h-9 bg-white border-gray-200 focus:ring-primary-100 text-sm font-medium">
-                        <SelectValue placeholder="Difficulty" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="HIGH" className="text-red-600 font-medium text-sm">HIGH</SelectItem>
-                        <SelectItem value="MEDIUM" className="text-amber-600 font-medium text-sm">MEDIUM</SelectItem>
-                        <SelectItem value="LOW" className="text-emerald-600 font-medium text-sm">LOW</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage className="text-[10px]" />
-                </FormItem>
-              )}
-            />
-            
-            <div className="absolute sm:relative right-2 top-2 sm:right-0 sm:top-0 flex items-center justify-center w-8 shrink-0">
-              {fields.length > 1 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="text-gray-300 hover:text-red-500 hover:bg-red-50 w-8 h-8 rounded-md transition-colors sm:opacity-0 sm:group-hover:opacity-100"
-                  onClick={() => remove(index)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
+    <div className="w-full flex flex-col gap-2">
+      {fields.map((field, index) => (
+        <div key={field.id} className="flex flex-row gap-2 items-start relative group w-full">
+          <FormField
+            control={control}
+            name={`entries.${entryIndex}.backendTasks.${index}.module`}
+            render={({ field }) => (
+              <FormItem className="flex-[1.5] space-y-0 m-0">
+                <FormControl>
+                  <Input 
+                    placeholder="Module" 
+                    className="h-10 bg-white border-gray-200 focus:ring-primary-100 focus:border-primary-300 text-sm"
+                    {...field} 
+                    onPaste={(e) => handlePaste(e, index)} 
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={control}
+            name={`entries.${entryIndex}.backendTasks.${index}.task`}
+            render={({ field }) => (
+              <FormItem className="flex-[3] space-y-0 m-0">
+                <FormControl>
+                  <Input 
+                    placeholder="Task Details" 
+                    className="h-10 bg-white border-gray-200 focus:ring-primary-100 focus:border-primary-300 text-sm"
+                    {...field} 
+                    onPaste={(e) => handlePaste(e, index)} 
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={control}
+            name={`entries.${entryIndex}.backendTasks.${index}.difficulty`}
+            render={({ field }) => (
+              <FormItem className="w-[100px] space-y-0 m-0">
+                <FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                    <SelectTrigger className="h-10 bg-white border-gray-200 focus:ring-primary-100 text-xs font-medium px-2">
+                      <SelectValue placeholder="Diff" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="HIGH" className="text-red-600 font-medium text-xs">HIGH</SelectItem>
+                      <SelectItem value="MEDIUM" className="text-amber-600 font-medium text-xs">MED</SelectItem>
+                      <SelectItem value="LOW" className="text-emerald-600 font-medium text-xs">LOW</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          
+          <div className="flex items-center justify-center w-6 h-10 shrink-0">
+            {fields.length > 1 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-gray-300 hover:text-red-500 hover:bg-red-50 w-6 h-6 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                onClick={() => remove(index)}
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            )}
           </div>
-        ))}
-        
-        <div className="pt-2 px-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 h-8 px-3 text-xs font-semibold rounded-md border border-transparent hover:border-primary-100 transition-all"
-            onClick={() => append({ module: "", task: "", difficulty: "LOW" })}
-          >
-            <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Task
-          </Button>
         </div>
+      ))}
+      
+      <div className="flex items-center">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-primary-600 hover:text-primary-700 hover:bg-transparent h-6 px-1 text-xs font-semibold p-0 m-0"
+          onClick={() => append({ module: "", task: "", difficulty: "LOW" })}
+        >
+          <Plus className="w-3 h-3 mr-1" /> Add Task Row
+        </Button>
       </div>
     </div>
   );
@@ -882,62 +854,67 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                               </Button>
                             )}
                             
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-                              <div className="md:col-span-4">
-                                <FormField
-                                  control={draftForm.control}
-                                  name={`entries.${index}.project`}
-                                  render={({ field }: any) => (
-                                    <FormItem>
-                                      <FormLabel className="text-gray-700 font-semibold">Project</FormLabel>
-                                      <FormControl>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                                          <SelectTrigger className="bg-white border-gray-200 shadow-sm">
-                                            <SelectValue placeholder="Select project">
-                                              {projectsData?.data?.find((p: any) => p._id === field.value)?.name || "Select project"}
-                                            </SelectValue>
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {projectsData?.data?.map((project: any) => {
-                                              const isSelectedElsewhere = watchedEntries?.some((e: any, i: number) => i !== index && e.project === project._id);
-                                              return (
-                                                <SelectItem key={project._id} value={project._id} disabled={isSelectedElsewhere}>
-                                                  {project.name}
-                                                </SelectItem>
-                                              );
-                                            })}
-                                          </SelectContent>
-                                        </Select>
-                                      </FormControl>
-                                      <FormMessage className="text-xs" />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                              
-                              <div className="md:col-span-5">
-                                {isBackendUser ? (
-                                  <BackendTaskFields control={draftForm.control} entryIndex={index} />
-                                ) : (
+                            <div className={isBackendUser ? "flex flex-col lg:flex-row gap-3 items-start" : "grid grid-cols-1 md:grid-cols-12 gap-5 items-start"}>
+                                <div className={isBackendUser ? "w-full lg:w-[220px] shrink-0" : "md:col-span-4"}>
                                   <FormField
                                     control={draftForm.control}
-                                    name={`entries.${index}.description`}
+                                    name={`entries.${index}.project`}
                                     render={({ field }: any) => (
                                       <FormItem>
-                                        <FormLabel className="text-gray-700 font-semibold">Description</FormLabel>
+                                        <FormLabel className="text-gray-700 font-semibold">Project</FormLabel>
                                         <FormControl>
-                                          <Textarea placeholder="What did you do?" className="bg-white border-gray-200 shadow-sm resize-none h-10 min-h-10 py-2" rows={1} {...field} />
+                                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                            <SelectTrigger className="bg-white border-gray-200 shadow-sm h-10">
+                                              <SelectValue placeholder="Select project">
+                                                {projectsData?.data?.find((p: any) => p._id === field.value)?.name || "Select project"}
+                                              </SelectValue>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {projectsData?.data?.map((project: any) => {
+                                                const isSelectedElsewhere = watchedEntries?.some((e: any, i: number) => i !== index && e.project === 
+project._id);
+                                                return (
+                                                  <SelectItem key={project._id} value={project._id} disabled={isSelectedElsewhere}>
+                                                    {project.name}
+                                                  </SelectItem>
+                                                );
+                                              })}
+                                            </SelectContent>
+                                          </Select>
                                         </FormControl>
                                         <FormMessage className="text-xs" />
                                       </FormItem>
                                     )}
                                   />
-                                )}
-                              </div>
-
-                              <div className="md:col-span-3">
-                                <FormLabel className="text-gray-700 font-semibold block mb-2">Time Spent</FormLabel>
-                                <div className="flex gap-2">
+                                </div>
+                                
+                                <div className={isBackendUser ? "flex-1 w-full" : "md:col-span-5"}>
+                                  {isBackendUser ? (
+                                    <div className="flex flex-col space-y-2">
+                                      <FormLabel className="text-gray-700 font-semibold">Tasks</FormLabel>
+                                      <BackendTaskFields control={draftForm.control} entryIndex={index} getValues={draftForm.getValues} setValue={draftForm.setValue} />
+                                    </div>
+                                  ) : (
+                                    <FormField
+                                      control={draftForm.control}
+                                      name={`entries.${index}.description`}
+                                      render={({ field }: any) => (
+                                        <FormItem>
+                                          <FormLabel className="text-gray-700 font-semibold">Description</FormLabel>
+                                          <FormControl>
+                                            <Textarea placeholder="What did you do?" className="bg-white border-gray-200 shadow-sm resize-none h-10 
+min-h-10 py-2" rows={1} {...field} />
+                                          </FormControl>
+                                          <FormMessage className="text-xs" />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  )}
+                                </div>
+  
+                                <div className={isBackendUser ? "w-full lg:w-[160px] shrink-0" : "md:col-span-3"}>
+                                  <FormLabel className="text-gray-700 font-semibold block mb-2">Time Spent</FormLabel>
+                                  <div className="flex gap-2">
                                   <FormField
                                     control={draftForm.control}
                                     name={`entries.${index}.hours`}
