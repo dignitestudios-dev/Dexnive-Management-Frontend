@@ -342,18 +342,18 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
         let backendTasks = [{ module: "", task: "", difficulty: "LOW" }];
         
         if (isBackendUser && description) {
-           const lines = description.split('\n');
-           let parsedTasks = [];
+           const lines = description.split(/\r?\n/).map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+           let parsedTasks: any[] = [];
            let allMatched = true;
            for (const line of lines) {
-              const match = line.match(/^\d+\.\)\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(HIGH|MEDIUM|LOW)$/i);
+              const match = line.match(/^\d+\.\)\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(HIGH|MEDIUM|LOW)\s*$/i);
               if (match) {
                  parsedTasks.push({
                    module: match[1].trim(),
                    task: match[2].trim(),
                    difficulty: match[3].toUpperCase().trim()
                  });
-              } else if (line.trim() !== "") {
+              } else {
                  allMatched = false;
                  break;
               }
