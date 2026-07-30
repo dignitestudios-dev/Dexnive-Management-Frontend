@@ -877,19 +877,23 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                               </div>
                               
                               <div className="md:col-span-5">
-                                <FormField
-                                  control={draftForm.control}
-                                  name={`entries.${index}.description`}
-                                  render={({ field }: any) => (
-                                    <FormItem>
-                                      <FormLabel className="text-gray-700 font-semibold">Description</FormLabel>
-                                      <FormControl>
-                                        <Textarea placeholder="What did you do?" className="bg-white border-gray-200 shadow-sm resize-none h-10 min-h-10 py-2" rows={1} {...field} />
-                                      </FormControl>
-                                      <FormMessage className="text-xs" />
-                                    </FormItem>
-                                  )}
-                                />
+                                {isBackendUser ? (
+                                  <BackendTaskFields control={draftForm.control} entryIndex={index} />
+                                ) : (
+                                  <FormField
+                                    control={draftForm.control}
+                                    name={`entries.${index}.description`}
+                                    render={({ field }: any) => (
+                                      <FormItem>
+                                        <FormLabel className="text-gray-700 font-semibold">Description</FormLabel>
+                                        <FormControl>
+                                          <Textarea placeholder="What did you do?" className="bg-white border-gray-200 shadow-sm resize-none h-10 min-h-10 py-2" rows={1} {...field} />
+                                        </FormControl>
+                                        <FormMessage className="text-xs" />
+                                      </FormItem>
+                                    )}
+                                  />
+                                )}
                               </div>
 
                               <div className="md:col-span-3">
