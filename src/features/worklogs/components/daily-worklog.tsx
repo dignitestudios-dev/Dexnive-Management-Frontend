@@ -97,23 +97,45 @@ function BackendTaskFields({ control, entryIndex }: { control: any; entryIndex: 
     const text = e.clipboardData.getData("Text");
     if (!text) return;
 
-    const lines = text.split('\n').filter(l => l.trim());
+    // Check if it looks like a formatted task list (has numbered lines with pipes)
+    const looksLikeTaskList = /\d+\.\)/.test(text) && text.includes('|');
+    if (!looksLikeTaskList) return; // Let normal paste happen
+
+    e.preventDefault();
+
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
     const parsedTasks: any[] = [];
+    const badLines: string[] = [];
     
     for (const line of lines) {
-      const match = line.match(/^\d+\.\)\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(HIGH|MEDIUM|LOW)$/i);
+      const match = line.match(/^\d+\.\)\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(HIGH|MEDIUM|LOW)\s*$/i);
       if (match) {
         parsedTasks.push({
           module: match[1].trim(),
           task: match[2].trim(),
           difficulty: match[3].toUpperCase().trim()
         });
+      } else {
+        badLines.push(line);
       }
     }
 
+    if (badLines.length > 0 && parsedTasks.length === 0) {
+      toast.error("Bad format. Use this format to paste tasks:", {
+        description: "1.) Module Name | Task Description | HIGH\n2.) Module Name | Task Description | LOW\n\nDifficulty must be HIGH, MEDIUM, or LOW.",
+        duration: 6000,
+      });
+      return;
+    }
+
+    if (badLines.length > 0 && parsedTasks.length > 0) {
+      toast.warning(`${parsedTasks.length} task(s) pasted. ${badLines.length} line(s) skipped due to bad format.`, {
+        description: "Expected: 1.) Module | Task | HIGH/MEDIUM/LOW",
+        duration: 4000,
+      });
+    }
+
     if (parsedTasks.length > 0) {
-      e.preventDefault();
-      // replace wipes all existing rows and sets them to parsedTasks in one shot
       replace(parsedTasks);
     }
   };
