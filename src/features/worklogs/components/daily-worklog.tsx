@@ -81,7 +81,7 @@ const draftFormSchema = z.object({
 });
 
 
-function BackendTaskFields({ control, entryIndex, getValues, setValue }: { control: any; entryIndex: number; getValues: any; setValue: any }) {
+function BackendTaskFields({ control, entryIndex }: { control: any; entryIndex: number }) {
   const { fields, append, remove, replace } = useFieldArray({
     control,
     name: `entries.${entryIndex}.backendTasks`
@@ -93,11 +93,11 @@ function BackendTaskFields({ control, entryIndex, getValues, setValue }: { contr
     }
   }, [fields.length, append]);
 
-  const handlePaste = (e: React.ClipboardEvent, index: number) => {
+  const handlePaste = (e: React.ClipboardEvent) => {
     const text = e.clipboardData.getData("Text");
     if (!text) return;
 
-    const lines = text.split('\n');
+    const lines = text.split('\n').filter(l => l.trim());
     const parsedTasks: any[] = [];
     
     for (const line of lines) {
@@ -113,30 +113,27 @@ function BackendTaskFields({ control, entryIndex, getValues, setValue }: { contr
 
     if (parsedTasks.length > 0) {
       e.preventDefault();
-      
-      const currentTasks = getValues(`entries.${entryIndex}.backendTasks`) || [];
-      const newTasks = [...currentTasks];
-      newTasks.splice(index, 1, ...parsedTasks);
-      
-      setValue(`entries.${entryIndex}.backendTasks`, newTasks, { shouldValidate: true, shouldDirty: true });
+      // replace wipes all existing rows and sets them to parsedTasks in one shot
+      replace(parsedTasks);
     }
   };
 
   return (
-    <div className="w-full flex flex-col gap-2">
+    <div className="w-full space-y-2">
       {fields.map((field, index) => (
-        <div key={field.id} className="flex flex-row gap-2 items-start relative group w-full">
+        <div key={field.id} className="flex flex-row gap-2 items-center group">
+          <span className="text-xs text-gray-400 font-mono w-5 shrink-0 text-right">{index + 1}.</span>
           <FormField
             control={control}
             name={`entries.${entryIndex}.backendTasks.${index}.module`}
             render={({ field }) => (
-              <FormItem className="flex-[1.5] space-y-0 m-0">
+              <FormItem className="flex-[1] space-y-0">
                 <FormControl>
                   <Input 
                     placeholder="Module" 
-                    className="h-10 bg-white border-gray-200 focus:ring-primary-100 focus:border-primary-300 text-sm"
+                    className="h-9 bg-white border-gray-200 text-sm"
                     {...field} 
-                    onPaste={(e) => handlePaste(e, index)} 
+                    onPaste={handlePaste} 
                   />
                 </FormControl>
               </FormItem>
@@ -146,13 +143,13 @@ function BackendTaskFields({ control, entryIndex, getValues, setValue }: { contr
             control={control}
             name={`entries.${entryIndex}.backendTasks.${index}.task`}
             render={({ field }) => (
-              <FormItem className="flex-[3] space-y-0 m-0">
+              <FormItem className="flex-[2] space-y-0">
                 <FormControl>
                   <Input 
-                    placeholder="Task Details" 
-                    className="h-10 bg-white border-gray-200 focus:ring-primary-100 focus:border-primary-300 text-sm"
+                    placeholder="Task" 
+                    className="h-9 bg-white border-gray-200 text-sm"
                     {...field} 
-                    onPaste={(e) => handlePaste(e, index)} 
+                    onPaste={handlePaste} 
                   />
                 </FormControl>
               </FormItem>
@@ -162,15 +159,15 @@ function BackendTaskFields({ control, entryIndex, getValues, setValue }: { contr
             control={control}
             name={`entries.${entryIndex}.backendTasks.${index}.difficulty`}
             render={({ field }) => (
-              <FormItem className="w-[100px] space-y-0 m-0">
+              <FormItem className="w-[105px] space-y-0">
                 <FormControl>
                   <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                    <SelectTrigger className="h-10 bg-white border-gray-200 focus:ring-primary-100 text-xs font-medium px-2">
-                      <SelectValue placeholder="Diff" />
+                    <SelectTrigger className="h-9 bg-white border-gray-200 text-xs font-medium">
+                      <SelectValue placeholder="Difficulty" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="HIGH" className="text-red-600 font-medium text-xs">HIGH</SelectItem>
-                      <SelectItem value="MEDIUM" className="text-amber-600 font-medium text-xs">MED</SelectItem>
+                      <SelectItem value="MEDIUM" className="text-amber-600 font-medium text-xs">MEDIUM</SelectItem>
                       <SelectItem value="LOW" className="text-emerald-600 font-medium text-xs">LOW</SelectItem>
                     </SelectContent>
                   </Select>
@@ -178,34 +175,28 @@ function BackendTaskFields({ control, entryIndex, getValues, setValue }: { contr
               </FormItem>
             )}
           />
-          
-          <div className="flex items-center justify-center w-6 h-10 shrink-0">
-            {fields.length > 1 && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="text-gray-300 hover:text-red-500 hover:bg-red-50 w-6 h-6 rounded-md transition-colors opacity-0 group-hover:opacity-100"
-                onClick={() => remove(index)}
-              >
-                <Trash2 className="w-3 h-3" />
-              </Button>
-            )}
-          </div>
+          {fields.length > 1 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="text-gray-300 hover:text-red-500 hover:bg-red-50 w-7 h-7 rounded-md shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => remove(index)}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          )}
         </div>
       ))}
-      
-      <div className="flex items-center">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="text-primary-600 hover:text-primary-700 hover:bg-transparent h-6 px-1 text-xs font-semibold p-0 m-0"
-          onClick={() => append({ module: "", task: "", difficulty: "LOW" })}
-        >
-          <Plus className="w-3 h-3 mr-1" /> Add Task Row
-        </Button>
-      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 h-7 px-2 text-xs font-medium"
+        onClick={() => append({ module: "", task: "", difficulty: "LOW" })}
+      >
+        <Plus className="w-3 h-3 mr-1" /> Add Task
+      </Button>
     </div>
   );
 }
@@ -854,8 +845,10 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                               </Button>
                             )}
                             
-                            <div className={isBackendUser ? "flex flex-col lg:flex-row gap-3 items-start" : "grid grid-cols-1 md:grid-cols-12 gap-5 items-start"}>
-                                <div className={isBackendUser ? "w-full lg:w-[220px] shrink-0" : "md:col-span-4"}>
+                            <div className="space-y-4">
+                              {/* Top row: Project + Time Spent (or full grid for non-backend) */}
+                              <div className={isBackendUser ? "flex flex-col sm:flex-row gap-4 items-start" : "grid grid-cols-1 md:grid-cols-12 gap-5 items-start"}>
+                                <div className={isBackendUser ? "flex-1 w-full" : "md:col-span-4"}>
                                   <FormField
                                     control={draftForm.control}
                                     name={`entries.${index}.project`}
@@ -888,13 +881,8 @@ project._id);
                                   />
                                 </div>
                                 
-                                <div className={isBackendUser ? "flex-1 w-full" : "md:col-span-5"}>
-                                  {isBackendUser ? (
-                                    <div className="flex flex-col space-y-2">
-                                      <FormLabel className="text-gray-700 font-semibold">Tasks</FormLabel>
-                                      <BackendTaskFields control={draftForm.control} entryIndex={index} getValues={draftForm.getValues} setValue={draftForm.setValue} />
-                                    </div>
-                                  ) : (
+                                {!isBackendUser && (
+                                <div className="md:col-span-5">
                                     <FormField
                                       control={draftForm.control}
                                       name={`entries.${index}.description`}
@@ -902,17 +890,16 @@ project._id);
                                         <FormItem>
                                           <FormLabel className="text-gray-700 font-semibold">Description</FormLabel>
                                           <FormControl>
-                                            <Textarea placeholder="What did you do?" className="bg-white border-gray-200 shadow-sm resize-none h-10 
-min-h-10 py-2" rows={1} {...field} />
+                                            <Textarea placeholder="What did you do?" className="bg-white border-gray-200 shadow-sm resize-none h-10 min-h-10 py-2" rows={1} {...field} />
                                           </FormControl>
                                           <FormMessage className="text-xs" />
                                         </FormItem>
                                       )}
                                     />
-                                  )}
                                 </div>
+                                )}
   
-                                <div className={isBackendUser ? "w-full lg:w-[160px] shrink-0" : "md:col-span-3"}>
+                                <div className={isBackendUser ? "w-full sm:w-[180px] shrink-0" : "md:col-span-3"}>
                                   <FormLabel className="text-gray-700 font-semibold block mb-2">Time Spent</FormLabel>
                                   <div className="flex gap-2">
                                   <FormField
@@ -989,9 +976,21 @@ min-h-10 py-2" rows={1} {...field} />
                                   />
                                 </div>
                               </div>
+                              </div>
+                              {/* Backend tasks below, full width */}
+                              {isBackendUser && (
+                                <div className="w-full">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <FormLabel className="text-gray-700 font-semibold text-sm">Tasks</FormLabel>
+                                    <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full font-medium">Paste formatted tasks to auto-fill</span>
+                                  </div>
+                                  <BackendTaskFields control={draftForm.control} entryIndex={index} />
+                                </div>
+                              )}
                             </div>
                           </div>
                         ))}
+
                         
                         {draftForm.formState.errors.root && (
                           <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm font-medium border border-red-100 flex items-center gap-2">
