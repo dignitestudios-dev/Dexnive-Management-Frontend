@@ -82,7 +82,7 @@ const draftFormSchema = z.object({
 
 
 function BackendTaskFields({ control, entryIndex }: { control: any; entryIndex: number }) {
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, update } = useFieldArray({
     control,
     name: `entries.${entryIndex}.backendTasks`
   });
@@ -93,7 +93,7 @@ function BackendTaskFields({ control, entryIndex }: { control: any; entryIndex: 
     }
   }, [fields.length, append]);
 
-  const handlePaste = (e: React.ClipboardEvent) => {
+  const handlePaste = (e: React.ClipboardEvent, index: number) => {
     const text = e.clipboardData.getData("Text");
     if (!text) return;
 
@@ -113,88 +113,127 @@ function BackendTaskFields({ control, entryIndex }: { control: any; entryIndex: 
 
     if (parsedTasks.length > 0) {
       e.preventDefault();
-      const hasOnlyEmptyTask = fields.length === 1 && !(fields[0] as any).module && !(fields[0] as any).task;
       
-      if (hasOnlyEmptyTask) {
-        remove(0);
+      // Replace the current row with the first pasted task
+      update(index, parsedTasks[0]);
+      
+      // Append the rest of the tasks
+      if (parsedTasks.length > 1) {
+        append(parsedTasks.slice(1));
       }
-      
-      parsedTasks.forEach(pt => append(pt));
     }
   };
 
   return (
-    <div className="space-y-3 mt-3 w-full">
-      <FormLabel className="text-gray-700 font-semibold">Backend Tasks</FormLabel>
-      {fields.map((field, index) => (
-        <div key={field.id} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-3 rounded-lg border border-gray-200 bg-white w-full">
-          <FormField
-            control={control}
-            name={`entries.${entryIndex}.backendTasks.${index}.module`}
-            render={({ field }) => (
-              <FormItem className="flex-1 w-full space-y-0">
-                <FormControl>
-                  <Input placeholder="Module Name" {...field} onPaste={handlePaste} />
-                </FormControl>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={control}
-            name={`entries.${entryIndex}.backendTasks.${index}.task`}
-            render={({ field }) => (
-              <FormItem className="flex-[2] w-full space-y-0">
-                <FormControl>
-                  <Input placeholder="Task Description" {...field} onPaste={handlePaste} />
-                </FormControl>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={control}
-            name={`entries.${entryIndex}.backendTasks.${index}.difficulty`}
-            render={({ field }) => (
-              <FormItem className="w-full sm:w-[120px] space-y-0">
-                <FormControl>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Difficulty" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="HIGH">HIGH</SelectItem>
-                      <SelectItem value="MEDIUM">MEDIUM</SelectItem>
-                      <SelectItem value="LOW">LOW</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
-          />
-          {fields.length > 1 && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="text-gray-400 hover:text-red-500 w-8 h-8 shrink-0"
-              onClick={() => remove(index)}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
+    <div className="mt-2 w-full">
+      <div className="flex justify-between items-center mb-3">
+        <FormLabel className="text-gray-700 font-semibold text-sm m-0">Backend Tasks</FormLabel>
+        <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Paste Supported</span>
+      </div>
+      
+      <div className="space-y-2 bg-gray-50/50 rounded-xl border border-gray-100 p-3 sm:p-4">
+        {/* Header row for desktop */}
+        <div className="hidden sm:flex items-center gap-3 px-1 mb-2">
+          <div className="flex-[1] text-xs font-semibold text-gray-500 uppercase tracking-wider">Module</div>
+          <div className="flex-[2] text-xs font-semibold text-gray-500 uppercase tracking-wider">Task</div>
+          <div className="w-[120px] text-xs font-semibold text-gray-500 uppercase tracking-wider">Difficulty</div>
+          <div className="w-8"></div>
         </div>
-      ))}
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 mt-1"
-        onClick={() => append({ module: "", task: "", difficulty: "LOW" })}
-      >
-        <Plus className="w-3.5 h-3.5 mr-1" /> Add Task
-      </Button>
+
+        {fields.map((field, index) => (
+          <div 
+            key={field.id} 
+            className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-start sm:items-center relative w-full group bg-white p-3 sm:p-1.5 rounded-lg border border-gray-200 sm:border-transparent sm:shadow-none shadow-sm sm:bg-transparent transition-colors hover:bg-white hover:border-gray-200 hover:shadow-sm"
+          >
+            <FormField
+              control={control}
+              name={`entries.${entryIndex}.backendTasks.${index}.module`}
+              render={({ field }) => (
+                <FormItem className="flex-[1] w-full space-y-1 sm:space-y-0">
+                  <FormLabel className="sm:hidden text-xs text-gray-500">Module</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="e.g. Auth" 
+                      className="h-9 bg-white border-gray-200 focus:ring-primary-100 focus:border-primary-300 text-sm"
+                      {...field} 
+                      onPaste={(e) => handlePaste(e, index)} 
+                    />
+                  </FormControl>
+                  <FormMessage className="text-[10px]" />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={control}
+              name={`entries.${entryIndex}.backendTasks.${index}.task`}
+              render={({ field }) => (
+                <FormItem className="flex-[2] w-full space-y-1 sm:space-y-0">
+                  <FormLabel className="sm:hidden text-xs text-gray-500">Task</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="e.g. Implement login API" 
+                      className="h-9 bg-white border-gray-200 focus:ring-primary-100 focus:border-primary-300 text-sm"
+                      {...field} 
+                      onPaste={(e) => handlePaste(e, index)} 
+                    />
+                  </FormControl>
+                  <FormMessage className="text-[10px]" />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={control}
+              name={`entries.${entryIndex}.backendTasks.${index}.difficulty`}
+              render={({ field }) => (
+                <FormItem className="w-full sm:w-[120px] space-y-1 sm:space-y-0">
+                  <FormLabel className="sm:hidden text-xs text-gray-500">Difficulty</FormLabel>
+                  <FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                      <SelectTrigger className="h-9 bg-white border-gray-200 focus:ring-primary-100 text-sm font-medium">
+                        <SelectValue placeholder="Difficulty" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="HIGH" className="text-red-600 font-medium text-sm">HIGH</SelectItem>
+                        <SelectItem value="MEDIUM" className="text-amber-600 font-medium text-sm">MEDIUM</SelectItem>
+                        <SelectItem value="LOW" className="text-emerald-600 font-medium text-sm">LOW</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage className="text-[10px]" />
+                </FormItem>
+              )}
+            />
+            
+            <div className="absolute sm:relative right-2 top-2 sm:right-0 sm:top-0 flex items-center justify-center w-8 shrink-0">
+              {fields.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-300 hover:text-red-500 hover:bg-red-50 w-8 h-8 rounded-md transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+                  onClick={() => remove(index)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+        ))}
+        
+        <div className="pt-2 px-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 h-8 px-3 text-xs font-semibold rounded-md border border-transparent hover:border-primary-100 transition-all"
+            onClick={() => append({ module: "", task: "", difficulty: "LOW" })}
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Task
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
