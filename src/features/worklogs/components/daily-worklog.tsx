@@ -42,6 +42,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 import { useGetProjectsQuery } from "@/features/projects/api/projects.queries";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import { 
   useGetMyWorklogByDateQuery, 
   useGetNonBillableReasonsQuery,
@@ -59,6 +60,11 @@ const entrySchema = z.object({
   hours: z.number().min(0),
   minutes: z.number().min(0).max(59),
   description: z.string().optional(),
+  backendTasks: z.array(z.object({
+    module: z.string().min(1, "Required"),
+    task: z.string().min(1, "Required"),
+    difficulty: z.string().min(1, "Required")
+  })).optional(),
 }).refine(data => data.hours > 0 || data.minutes > 0, {
   message: "Required",
   path: ["minutes"],
@@ -74,10 +80,130 @@ const draftFormSchema = z.object({
   path: ["root"], // Use root to easily display form-level errors
 });
 
+
+function BackendTaskFields({ control, entryIndex }: { control: any; entryIndex: number }) {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: `entries.${entryIndex}.backendTasks`
+  });
+
+  useEffect(() => {
+    if (fields.length === 0) {
+      append({ module: "", task: "", difficulty: "LOW" });
+    }
+  }, [fields.length, append]);
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const text = e.clipboardData.getData("Text");
+    if (!text) return;
+
+    const lines = text.split('\n');
+    const parsedTasks: any[] = [];
+    
+    for (const line of lines) {
+      const match = line.match(/^\d+\.\)\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(HIGH|MEDIUM|LOW)$/i);
+      if (match) {
+        parsedTasks.push({
+          module: match[1].trim(),
+          task: match[2].trim(),
+          difficulty: match[3].toUpperCase().trim()
+        });
+      }
+    }
+
+    if (parsedTasks.length > 0) {
+      e.preventDefault();
+      const hasOnlyEmptyTask = fields.length === 1 && !(fields[0] as any).module && !(fields[0] as any).task;
+      
+      if (hasOnlyEmptyTask) {
+        remove(0);
+      }
+      
+      parsedTasks.forEach(pt => append(pt));
+    }
+  };
+
+  return (
+    <div className="space-y-3 mt-3 w-full">
+      <FormLabel className="text-gray-700 font-semibold">Backend Tasks</FormLabel>
+      {fields.map((field, index) => (
+        <div key={field.id} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-3 rounded-lg border border-gray-200 bg-white w-full">
+          <FormField
+            control={control}
+            name={`entries.${entryIndex}.backendTasks.${index}.module`}
+            render={({ field }) => (
+              <FormItem className="flex-1 w-full space-y-0">
+                <FormControl>
+                  <Input placeholder="Module Name" {...field} onPaste={handlePaste} />
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={control}
+            name={`entries.${entryIndex}.backendTasks.${index}.task`}
+            render={({ field }) => (
+              <FormItem className="flex-[2] w-full space-y-0">
+                <FormControl>
+                  <Input placeholder="Task Description" {...field} onPaste={handlePaste} />
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={control}
+            name={`entries.${entryIndex}.backendTasks.${index}.difficulty`}
+            render={({ field }) => (
+              <FormItem className="w-full sm:w-[120px] space-y-0">
+                <FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Difficulty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="HIGH">HIGH</SelectItem>
+                      <SelectItem value="MEDIUM">MEDIUM</SelectItem>
+                      <SelectItem value="LOW">LOW</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+          {fields.length > 1 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="text-gray-400 hover:text-red-500 w-8 h-8 shrink-0"
+              onClick={() => remove(index)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 mt-1"
+        onClick={() => append({ module: "", task: "", difficulty: "LOW" })}
+      >
+        <Plus className="w-3.5 h-3.5 mr-1" /> Add Task
+      </Button>
+    </div>
+  );
+}
 export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   const router = useRouter();
   const defaultDateOnly = defaultDate ? defaultDate.split('T')[0] : undefined;
   const today = defaultDateOnly || format(new Date(), "yyyy-MM-dd");
+  const { user } = useAuth();
+  const isBackendUser = user?.department && typeof user.department === "object" && user.department.name.toLowerCase() === "backend";
   
   const { data: myWorklog, isLoading: isLoadingWorklog, refetch } = useGetMyWorklogByDateQuery(today);
   const { data: projectsData } = useGetProjectsQuery({ availableForLogging: true, limit: 100 });
@@ -187,12 +313,41 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
 
       setAllocations(newAllocations);
       
-      const formEntries = (data.entries || []).map((entry: any) => ({
-        project: typeof entry.project === "string" ? entry.project : entry.project._id,
-        hours: Math.floor(entry.loggedMinutes / 60),
-        minutes: entry.loggedMinutes % 60,
-        description: entry.description || "",
-      }));
+      const formEntries = (data.entries || []).map((entry: any) => {
+        let description = entry.description || "";
+        let backendTasks = [{ module: "", task: "", difficulty: "LOW" }];
+        
+        if (isBackendUser && description) {
+           const lines = description.split('\n');
+           let parsedTasks = [];
+           let allMatched = true;
+           for (const line of lines) {
+              const match = line.match(/^\d+\.\)\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(HIGH|MEDIUM|LOW)$/i);
+              if (match) {
+                 parsedTasks.push({
+                   module: match[1].trim(),
+                   task: match[2].trim(),
+                   difficulty: match[3].toUpperCase().trim()
+                 });
+              } else if (line.trim() !== "") {
+                 allMatched = false;
+                 break;
+              }
+           }
+           if (allMatched && parsedTasks.length > 0) {
+              backendTasks = parsedTasks;
+              description = "";
+           }
+        }
+        
+        return {
+          project: typeof entry.project === "string" ? entry.project : entry.project._id,
+          hours: Math.floor(entry.loggedMinutes / 60),
+          minutes: entry.loggedMinutes % 60,
+          description: description,
+          backendTasks,
+        };
+      });
       
       if (formEntries.length > 0) {
         draftForm.reset({ entries: formEntries });
@@ -228,11 +383,20 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
     setSubmittingAction(goToNextStep ? 'continue' : 'draft');
     const payload = {
       shiftDate: today,
-      entries: values.entries.map(e => ({
-        project: e.project,
-        minutes: (e.hours * 60) + e.minutes,
-        description: e.description,
-      })),
+      entries: values.entries.map(e => {
+        let finalDescription = e.description;
+        if (isBackendUser && e.backendTasks && e.backendTasks.length > 0) {
+          const validTasks = e.backendTasks.filter((t: any) => t.module && t.task);
+          if (validTasks.length > 0) {
+            finalDescription = validTasks.map((t: any, i: number) => `${i + 1}.) ${t.module} | ${t.task} | ${t.difficulty}`).join('\n');
+          }
+        }
+        return {
+          project: e.project,
+          minutes: (e.hours * 60) + e.minutes,
+          description: finalDescription,
+        };
+      }),
     };
 
     const handleSuccess = () => {
