@@ -61,8 +61,8 @@ const entrySchema = z.object({
   minutes: z.number().min(0).max(59),
   description: z.string().optional(),
   backendTasks: z.array(z.object({
-    module: z.string().min(1, "Required"),
-    task: z.string().min(1, "Required"),
+    module: z.string().min(1, "Module is required"),
+    task: z.string().min(1, "Task description is required"),
     difficulty: z.string().min(1, "Required")
   })).optional(),
 }).refine(data => data.hours > 0 || data.minutes > 0, {
@@ -158,6 +158,7 @@ function BackendTaskFields({ control, entryIndex }: { control: any; entryIndex: 
                     onPaste={handlePaste} 
                   />
                 </FormControl>
+                <FormMessage className="text-[11px] text-red-500 font-normal mt-1" />
               </FormItem>
             )}
           />
@@ -174,6 +175,7 @@ function BackendTaskFields({ control, entryIndex }: { control: any; entryIndex: 
                     onPaste={handlePaste} 
                   />
                 </FormControl>
+                <FormMessage className="text-[11px] text-red-500 font-normal mt-1" />
               </FormItem>
             )}
           />
@@ -339,7 +341,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
       
       const formEntries = (data.entries || []).map((entry: any) => {
         let description = entry.description || "";
-        let backendTasks = [{ module: "", task: "", difficulty: "LOW" }];
+        let backendTasks: any[] | undefined = isBackendUser ? [{ module: "", task: "", difficulty: "LOW" }] : undefined;
         
         if (isBackendUser && description) {
            const lines = description.split(/\r?\n/).map((l: string) => l.trim()).filter((l: string) => l.length > 0);
@@ -369,7 +371,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
           hours: Math.floor(entry.loggedMinutes / 60),
           minutes: entry.loggedMinutes % 60,
           description: description,
-          backendTasks,
+          ...(isBackendUser ? { backendTasks } : {}),
         };
       });
       
@@ -382,7 +384,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
     } else if (data.status === "submitted") {
       setStep(2); // Keep it on the review view
     }
-  }, [myWorklog, draftForm]);
+  }, [myWorklog, draftForm, isBackendUser]);
 
   const submitMissingReasonMutation = useSubmitMissingReasonMutation();
 
@@ -402,6 +404,22 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
     setMissingReasonData(null);
     setMissingReasonForm({ reason: "", note: "" });
   }, [today]);
+
+  const onInvalid = (errors: any) => {
+    console.warn("Worklog form validation errors:", errors);
+    if (errors.entries) {
+      const hasBackendTaskError = Array.isArray(errors.entries) && errors.entries.some((e: any) => e?.backendTasks);
+      if (hasBackendTaskError) {
+        toast.error("Please fill in Module and Task description for all Backend tasks.");
+      } else {
+        toast.error("Please select a project and enter logged time for each entry.");
+      }
+    } else if (errors.root) {
+      toast.error(errors.root.message || "Invalid form values.");
+    } else {
+      toast.error("Please check your entries and try again.");
+    }
+  };
 
   const onDraftSubmit = (values: z.infer<typeof draftFormSchema>, goToNextStep: boolean = true) => {
     setSubmittingAction(goToNextStep ? 'continue' : 'draft');
@@ -811,7 +829,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
               {step === 1 && (
                 <div>
                   <Form {...draftForm}>
-                    <form onSubmit={draftForm.handleSubmit(v => onDraftSubmit(v, true))} className="space-y-5">
+                    <form onSubmit={draftForm.handleSubmit(v => onDraftSubmit(v, true), onInvalid)} className="space-y-5">
                       {missingEntries.length > 0 && (
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-amber-50/50 border border-amber-100 p-4 rounded-xl mb-4 gap-3">
                           <div className="flex flex-col">
@@ -1036,7 +1054,7 @@ project._id);
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={draftForm.handleSubmit(v => onDraftSubmit(v, false))}
+                          onClick={draftForm.handleSubmit(v => onDraftSubmit(v, false), onInvalid)}
                           disabled={submittingAction !== null || liveTotalMinutes === 0}
                           className="border-gray-200 text-gray-700 hover:bg-gray-50 min-w-[120px]"
                         >
