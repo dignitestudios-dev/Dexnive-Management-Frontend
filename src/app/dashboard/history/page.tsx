@@ -36,6 +36,11 @@ function MyWorklogsHistoryContent() {
     return `${h}h ${m}m`;
   };
 
+  const handleDraftRowClick = (shiftDate: string) => {
+    const date = format(new Date(shiftDate), "yyyy-MM-dd");
+    router.push(`/dashboard/daily-log?date=${date}`);
+  };
+
   const defaultStartDate = () => {
     const d = new Date();
     d.setDate(1);
@@ -301,7 +306,14 @@ function MyWorklogsHistoryContent() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {worklogsData?.data.map((log: any) => (
-                  <tr key={log._id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr
+                    key={log._id}
+                    className={cn(
+                      "transition-colors",
+                      log.status === "draft" ? "hover:bg-gray-50/50 cursor-pointer" : ""
+                    )}
+                    onClick={() => log.status === "draft" && handleDraftRowClick(log.shiftDate)}
+                  >
                     <td className="px-6 py-4 font-medium text-gray-900">
                       {format(new Date(log.shiftDate), "MMM d, yyyy")}
                     </td>
