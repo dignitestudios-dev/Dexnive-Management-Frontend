@@ -10,7 +10,7 @@ import { useGetMyUserQuery } from "@/features/users/api/users.queries";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function Header() {
-  const { user: localUser } = useAuth();
+  const { user: localUser, role } = useAuth();
   const { data: myUserData } = useGetMyUserQuery();
   const user = myUserData?.data || localUser;
   const [showDropdown, setShowDropdown] = useState(false);
@@ -65,8 +65,10 @@ export function Header() {
         <span className="text-gray-400">/</span>
         <div className="flex items-center gap-2">
           <span className="font-semibold text-gray-900 cursor-pointer">{typeof user?.department === 'object' ? user?.department?.name : (user?.department || "")}</span>
-          {user?.isLead && (
-            <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider">Lead</span>
+          {role && (
+            <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-200 uppercase tracking-wider">
+              {role}
+            </span>
           )}
         </div>
       </div>

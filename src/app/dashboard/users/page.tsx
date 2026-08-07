@@ -84,8 +84,8 @@ const UserCardItem = React.memo(({ user, openDetails, handleToggleActive, handle
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold text-gray-900 truncate text-lg" title={user.name}>{user.name}</h3>
-                  {user.isLead && (
-                    <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider">Lead</span>
+                  {typeof user.role === 'object' && user.role?.name && (
+                    <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200 uppercase tracking-wider">{user.role.name}</span>
                   )}
                 </div>
                 <UserEmail email={user.email} />
@@ -513,8 +513,8 @@ function UsersPageContent() {
                   <DialogTitle className="text-xl font-bold text-gray-900 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {selectedUser.name}
-                      {selectedUser.isLead && (
-                        <span className="px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider">Lead</span>
+                      {typeof selectedUser.role === 'object' && selectedUser.role?.name && (
+                        <span className="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200 uppercase tracking-wider">{selectedUser.role.name}</span>
                       )}
                     </div>
                     {selectedUser.deactivateDate ? (

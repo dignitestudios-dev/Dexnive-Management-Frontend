@@ -32,10 +32,14 @@ export function useLogin() {
         document.cookie = `auth-token=${token}; path=/; max-age=86400`; // Adjust max-age as needed
         
         dispatch(setCredentials({ user, accessToken: token }));
-        const roleName = typeof user?.role === 'object' && user.role !== null ? user.role.name.toLowerCase() : "";
-        const isAdminOrLead = roleName === "admin" || user?.isLead === true;
+        const roleName = typeof user?.role === 'object' && user.role !== null ? user.role.name.trim().toLowerCase() : (typeof user?.role === 'string' ? user.role.trim().toLowerCase() : "");
+        const isAdminOrLead = roleName === "admin" || roleName === "lead";
+        const isPM = roleName === "project manager" || roleName === "pm";
+
         if (isAdminOrLead) {
           router.push("/dashboard/users");
+        } else if (isPM) {
+          router.push("/dashboard/projects");
         } else {
           router.push("/dashboard");
         }

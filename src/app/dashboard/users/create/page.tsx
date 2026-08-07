@@ -32,7 +32,6 @@ const createUserSchema = z.object({
   role: z.string().min(1, "Role is required"),
   department: z.string().min(1, "Department is required"),
   joiningDate: z.string().min(1, "Joining Date is required"),
-  isLead: z.boolean(),
 });
 
 type CreateUserFormValues = z.infer<typeof createUserSchema>;
@@ -56,21 +55,10 @@ export default function CreateUserPage() {
     formState: { errors },
   } = useForm<CreateUserFormValues>({
     resolver: zodResolver(createUserSchema),
-    defaultValues: {
-      isLead: false,
-    },
   });
 
   const onSubmit = (data: CreateUserFormValues) => {
     setError("");
-
-    if (data.isLead) {
-      const selectedRole = roles.find((r: any) => r._id === data.role);
-      if (selectedRole && selectedRole.name.toLowerCase() !== "admin") {
-        setError("Only an admin can be assigned as a Team Lead.");
-        return;
-      }
-    }
 
     createUserMutation.mutate(data, {
       onSuccess: () => {
@@ -222,24 +210,6 @@ export default function CreateUserPage() {
                 {...register("joiningDate")}
                 className={errors.joiningDate ? "border-red-500" : ""}
               />
-              {errors.joiningDate && <p className="text-xs text-red-500">{errors.joiningDate.message}</p>}
-            </div>
-
-            <div className="space-y-2 flex flex-col justify-center">
-              <div className="flex items-center gap-3 mt-4">
-                <Controller
-                  control={control}
-                  name="isLead"
-                  render={({ field }) => (
-                    <Switch
-                      id="isLead"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-                <Label htmlFor="isLead" className="cursor-pointer">Is Team Lead?</Label>
-              </div>
             </div>
           </div>
 

@@ -19,11 +19,14 @@ import { Division } from "@/features/divisions/types";
 import { Loader } from "@/components/ui/loader";
 import { ProjectTimeline } from "@/features/projects/components/ProjectTimeline";
 
+import { useAuth } from "@/features/auth/hooks/use-auth";
+
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 function ProjectsPageContent() {
   const router = useRouter();
+  const { hasFinancialAccess } = useAuth();
   
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -356,6 +359,7 @@ function ProjectsPageContent() {
                           </span>
                           <span className={`text-xs font-bold px-1.5 py-0.5 rounded uppercase ${
                             proj.status?.toLowerCase() === 'active' ? 'bg-green-100 text-green-700' :
+                            proj.status?.toLowerCase() === 'idle' ? 'bg-slate-100 text-slate-500 border border-slate-200/80' :
                             proj.status?.toLowerCase() === 'on-hold' ? 'bg-amber-100 text-amber-700' :
                             proj.status?.toLowerCase() === 'completed' ? 'bg-blue-100 text-blue-700' :
                             'bg-gray-100 text-gray-700'
@@ -444,6 +448,16 @@ function ProjectsPageContent() {
                           </div>
                         )}
                       </div>
+                      {hasFinancialAccess && (proj.price != null || proj.loggedAmount != null) && (
+                        <div className="bg-emerald-50/50 p-2 px-4 border-t border-emerald-100 flex justify-between items-center text-xs text-emerald-900 font-medium">
+                          {proj.price != null && (
+                            <span>Price: <strong className="font-semibold text-emerald-800">${proj.price.toLocaleString()}</strong></span>
+                          )}
+                          {proj.loggedAmount != null && (
+                            <span className="ml-auto">Logged: <strong className="font-semibold text-emerald-800">${proj.loggedAmount.toLocaleString()}</strong></span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="w-52 p-1">

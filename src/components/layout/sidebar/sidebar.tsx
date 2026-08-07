@@ -29,7 +29,7 @@ import {
 import { cn } from "@/utils/cn";
 
 export function Sidebar() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isFullManager, canManageProjects, hasFinancialAccess } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -107,7 +107,7 @@ export function Sidebar() {
 
       {/* Navigation Links */}
       <div className="flex-1 overflow-y-auto py-4 px-3 space-y-4 custom-scrollbar">
-        {/* General Group */}
+        {/* General Group — Available to all users */}
         <div className="space-y-1">
           <SidebarLink
             icon={<LayoutDashboard className="w-4 h-4" />}
@@ -116,180 +116,182 @@ export function Sidebar() {
             active={pathname === "/dashboard"}
             isCollapsed={isCollapsed}
           />
-          {!isAdmin && (
-            <>
-              <SidebarLink
-                icon={<CalendarDays className="w-4 h-4" />}
-                label="My Timesheet"
-                href="/dashboard/my-timesheet"
-                active={pathname === "/dashboard/my-timesheet"}
-                isCollapsed={isCollapsed}
-              />
-
-              <SidebarLink
-                icon={<History className="w-4 h-4" />}
-                label="Logs History"
-                href="/dashboard/history"
-                active={pathname === "/dashboard/history"}
-                isCollapsed={isCollapsed}
-              />
-              <SidebarLink
-                icon={<LockKeyhole className="w-4 h-4" />}
-                label="Change Password"
-                href="/dashboard/settings"
-                active={pathname === "/dashboard/settings"}
-                isCollapsed={isCollapsed}
-              />
-            </>
-          )}
+          <SidebarLink
+            icon={<CalendarDays className="w-4 h-4" />}
+            label="My Timesheet"
+            href="/dashboard/my-timesheet"
+            active={pathname === "/dashboard/my-timesheet"}
+            isCollapsed={isCollapsed}
+          />
+          <SidebarLink
+            icon={<History className="w-4 h-4" />}
+            label="Logs History"
+            href="/dashboard/history"
+            active={pathname === "/dashboard/history"}
+            isCollapsed={isCollapsed}
+          />
+          <SidebarLink
+            icon={<LockKeyhole className="w-4 h-4" />}
+            label="Change Password"
+            href="/dashboard/settings"
+            active={pathname === "/dashboard/settings"}
+            isCollapsed={isCollapsed}
+          />
         </div>
 
-        {/* Admin Navigation */}
-        {isAdmin && (
-          <>
-            {/* Team Management Group */}
-            <SidebarGroup
-              label="Team Management"
-              isOpen={groupsOpen.team}
-              onToggle={() => toggleGroup("team")}
+        {/* Team Management Group — Admin & Lead */}
+        {isFullManager && (
+          <SidebarGroup
+            label="Team Management"
+            isOpen={groupsOpen.team}
+            onToggle={() => toggleGroup("team")}
+            isCollapsed={isCollapsed}
+            isActive={isGroupActive(["/dashboard/users"])}
+          >
+            <SidebarLink
+              icon={<Users className="w-4 h-4" />}
+              label="All Users"
+              href="/dashboard/users"
+              active={pathname === "/dashboard/users"}
               isCollapsed={isCollapsed}
-              isActive={isGroupActive(["/dashboard/users"])}
-            >
-              <SidebarLink
-                icon={<Users className="w-4 h-4" />}
-                label="All Users"
-                href="/dashboard/users"
-                active={pathname === "/dashboard/users"}
-                isCollapsed={isCollapsed}
-                nested
-              />
-              <SidebarLink
-                icon={<FileText className="w-4 h-4" />}
-                label="Missing Entries"
-                href="/dashboard/users/missing-entries"
-                active={pathname === "/dashboard/users/missing-entries"}
-                isCollapsed={isCollapsed}
-                nested
-              />
-              <SidebarLink
-                icon={<History className="w-4 h-4" />}
-                label="All Worklogs"
-                href="/dashboard/users/all-worklogs"
-                active={pathname === "/dashboard/users/all-worklogs"}
-                isCollapsed={isCollapsed}
-                nested
-              />
-              <SidebarLink
-                icon={<CalendarDays className="w-4 h-4" />}
-                label="User Timesheets"
-                href="/dashboard/users/timesheet"
-                active={pathname === "/dashboard/users/timesheet"}
-                isCollapsed={isCollapsed}
-                nested
-              />
-            </SidebarGroup>
+              nested
+            />
+            <SidebarLink
+              icon={<FileText className="w-4 h-4" />}
+              label="Missing Entries"
+              href="/dashboard/users/missing-entries"
+              active={pathname === "/dashboard/users/missing-entries"}
+              isCollapsed={isCollapsed}
+              nested
+            />
+            <SidebarLink
+              icon={<History className="w-4 h-4" />}
+              label="All Worklogs"
+              href="/dashboard/users/all-worklogs"
+              active={pathname === "/dashboard/users/all-worklogs"}
+              isCollapsed={isCollapsed}
+              nested
+            />
+            <SidebarLink
+              icon={<CalendarDays className="w-4 h-4" />}
+              label="User Timesheets"
+              href="/dashboard/users/timesheet"
+              active={pathname === "/dashboard/users/timesheet"}
+              isCollapsed={isCollapsed}
+              nested
+            />
+          </SidebarGroup>
+        )}
 
-            {/* Organization Group */}
-            <SidebarGroup
-              label="Organization"
-              isOpen={groupsOpen.org}
-              onToggle={() => toggleGroup("org")}
+        {/* Organization Group — Admin & Lead */}
+        {isFullManager && (
+          <SidebarGroup
+            label="Organization"
+            isOpen={groupsOpen.org}
+            onToggle={() => toggleGroup("org")}
+            isCollapsed={isCollapsed}
+            isActive={isGroupActive(["/dashboard/departments", "/dashboard/divisions"])}
+          >
+            <SidebarLink
+              icon={<Building2 className="w-4 h-4" />}
+              label="Departments"
+              href="/dashboard/departments"
+              active={pathname === "/dashboard/departments"}
               isCollapsed={isCollapsed}
-              isActive={isGroupActive(["/dashboard/departments", "/dashboard/divisions"])}
-            >
-              <SidebarLink
-                icon={<Building2 className="w-4 h-4" />}
-                label="Departments"
-                href="/dashboard/departments"
-                active={pathname === "/dashboard/departments"}
-                isCollapsed={isCollapsed}
-                nested
-              />
-              <SidebarLink
-                icon={<Layers className="w-4 h-4" />}
-                label="Divisions"
-                href="/dashboard/divisions"
-                active={pathname === "/dashboard/divisions"}
-                isCollapsed={isCollapsed}
-                nested
-              />
-            </SidebarGroup>
+              nested
+            />
+            <SidebarLink
+              icon={<Layers className="w-4 h-4" />}
+              label="Divisions"
+              href="/dashboard/divisions"
+              active={pathname === "/dashboard/divisions"}
+              isCollapsed={isCollapsed}
+              nested
+            />
+          </SidebarGroup>
+        )}
 
-            {/* Projects Group */}
-            <SidebarGroup
-              label="Projects"
-              isOpen={groupsOpen.projects}
-              onToggle={() => toggleGroup("projects")}
+        {/* Projects Group — Admin, Lead & Project Manager */}
+        {canManageProjects && (
+          <SidebarGroup
+            label="Projects"
+            isOpen={groupsOpen.projects}
+            onToggle={() => toggleGroup("projects")}
+            isCollapsed={isCollapsed}
+            isActive={isGroupActive(["/dashboard/projects"])}
+          >
+            <SidebarLink
+              icon={<Briefcase className="w-4 h-4" />}
+              label="All Projects"
+              href="/dashboard/projects"
+              active={pathname === "/dashboard/projects"}
               isCollapsed={isCollapsed}
-              isActive={isGroupActive(["/dashboard/projects"])}
-            >
-              <SidebarLink
-                icon={<Briefcase className="w-4 h-4" />}
-                label="All Projects"
-                href="/dashboard/projects"
-                active={pathname === "/dashboard/projects"}
-                isCollapsed={isCollapsed}
-                nested
-              />
-              <SidebarLink
-                icon={<FileText className="w-4 h-4" />}
-                label="Stages Template"
-                href="/dashboard/projects/stage-templates"
-                active={pathname === "/dashboard/projects/stage-templates"}
-                isCollapsed={isCollapsed}
-                nested
-              />
-            </SidebarGroup>
+              nested
+            />
+            <SidebarLink
+              icon={<FileText className="w-4 h-4" />}
+              label="Stages Template"
+              href="/dashboard/projects/stage-templates"
+              active={pathname === "/dashboard/projects/stage-templates"}
+              isCollapsed={isCollapsed}
+              nested
+            />
+          </SidebarGroup>
+        )}
 
-            {/* Reports Group */}
-            <SidebarGroup
-              label="Reports"
-              isOpen={groupsOpen.reports}
-              onToggle={() => toggleGroup("reports")}
+        {/* Reports Group — Admin & Lead */}
+        {isFullManager && (
+          <SidebarGroup
+            label="Reports"
+            isOpen={groupsOpen.reports}
+            onToggle={() => toggleGroup("reports")}
+            isCollapsed={isCollapsed}
+            isActive={isGroupActive([
+              "/dashboard/reports",
+              "/dashboard/reports/breakdown",
+            ])}
+          >
+            <SidebarLink
+              icon={<BarChart3 className="w-4 h-4" />}
+              label="Production Hours"
+              href="/dashboard/reports"
+              active={pathname === "/dashboard/reports"}
               isCollapsed={isCollapsed}
-              isActive={isGroupActive([
-                "/dashboard/reports",
-                "/dashboard/reports/breakdown",
-              ])}
-            >
-              <SidebarLink
-                icon={<BarChart3 className="w-4 h-4" />}
-                label="Production Hours"
-                href="/dashboard/reports"
-                active={pathname === "/dashboard/reports"}
-                isCollapsed={isCollapsed}
-                nested
-              />
-              <SidebarLink
-                icon={<Layers className="w-4 h-4" />}
-                label="Hours Breakdown"
-                href="/dashboard/reports/breakdown"
-                active={pathname === "/dashboard/reports/breakdown"}
-                isCollapsed={isCollapsed}
-                nested
-              />
-            </SidebarGroup>
+              nested
+            />
+            <SidebarLink
+              icon={<Layers className="w-4 h-4" />}
+              label="Hours Breakdown"
+              href="/dashboard/reports/breakdown"
+              active={pathname === "/dashboard/reports/breakdown"}
+              isCollapsed={isCollapsed}
+              nested
+            />
+          </SidebarGroup>
+        )}
 
-            {/* Operations Group */}
-            <SidebarGroup
-              label="Operations"
-              isOpen={groupsOpen.ops}
-              onToggle={() => toggleGroup("ops")}
+        {/* Operations Group — Admin & Lead */}
+        {isFullManager && (
+          <SidebarGroup
+            label="Operations"
+            isOpen={groupsOpen.ops}
+            onToggle={() => toggleGroup("ops")}
+            isCollapsed={isCollapsed}
+            isActive={isGroupActive([
+              "/dashboard/settings/holidays",
+              "/dashboard/settings/rates",
+              "/dashboard/settings/reasons",
+            ])}
+          >
+            <SidebarLink
+              icon={<Calendar className="w-4 h-4" />}
+              label="Holidays"
+              href="/dashboard/settings/holidays"
+              active={pathname === "/dashboard/settings/holidays"}
               isCollapsed={isCollapsed}
-              isActive={isGroupActive([
-                "/dashboard/settings/holidays",
-                "/dashboard/settings/rates",
-                "/dashboard/settings/reasons",
-              ])}
-            >
-              <SidebarLink
-                icon={<Calendar className="w-4 h-4" />}
-                label="Holidays"
-                href="/dashboard/settings/holidays"
-                active={pathname === "/dashboard/settings/holidays"}
-                isCollapsed={isCollapsed}
-                nested
-              />
+              nested
+            />
+            {hasFinancialAccess && (
               <SidebarLink
                 icon={<DollarSign className="w-4 h-4" />}
                 label="Rates"
@@ -298,34 +300,16 @@ export function Sidebar() {
                 isCollapsed={isCollapsed}
                 nested
               />
-              <SidebarLink
-                icon={<FileText className="w-4 h-4" />}
-                label="Non-Billable Reasons"
-                href="/dashboard/settings/reasons"
-                active={pathname === "/dashboard/settings/reasons"}
-                isCollapsed={isCollapsed}
-                nested
-              />
-            </SidebarGroup>
-
-            {/* Settings Group */}
-            <SidebarGroup
-              label="Settings"
-              isOpen={groupsOpen.settings}
-              onToggle={() => toggleGroup("settings")}
+            )}
+            <SidebarLink
+              icon={<LockKeyhole className="w-4 h-4" />}
+              label="Change Password"
+              href="/dashboard/settings"
+              active={pathname === "/dashboard/settings"}
               isCollapsed={isCollapsed}
-              isActive={pathname === "/dashboard/settings"}
-            >
-              <SidebarLink
-                icon={<LockKeyhole className="w-4 h-4" />}
-                label="Change Password"
-                href="/dashboard/settings"
-                active={pathname === "/dashboard/settings"}
-                isCollapsed={isCollapsed}
-                nested
-              />
-            </SidebarGroup>
-          </>
+              nested
+            />
+          </SidebarGroup>
         )}
       </div>
 

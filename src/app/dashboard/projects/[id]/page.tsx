@@ -29,6 +29,8 @@ import { ProjectStage, StageStatus } from "@/features/projects/types";
 import { Division } from "@/features/divisions/types";
 import { ProjectTimeline } from "@/features/projects/components/ProjectTimeline";
 
+import { useAuth } from "@/features/auth/hooks/use-auth";
+
 const formatDisplayDate = (dateString?: string | null) => {
   if (!dateString) return "--";
   return new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -38,6 +40,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
   const resolvedParams = use(params);
   const projectId = resolvedParams.id;
   const router = useRouter();
+  const { hasFinancialAccess } = useAuth();
 
   const { data: projectData, isLoading: isLoadingProject } = useGetProjectByIdQuery(projectId);
   const { data: statsData } = useGetProjectStatsQuery(projectId);
@@ -244,6 +247,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{project.name}</h1>
             <span className={`px-2.5 py-1 text-xs font-bold uppercase tracking-wider rounded ${
                 project.status?.toLowerCase() === 'active' ? 'bg-green-100 text-green-700' :
+                project.status?.toLowerCase() === 'idle' ? 'bg-slate-100 text-slate-500 border border-slate-200/80' :
                 project.status?.toLowerCase() === 'on-hold' ? 'bg-amber-100 text-amber-700' :
                 project.status?.toLowerCase() === 'completed' ? 'bg-blue-100 text-blue-700' :
                 'bg-gray-100 text-gray-700'
@@ -293,6 +297,23 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
               {formatDisplayDate(project.estimatedStartDate)} - {formatDisplayDate(project.estimatedEndDate)}
             </span>
           </div>
+
+          {hasFinancialAccess && (project.price != null || project.loggedAmount != null) && (
+            <div className="flex items-center gap-6 border-l border-gray-200 pl-6">
+              {project.price != null && (
+                <div className="flex flex-col">
+                  <span className="text-gray-500 text-xs font-medium uppercase tracking-wider">Price</span>
+                  <span className="font-semibold text-emerald-700 text-sm">${project.price.toLocaleString()}</span>
+                </div>
+              )}
+              {project.loggedAmount != null && (
+                <div className="flex flex-col">
+                  <span className="text-gray-500 text-xs font-medium uppercase tracking-wider">Logged Cost</span>
+                  <span className="font-semibold text-emerald-700 text-sm">${project.loggedAmount.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+          )}
           
           {/* Budget Usage Minibar */}
           {stats && (

@@ -15,7 +15,7 @@ export interface User {
   email: string;
   role: Role | string;
   department: Department;
-  isLead: boolean;
+  isLead?: boolean;
   employeeCode: string;
   joiningDate: string;
   deactivateDate?: string | null;
@@ -55,7 +55,7 @@ export interface CreateUserPayload {
   department: string;
   employeeCode: string;
   joiningDate: string;
-  isLead: boolean;
+  isLead?: boolean;
 }
 
 export interface UpdateUserPayload extends Partial<CreateUserPayload> {

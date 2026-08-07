@@ -28,7 +28,6 @@ const updateUserSchema = z.object({
   employeeCode: z.string().regex(/^\d{1,8}$/, "Employee Code must be a number with up to 8 digits"),
   role: z.string().min(1, "Role is required"),
   department: z.string().min(1, "Department is required"),
-  isLead: z.boolean(),
   isActive: z.boolean(),
 });
 
@@ -66,7 +65,6 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       employeeCode: "",
       role: "",
       department: "",
-      isLead: false,
       isActive: true,
     }
   });
@@ -82,7 +80,6 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         employeeCode: user.employeeCode || "",
         role: roleId,
         department: deptId,
-        isLead: user.isLead || false,
         isActive: !user.isDeleted,
         password: "", // Don't pre-fill password
       });
@@ -258,29 +255,6 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
             </div>
 
             <div className="col-span-1 md:col-span-2 flex flex-col gap-4 mt-2">
-              <Controller
-                control={control}
-                name="isLead"
-                render={({ field }) => (
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50/50">
-                    <div>
-                      <p className="font-medium text-gray-900">Is Lead</p>
-                      <p className="text-sm text-gray-500">Mark this user as a team lead.</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className={cn("text-sm font-medium transition-colors", !field.value ? "text-gray-900" : "text-gray-400")}>Standard</span>
-                      <Switch
-                        id="isLead"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className="data-[state=checked]:bg-purple-600"
-                      />
-                      <span className={cn("text-sm font-medium transition-colors", field.value ? "text-purple-700" : "text-gray-400")}>Lead</span>
-                    </div>
-                  </div>
-                )}
-              />
-
               <Controller
                 control={control}
                 name="isActive"

@@ -1,6 +1,6 @@
 import { Division } from "@/features/divisions/types";
 
-export type ProjectStatus = "not-started" | "active" | "on-hold" | "completed";
+export type ProjectStatus = "not-started" | "active" | "idle" | "on-hold" | "completed";
 export type ProjectType = "internal" | "external";
 
 export interface Project {
@@ -12,6 +12,8 @@ export interface Project {
   projectType: ProjectType;
   status: ProjectStatus;
   budgetedHours?: number;
+  price?: number | null;
+  loggedAmount?: number | null;
   estimatedStartDate?: string;
   estimatedEndDate?: string;
   actualStartDate?: string;
@@ -62,12 +64,13 @@ export interface PaginatedProjectsResponse {
 
 export interface CreateProjectPayload {
   name: string;
-  code: string;
+  code?: string;
   description?: string;
   division?: string;
   projectType: ProjectType;
   status?: ProjectStatus;
   budgetedHours?: number;
+  price?: number;
   estimatedStartDate?: string;
   estimatedEndDate?: string;
   activateFirstStage?: boolean;
@@ -75,6 +78,7 @@ export interface CreateProjectPayload {
 
 export interface UpdateProjectPayload extends Partial<CreateProjectPayload> {
   projectId: string;
+  price?: number;
 }
 
 export type StageStatus = "not-started" | "active" | "completed" | "delayed";
