@@ -1,5 +1,4 @@
 import axios from "axios";
-import { toast } from "sonner";
 
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
