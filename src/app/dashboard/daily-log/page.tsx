@@ -5,11 +5,19 @@ import { ArrowLeft, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next-nprogress-bar";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 
 function DailyLogContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isFullManager } = useAuth();
+
+  useEffect(() => {
+    if (isFullManager) {
+      router.push("/dashboard");
+    }
+  }, [isFullManager, router]);
   const rawDate = searchParams.get("date");
   const date = (rawDate === "null" || rawDate === "") ? undefined : rawDate || undefined;
 

@@ -31,7 +31,7 @@ import {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, isAdmin } = useAuth();
+  const { user, isFullManager } = useAuth();
   const todayDateStr = format(new Date(), "yyyy-MM-dd");
   
   const { data: dailyWorklogData, isLoading } = useGetMyWorklogByDateQuery(todayDateStr);
@@ -52,7 +52,7 @@ export default function DashboardPage() {
     return `${h}h ${m}m`;
   };
 
-  if (isAdmin) {
+  if (isFullManager) {
     return (
       <div className="w-full p-6 md:p-8 bg-gray-50/50 min-h-screen">
         <div className="w-full max-w-5xl mx-auto space-y-8 animate-in fade-in duration-300">

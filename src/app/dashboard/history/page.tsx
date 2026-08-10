@@ -24,11 +24,19 @@ import { cn } from "@/lib/utils";
 import { useSearchParams, usePathname } from "next/navigation";
 import { useRouter } from "next-nprogress-bar";
 import { Suspense, useEffect } from "react";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 
 function MyWorklogsHistoryContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const { isFullManager } = useAuth();
+
+  useEffect(() => {
+    if (isFullManager) {
+      router.push("/dashboard");
+    }
+  }, [isFullManager, router]);
 
   const formatMins = (mins: number) => {
     const h = Math.floor(mins / 60);

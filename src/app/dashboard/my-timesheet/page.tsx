@@ -19,9 +19,21 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { useRouter } from "next-nprogress-bar";
+import { useEffect } from "react";
 import { useGetMyTimesheetQuery } from "@/features/worklogs/api/worklogs.queries";
 
 export default function MyTimesheetPage() {
+  const router = useRouter();
+  const { isFullManager } = useAuth();
+
+  useEffect(() => {
+    if (isFullManager) {
+      router.push("/dashboard");
+    }
+  }, [isFullManager, router]);
+
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<any>(null);
 

@@ -33,17 +33,17 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Collapsed state for the entire sidebar
+  // Main sidebar expanded by default
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Expanded/collapsed states for sub-groups
+  // Sub-group option dropdowns inside the sidebar collapsed by default
   const [groupsOpen, setGroupsOpen] = useState({
-    team: true,
-    org: true,
-    projects: true,
-    reports: true,
-    ops: true,
-    settings: true,
+    team: false,
+    org: false,
+    projects: false,
+    reports: false,
+    ops: false,
+    settings: false,
   });
 
   // Load collapse state from localStorage on mount
@@ -116,27 +116,31 @@ export function Sidebar() {
             active={pathname === "/dashboard"}
             isCollapsed={isCollapsed}
           />
-          <SidebarLink
-            icon={<CalendarDays className="w-4 h-4" />}
-            label="My Timesheet"
-            href="/dashboard/my-timesheet"
-            active={pathname === "/dashboard/my-timesheet"}
-            isCollapsed={isCollapsed}
-          />
-          <SidebarLink
-            icon={<History className="w-4 h-4" />}
-            label="Logs History"
-            href="/dashboard/history"
-            active={pathname === "/dashboard/history"}
-            isCollapsed={isCollapsed}
-          />
-          <SidebarLink
-            icon={<LockKeyhole className="w-4 h-4" />}
-            label="Change Password"
-            href="/dashboard/settings"
-            active={pathname === "/dashboard/settings"}
-            isCollapsed={isCollapsed}
-          />
+          {!isFullManager && (
+            <>
+              <SidebarLink
+                icon={<CalendarDays className="w-4 h-4" />}
+                label="My Timesheet"
+                href="/dashboard/my-timesheet"
+                active={pathname === "/dashboard/my-timesheet"}
+                isCollapsed={isCollapsed}
+              />
+              <SidebarLink
+                icon={<History className="w-4 h-4" />}
+                label="Logs History"
+                href="/dashboard/history"
+                active={pathname === "/dashboard/history"}
+                isCollapsed={isCollapsed}
+              />
+              <SidebarLink
+                icon={<LockKeyhole className="w-4 h-4" />}
+                label="Change Password"
+                href="/dashboard/settings"
+                active={pathname === "/dashboard/settings"}
+                isCollapsed={isCollapsed}
+              />
+            </>
+          )}
         </div>
 
         {/* Team Management Group — Admin & Lead */}
