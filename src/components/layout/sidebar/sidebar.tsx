@@ -228,14 +228,16 @@ export function Sidebar() {
               isCollapsed={isCollapsed}
               nested
             />
-            <SidebarLink
-              icon={<FileText className="w-4 h-4" />}
-              label="Stages Template"
-              href="/dashboard/projects/stage-templates"
-              active={pathname === "/dashboard/projects/stage-templates"}
-              isCollapsed={isCollapsed}
-              nested
-            />
+            {isFullManager && (
+              <SidebarLink
+                icon={<FileText className="w-4 h-4" />}
+                label="Stages Template"
+                href="/dashboard/projects/stage-templates"
+                active={pathname === "/dashboard/projects/stage-templates"}
+                isCollapsed={isCollapsed}
+                nested
+              />
+            )}
           </SidebarGroup>
         )}
 

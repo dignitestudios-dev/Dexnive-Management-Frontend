@@ -25,6 +25,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { toast } from "sonner";
 import { StageTemplate } from "@/features/projects/api/stage-templates.service";
 
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { useRouter } from "next-nprogress-bar";
+import { useEffect } from "react";
+
 const templateSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
   order: z.number().int().min(1, "Order must be at least 1"),
@@ -34,6 +38,15 @@ const templateSchema = z.object({
 type TemplateFormValues = z.infer<typeof templateSchema>;
 
 export default function ManageStageTemplatesPage() {
+  const router = useRouter();
+  const { isFullManager } = useAuth();
+
+  useEffect(() => {
+    if (!isFullManager) {
+      router.push("/dashboard/projects");
+    }
+  }, [isFullManager, router]);
+
   const { data: templatesResponse, isLoading, isError } = useGetStageTemplatesQuery();
   const createMutation = useCreateStageTemplateMutation();
   const updateMutation = useUpdateStageTemplateMutation();
@@ -135,6 +148,14 @@ export default function ManageStageTemplatesPage() {
       }
     });
   };
+
+  if (!isFullManager) {
+    return (
+      <div className="py-12 flex justify-center items-center">
+        <Loader className="w-8 h-8 text-primary" />
+      </div>
+    );
+  }
 
   // Sort templates by order to be safe, though backend should return sorted.
   const sortedTemplates = [...templates].sort((a, b) => a.order - b.order);

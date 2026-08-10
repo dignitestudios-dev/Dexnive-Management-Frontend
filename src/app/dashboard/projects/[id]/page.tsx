@@ -298,20 +298,22 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
             </span>
           </div>
 
-          {hasFinancialAccess && (project.price != null || project.loggedAmount != null) && (
+          {hasFinancialAccess && (project.price != null || project.loggedAmount != null || (stats as any)?.loggedAmount != null) && (
             <div className="flex items-center gap-6 border-l border-gray-200 pl-6">
-              {project.price != null && (
-                <div className="flex flex-col">
-                  <span className="text-gray-500 text-xs font-medium uppercase tracking-wider">Price</span>
-                  <span className="font-semibold text-emerald-700 text-sm">${project.price.toLocaleString()}</span>
-                </div>
-              )}
-              {project.loggedAmount != null && (
-                <div className="flex flex-col">
-                  <span className="text-gray-500 text-xs font-medium uppercase tracking-wider">Logged Cost</span>
-                  <span className="font-semibold text-emerald-700 text-sm">${project.loggedAmount.toLocaleString()}</span>
-                </div>
-              )}
+              <div className="flex flex-col">
+                <span className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Project Price</span>
+                <span className="font-bold text-emerald-700 text-base">
+                  {project.price != null ? `$${project.price.toLocaleString()}` : "--"}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Logged Cost</span>
+                <span className="font-bold text-emerald-700 text-base">
+                  {(project.loggedAmount ?? (stats as any)?.loggedAmount) != null
+                    ? `$${(project.loggedAmount ?? (stats as any)?.loggedAmount).toLocaleString()}`
+                    : "--"}
+                </span>
+              </div>
             </div>
           )}
           
