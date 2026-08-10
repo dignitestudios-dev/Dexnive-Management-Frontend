@@ -84,13 +84,11 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         password: "", // Don't pre-fill password
       });
     }
-  }, [user, reset]);
+  }, [user, roles, departments, reset]);
 
   const onSubmit = (data: UpdateUserFormValues) => {
     setError("");
     const { isActive, ...restData } = data;
-    // Map isActive to isDeleted if backend requires it, or just pass if backend ignores it.
-    // Assuming backend takes isDeleted instead of isActive
     const payload = { ...restData, isDeleted: !isActive, userId };
     
     // Remove empty password so we don't update it unless typed
@@ -101,7 +99,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     updateUserMutation.mutate(payload, {
       onSuccess: () => {
         toast.success("User updated successfully");
-        refetchUser(); // Refresh the user data
+        router.back();
       },
       onError: (err: any) => {
         setError(err?.response?.data?.message || "Failed to update user");
@@ -109,7 +107,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     });
   };
 
-  if (isLoadingUser) {
+  if (isLoadingUser || isLoadingRoles || isLoadingDepts) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh]">
         <Loader className="w-10 h-10 text-primary" />
@@ -122,9 +120,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     return (
       <div className="p-8 max-w-4xl mx-auto space-y-8 w-full text-center">
         <h1 className="text-2xl font-bold text-gray-900">User Not Found</h1>
-        <Link href="/dashboard/users">
-          <Button variant="outline" className="mt-4">Go Back to Team</Button>
-        </Link>
+        <Button variant="outline" onClick={() => router.back()} className="mt-4">Go Back</Button>
       </div>
     );
   }
@@ -132,11 +128,9 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-8 w-full">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/users">
-          <Button variant="outline" size="icon" className="rounded-full w-10 h-10 border-gray-200">
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
-          </Button>
-        </Link>
+        <Button variant="outline" size="icon" onClick={() => router.back()} className="rounded-full w-10 h-10 border-gray-200">
+          <ArrowLeft className="w-5 h-5 text-gray-600" />
+        </Button>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Edit User</h1>
           <p className="text-sm text-gray-500 mt-1">Update details and permissions for {user.name}.</p>
@@ -281,11 +275,9 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
           </div>
 
           <div className="flex justify-end pt-4 border-t border-gray-100">
-            <Link href="/dashboard/users">
-              <Button type="button" variant="outline" className="mr-4 rounded-xl px-6">
-                Cancel
-              </Button>
-            </Link>
+            <Button type="button" variant="outline" onClick={() => router.back()} className="mr-4 rounded-xl px-6">
+              Cancel
+            </Button>
             <Button
               type="submit"
               disabled={!isDirty || updateUserMutation.isPending}

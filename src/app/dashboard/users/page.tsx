@@ -82,13 +82,15 @@ const UserCardItem = React.memo(({ user, openDetails, handleToggleActive, handle
           <CardContent className="p-5 flex flex-col gap-3">
             <div className="flex justify-between items-start gap-2">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-gray-900 truncate text-lg" title={user.name}>{user.name}</h3>
-                  {typeof user.role === 'object' && user.role?.name && (
-                    <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200 uppercase tracking-wider">{user.role.name}</span>
-                  )}
+                <h3 className="font-semibold text-gray-900 truncate text-lg" title={user.name}>{user.name}</h3>
+                {typeof user.role === 'object' && user.role?.name && (
+                  <div className="mt-1">
+                    <span className="inline-block px-1.5 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200 uppercase tracking-wider">{user.role.name}</span>
+                  </div>
+                )}
+                <div className="mt-1">
+                  <UserEmail email={user.email} />
                 </div>
-                <UserEmail email={user.email} />
               </div>
               <div title={user.deactivateDate ? "Inactive" : "Active"} className="mt-1 flex-shrink-0">
                 {user.deactivateDate ? (
