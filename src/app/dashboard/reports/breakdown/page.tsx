@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { appNow } from "@/lib/datetime";
 import { Badge } from "@/components/ui/badge";
 import { Loader } from "@/components/ui/loader";
 import { cn } from "@/utils/cn";
@@ -48,7 +49,7 @@ const MONTH_NAMES = [
 ];
 
 export default function HoursBreakdownPage() {
-  const currentDate = new Date();
+  const currentDate = appNow();
   const currentMonthValue = currentDate.getMonth() + 1;
   const currentYearValue = currentDate.getFullYear();
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { format, startOfMonth, endOfMonth, subMonths, addMonths, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, addMonths, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth } from "date-fns";
+import { DATE_FORMATS, appNow, dayKey, formatDay, isToday } from "@/lib/datetime";
 import { 
   CalendarDays, 
   ChevronLeft, 
@@ -34,7 +35,7 @@ export default function MyTimesheetPage() {
     }
   }, [isFullManager, router]);
 
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(appNow);
   const [selectedDay, setSelectedDay] = useState<any>(null);
 
   const startDate = format(startOfMonth(currentMonth), "yyyy-MM-dd");
@@ -124,9 +125,9 @@ export default function MyTimesheetPage() {
 
             <div className="grid grid-cols-7 gap-3">
               {calendarDays.map((date, i) => {
-                const dateStr = format(date, "yyyy-MM-dd");
-                const dayData = days.find((d: any) => d.shiftDate.startsWith(dateStr));
-                
+                const dateStr = dayKey(date);
+                const dayData = days.find((d: any) => dayKey(d.shiftDate) === dateStr);
+
                 const isCurrentMonth = isSameMonth(date, currentMonth);
                 const isTodayDate = isToday(date);
                 
@@ -194,7 +195,7 @@ export default function MyTimesheetPage() {
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <CalendarDays className="w-5 h-5 text-gray-400" />
-              {selectedDay && format(new Date(selectedDay.shiftDate), "EEEE, MMMM d, yyyy")}
+              {selectedDay && formatDay(selectedDay.shiftDate, DATE_FORMATS.DAY_FULL)}
             </DialogTitle>
           </DialogHeader>
 

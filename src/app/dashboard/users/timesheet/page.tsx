@@ -2,7 +2,8 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { format, startOfMonth, endOfMonth, subMonths, addMonths, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, parse } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, addMonths, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth } from "date-fns";
+import { DATE_FORMATS, dayKey, formatDay, isToday, parseMonthParam } from "@/lib/datetime";
 import { 
   CalendarDays, 
   ChevronLeft, 
@@ -34,16 +35,9 @@ function TimesheetContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [currentMonth, setCurrentMonth] = useState(() => {
-    const monthParam = searchParams.get("month");
-    if (monthParam) {
-      try {
-        const parsed = parse(monthParam, "yyyy-MM", new Date());
-        if (!isNaN(parsed.getTime())) return parsed;
-      } catch (e) {}
-    }
-    return new Date();
-  });
+  const [currentMonth, setCurrentMonth] = useState(() =>
+    parseMonthParam(searchParams.get("month")),
+  );
   const [selectedDay, setSelectedDay] = useState<any>(null);
   const [selectedUserId, setSelectedUserId] = useState<string>(searchParams.get("user") || "");
   const [userComboOpen, setUserComboOpen] = useState(false);
@@ -253,8 +247,8 @@ function TimesheetContent() {
 
             <div className="grid grid-cols-7 gap-3">
               {calendarDays.map((date, i) => {
-                const dateStr = format(date, "yyyy-MM-dd");
-                const dayData = days.find((d: any) => d.shiftDate.startsWith(dateStr));
+                const dateStr = dayKey(date);
+                const dayData = days.find((d: any) => dayKey(d.shiftDate) === dateStr);
                 
                 const isCurrentMonth = isSameMonth(date, currentMonth);
                 const isTodayDate = isToday(date);
@@ -323,7 +317,7 @@ function TimesheetContent() {
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <CalendarDays className="w-5 h-5 text-gray-400" />
-              {selectedDay && format(new Date(selectedDay.shiftDate), "EEEE, MMMM d, yyyy")}
+              {selectedDay && formatDay(selectedDay.shiftDate, DATE_FORMATS.DAY_FULL)}
             </DialogTitle>
           </DialogHeader>
 

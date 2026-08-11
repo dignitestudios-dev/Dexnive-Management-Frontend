@@ -1,6 +1,7 @@
 import React from "react";
 import { Loader } from "@/components/ui/loader";
 import { Clock } from "lucide-react";
+import { formatInstant } from "@/lib/datetime";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { useGetStagesByProjectQuery, projectStagesKeys } from "@/features/projects/api/project-stages.queries";
 import { projectStagesService } from "@/features/projects/api/project-stages.service";
@@ -95,9 +96,7 @@ export function ProjectTimeline({ projectId }: { projectId: string }) {
                   </span>
                 </div>
                 <div className="text-xs text-gray-400 shrink-0 mt-1 md:mt-0">
-                  {new Date(log.changedAt).toLocaleString(undefined, {
-                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                  })}
+                  {formatInstant(log.changedAt, "MMM d, h:mm a")}
                 </div>
               </div>
               

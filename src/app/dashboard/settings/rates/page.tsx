@@ -2,6 +2,7 @@
 import { Loader } from "@/components/ui/loader";
 
 import { useState } from "react";
+import { appCurrentYear } from "@/lib/datetime";
 import { Edit, Check, Settings } from "lucide-react";
 import { useGetRatesQuery } from "@/features/rates/api/rates.queries";
 import { useUpdateRatesMutation } from "@/features/rates/api/rates.mutations";
@@ -21,7 +22,7 @@ const MONTHS = [
 ];
 
 export default function RatesPage() {
-  const currentYear = new Date().getFullYear();
+  const currentYear = appCurrentYear();
   const [year, setYear] = useState(currentYear.toString());
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
 

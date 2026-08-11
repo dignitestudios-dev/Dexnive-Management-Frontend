@@ -2,7 +2,7 @@
 import { Loader } from "@/components/ui/loader";
 
 import { useState } from "react";
-import { format } from "date-fns";
+import { dayKey, formatDay, formatDayRange, startOfMonthKey, todayKey } from "@/lib/datetime";
 import { useGetMyWorklogsQuery } from "@/features/worklogs/api/worklogs.queries";
 import { useGetProjectsQuery } from "@/features/projects/api/projects.queries";
 import { Search, FileText } from "lucide-react";
@@ -45,16 +45,11 @@ function MyWorklogsHistoryContent() {
   };
 
   const handleDraftRowClick = (shiftDate: string) => {
-    const date = format(new Date(shiftDate), "yyyy-MM-dd");
-    router.push(`/dashboard/daily-log?date=${date}`);
+    router.push(`/dashboard/daily-log?date=${dayKey(shiftDate)}`);
   };
 
-  const defaultStartDate = () => {
-    const d = new Date();
-    d.setDate(1);
-    return format(d, "yyyy-MM-dd");
-  };
-  const defaultEndDate = () => format(new Date(), "yyyy-MM-dd");
+  const defaultStartDate = () => startOfMonthKey(todayKey());
+  const defaultEndDate = () => todayKey();
 
   const [draftFilters, setDraftFilters] = useState({
     project: searchParams.get("project") || "all",
@@ -257,7 +252,7 @@ function MyWorklogsHistoryContent() {
           <span className="text-xs font-medium text-gray-500">Applied Filters:</span>
           
           <span className="inline-flex items-center px-2 py-1 rounded-md bg-white border border-gray-200 text-xs font-medium text-gray-700 shadow-sm">
-            Date: {format(new Date(appliedFilters.startDate), "MMM d, yyyy")} to {format(new Date(appliedFilters.endDate), "MMM d, yyyy")}
+            Date: {formatDayRange(appliedFilters.startDate, appliedFilters.endDate)}
           </span>
           
           {appliedFilters.project !== "all" && (
@@ -323,7 +318,7 @@ function MyWorklogsHistoryContent() {
                     onClick={() => log.status === "draft" && handleDraftRowClick(log.shiftDate)}
                   >
                     <td className="px-6 py-4 font-medium text-gray-900">
-                      {format(new Date(log.shiftDate), "MMM d, yyyy")}
+                      {formatDay(log.shiftDate)}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize ${

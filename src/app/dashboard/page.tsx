@@ -3,7 +3,15 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { RecentWorklogs } from "@/features/worklogs/components/recent-worklogs";
 import { useGetMyWorklogByDateQuery, useGetMyMissingEntriesQuery } from "@/features/worklogs/api/worklogs.queries";
-import { format, subDays, startOfMonth } from "date-fns";
+import {
+  DATE_FORMATS,
+  appCurrentHour,
+  dayKey,
+  formatDay,
+  startOfMonthKey,
+  subDaysFromKey,
+  todayKey,
+} from "@/lib/datetime";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { parseISO } from "date-fns";
 import { cn } from "@/utils/cn";
 import { 
   Users, 
@@ -32,14 +39,14 @@ import {
 export default function DashboardPage() {
   const router = useRouter();
   const { user, isFullManager } = useAuth();
-  const todayDateStr = format(new Date(), "yyyy-MM-dd");
+  const todayDateStr = todayKey();
   
   const { data: dailyWorklogData, isLoading } = useGetMyWorklogByDateQuery(todayDateStr);
   const myWorklog = dailyWorklogData?.data;
 
   const { data: missingEntriesData } = useGetMyMissingEntriesQuery({
-    startDate: format(startOfMonth(new Date()), "yyyy-MM-dd"),
-    endDate: format(subDays(new Date(), 1), "yyyy-MM-dd")
+    startDate: startOfMonthKey(todayKey()),
+    endDate: subDaysFromKey(todayKey(), 1)
   });
   const missingEntries = (missingEntriesData?.data || []).filter((e: any) => {
     const d = typeof e === "string" ? e : e?.shiftDate;
@@ -134,7 +141,7 @@ export default function DashboardPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-gray-900 mb-2">
             {(() => {
-              const hour = new Date().getHours();
+              const hour = appCurrentHour();
               if (hour < 12) return "Good Morning";
               if (hour < 17) return "Good Afternoon";
               if (hour < 21) return "Good Evening";
@@ -175,10 +182,10 @@ export default function DashboardPage() {
                       <SelectContent>
                         {missingEntries.map((entry: any) => {
                           const sdRaw = typeof entry === 'string' ? entry : entry.shiftDate;
-                          const d = sdRaw.split('T')[0];
+                          const d = dayKey(sdRaw);
                           return (
                             <SelectItem key={d} value={d} className="text-red-700 font-medium">
-                              {format(parseISO(d), "MMM d, yyyy")}
+                              {formatDay(d)}
                             </SelectItem>
                           );
                         })}
@@ -201,7 +208,7 @@ export default function DashboardPage() {
               <h3 className="font-semibold text-gray-900 flex items-center gap-2 text-lg">
                 <CalendarCheck className="w-5 h-5 text-primary-500" /> Today's Status
               </h3>
-              <span className="text-sm font-medium text-gray-500">{format(new Date(), "EEEE, MMMM d, yyyy")}</span>
+              <span className="text-sm font-medium text-gray-500">{formatDay(todayKey(), DATE_FORMATS.DAY_FULL)}</span>
             </div>
 
             {isLoading ? (

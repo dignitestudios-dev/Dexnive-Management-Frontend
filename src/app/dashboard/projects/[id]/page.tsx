@@ -30,11 +30,10 @@ import { Division } from "@/features/divisions/types";
 import { ProjectTimeline } from "@/features/projects/components/ProjectTimeline";
 
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { DATE_FORMATS, dayKey, formatDay, formatInstant } from "@/lib/datetime";
 
-const formatDisplayDate = (dateString?: string | null) => {
-  if (!dateString) return "--";
-  return new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-};
+const formatDisplayDate = (dateString?: string | null) =>
+  formatDay(dateString, DATE_FORMATS.DAY_SHORT, "--");
 
 export default function ProjectDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -81,8 +80,8 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
     if (stage) {
       setEditingStage(stage);
       setStageName(stage.name);
-      setPlannedStartDate(stage.plannedStartDate ? new Date(stage.plannedStartDate).toISOString().split('T')[0] : "");
-      setPlannedEndDate(stage.plannedEndDate ? new Date(stage.plannedEndDate).toISOString().split('T')[0] : "");
+      setPlannedStartDate(dayKey(stage.plannedStartDate));
+      setPlannedEndDate(dayKey(stage.plannedEndDate));
       setBudgetedHours(stage.budgetedHours ? String(stage.budgetedHours) : "");
     } else {
       setEditingStage(null);
@@ -578,7 +577,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                           <div className="text-sm text-gray-900">
                             <span className="font-medium">{log.changedBy?.name || "User"}</span> changed status from <span className="font-semibold uppercase text-xs text-amber-600">{log.previousStatus || "N/A"}</span> to <span className="font-semibold uppercase text-xs text-emerald-600">{log.newStatus}</span>
                           </div>
-                          <span className="text-xs text-gray-400">{new Date(log.changedAt).toLocaleString()}</span>
+                          <span className="text-xs text-gray-400">{formatInstant(log.changedAt)}</span>
                         </div>
                         {log.note && (
                           <p className="text-sm text-gray-600 mt-2 bg-gray-50 p-2 rounded border border-gray-100">

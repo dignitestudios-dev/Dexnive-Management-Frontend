@@ -5,7 +5,14 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format, parseISO, startOfMonth, subDays } from "date-fns";
+import {
+  DATE_FORMATS,
+  dayKey,
+  formatDay,
+  startOfMonthKey,
+  subDaysFromKey,
+  todayKey,
+} from "@/lib/datetime";
 import { 
   Plus, 
   Trash2, 
@@ -226,8 +233,8 @@ function BackendTaskFields({ control, entryIndex }: { control: any; entryIndex: 
 }
 export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   const router = useRouter();
-  const defaultDateOnly = defaultDate ? defaultDate.split('T')[0] : undefined;
-  const today = defaultDateOnly || format(new Date(), "yyyy-MM-dd");
+  const defaultDateOnly = defaultDate ? dayKey(defaultDate) : undefined;
+  const today = defaultDateOnly || todayKey();
   const { user } = useAuth();
   const isBackendUser = user?.department && typeof user.department === "object" && user.department.name.toLowerCase() === "backend";
   
@@ -236,8 +243,8 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   const { data: reasonsData } = useGetNonBillableReasonsQuery();
 
   const { data: missingEntriesData } = useGetMyMissingEntriesQuery({
-    startDate: format(startOfMonth(new Date()), "yyyy-MM-dd"),
-    endDate: format(subDays(new Date(), 1), "yyyy-MM-dd")
+    startDate: startOfMonthKey(todayKey()),
+    endDate: subDaysFromKey(todayKey(), 1)
   });
 
   const missingEntries = (missingEntriesData?.data || []).filter((e: any) => {
@@ -249,14 +256,14 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
     setSubmittingAction(null);
     const remainingMissing = missingEntries.filter((entry: any) => {
       const sd = typeof entry === 'string' ? entry : entry.shiftDate;
-      return sd.split('T')[0] !== today;
+      return dayKey(sd) !== today;
     });
 
     if (defaultDate && remainingMissing.length > 0) {
       const nextDate = typeof remainingMissing[0] === 'string' ? remainingMissing[0] : remainingMissing[0].shiftDate;
       if (nextDate) {
-        const nextDateClean = nextDate.split('T')[0];
-        toast.success(`Worklog submitted! Redirecting to next missing log: ${format(parseISO(nextDateClean), "MMM d")}`);
+        const nextDateClean = dayKey(nextDate);
+        toast.success(`Worklog submitted! Redirecting to next missing log: ${formatDay(nextDateClean, DATE_FORMATS.DAY_COMPACT)}`);
         router.push(`/dashboard/daily-log?date=${nextDateClean}`);
       } else {
         toast.success("Worklog submitted and locked!");
@@ -550,7 +557,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
           </h2>
           <p className="text-gray-500 mt-1 flex items-center gap-2 text-sm">
             <Clock className="w-4 h-4 text-primary-600" />
-            {format(parseISO(today), "EEEE, MMMM d, yyyy")}
+            {formatDay(today, DATE_FORMATS.DAY_FULL)}
           </p>
         </div>
         <div>
@@ -645,10 +652,10 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                       <SelectContent>
                         {missingEntries.map((entry: any) => {
                           const sdRaw = typeof entry === 'string' ? entry : entry.shiftDate;
-                          const d = sdRaw.split('T')[0];
+                          const d = dayKey(sdRaw);
                           return (
                             <SelectItem key={d} value={d} className="font-medium">
-                              {format(parseISO(d), "MMM d, yyyy")}
+                              {formatDay(d)}
                             </SelectItem>
                           );
                         })}
@@ -839,8 +846,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                           <Select 
                             value={today} 
                             onValueChange={(val) => {
-                              const todayStr = format(new Date(), "yyyy-MM-dd");
-                              if (val === todayStr) {
+                              if (val === todayKey()) {
                                 router.push("/dashboard");
                               } else {
                                 router.push(`/dashboard/daily-log?date=${val}`);
@@ -851,15 +857,15 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                               <SelectValue placeholder="Select date" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value={format(new Date(), "yyyy-MM-dd")}>
-                                Today ({format(new Date(), "MMM d")})
+                              <SelectItem value={todayKey()}>
+                                Today ({formatDay(todayKey(), DATE_FORMATS.DAY_COMPACT)})
                               </SelectItem>
                               {missingEntries.map((entry: any) => {
                                 const sd = typeof entry === 'string' ? entry : entry.shiftDate;
-                                const d = sd.split('T')[0];
+                                const d = dayKey(sd);
                                 return (
                                   <SelectItem key={d} value={d} className="text-amber-700 font-medium">
-                                    Missing: {format(parseISO(d), "MMM d, yyyy")}
+                                    Missing: {formatDay(d)}
                                   </SelectItem>
                                 );
                               })}

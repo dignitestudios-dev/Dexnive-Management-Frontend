@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useState } from "react";
+import { DATE_FORMATS, formatInstant } from "@/lib/datetime";
 import { Plus, Pencil, Trash2, Search, X, Layers, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -157,7 +158,7 @@ export default function DivisionsPage() {
                         <div className="flex-1">
                           <h3 className="font-semibold text-gray-900 truncate text-base" title={div.name}>{div.name}</h3>
                           <p className="text-xs text-gray-500 truncate mt-1">
-                            Created {div.createdAt ? new Date(div.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }) : "N/A"}
+                            Created {formatInstant(div.createdAt, DATE_FORMATS.DAY_SHORT, "N/A")}
                           </p>
                         </div>
                       </div>

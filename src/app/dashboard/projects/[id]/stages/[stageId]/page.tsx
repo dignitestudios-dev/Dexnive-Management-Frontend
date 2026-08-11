@@ -7,11 +7,10 @@ import { ArrowLeft, Calendar, Clock, FileText, User } from "lucide-react";
 import { useGetStageByIdQuery, useGetStageEntriesQuery } from "@/features/projects/api/project-stages.queries";
 import { Loader } from "@/components/ui/loader";
 import { Button } from "@/components/ui/button";
+import { DATE_FORMATS, formatDay, formatInstant } from "@/lib/datetime";
 
-const formatDisplayDate = (dateString?: string | null) => {
-  if (!dateString) return "--";
-  return new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-};
+const formatDisplayDate = (dateString?: string | null) =>
+  formatDay(dateString, DATE_FORMATS.DAY_SHORT, "--");
 
 export default function StageDetailsPage({ params }: { params: Promise<{ id: string, stageId: string }> }) {
   const resolvedParams = use(params);
@@ -163,7 +162,7 @@ export default function StageDetailsPage({ params }: { params: Promise<{ id: str
                         <div className="text-sm text-gray-900">
                           <span className="font-medium">{log.changedBy?.name || "User"}</span> changed status to <span className="font-semibold uppercase text-xs">{log.newStatus}</span>
                         </div>
-                        <span className="text-xs text-gray-400">{new Date(log.changedAt).toLocaleString()}</span>
+                        <span className="text-xs text-gray-400">{formatInstant(log.changedAt)}</span>
                       </div>
                       {log.note && (
                         <p className="text-sm text-gray-600 mt-2 bg-gray-50 p-2 rounded border border-gray-100">

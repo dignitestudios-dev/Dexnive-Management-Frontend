@@ -1,7 +1,7 @@
 "use client";
 
 import { useGetMyWorklogsQuery } from "../api/worklogs.queries";
-import { format } from "date-fns";
+import { formatDay } from "@/lib/datetime";
 import { Card } from "@/components/ui/card";
 import { Briefcase, CalendarDays, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -60,7 +60,7 @@ export function RecentWorklogs() {
             <div key={log._id} className="p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-gray-200 transition-all flex items-center justify-between group">
               <div>
                 <p className="text-sm font-semibold text-gray-900 mb-0.5">
-                  {format(new Date(log.shiftDate), "MMM dd, yyyy")}
+                  {formatDay(log.shiftDate, "MMM dd, yyyy")}
                 </p>
                 <div className="flex items-center gap-3 mt-2">
                   <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] px-2 py-0">

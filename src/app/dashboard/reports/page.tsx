@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { appNow } from "@/lib/datetime";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader } from "@/components/ui/loader";
@@ -49,7 +50,7 @@ const MONTH_NAMES = [
 ];
 
 export default function ReportsPage() {
-  const currentDate = new Date();
+  const currentDate = appNow();
   const currentMonthValue = currentDate.getMonth() + 1;
   const currentYearValue = currentDate.getFullYear();
 

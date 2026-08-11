@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { DATE_FORMATS, formatDay, todayKey } from "@/lib/datetime";
 import { useInfiniteUsersQuery } from "@/features/users/api/users.queries";
 import { useGetRolesQuery, useGetDepartmentsQuery } from "@/features/users/api/options.queries";
 import { useUpdateUserMutation } from "@/features/users/api/users.mutations";
@@ -258,7 +259,7 @@ function UsersPageContent() {
   const updateUserMutation = useUpdateUserMutation();
 
   const handleToggleActive = useCallback((user: any) => {
-    setDeactivateDateInput(user.deactivateDate ? "" : new Date().toISOString().split("T")[0]);
+    setDeactivateDateInput(user.deactivateDate ? "" : todayKey());
     setConfirmDialog({ isOpen: true, type: "toggleActive", user });
   }, []);
 
@@ -561,7 +562,7 @@ function UsersPageContent() {
                   <div className="col-span-2">
                     <p className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Joining Date</p>
                     <p className="text-base text-gray-900">
-                      {selectedUser.joiningDate ? new Date(selectedUser.joiningDate).toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' }) : "Not specified"}
+                      {formatDay(selectedUser.joiningDate, DATE_FORMATS.DAY_LONG, "Not specified")}
                     </p>
                   </div>
                   {selectedUser.deactivateDate && (
@@ -573,7 +574,7 @@ function UsersPageContent() {
                       <div className="text-right">
                         <p className="text-xs font-semibold text-red-700 uppercase tracking-wider">Deactivation Date</p>
                         <p className="text-sm font-bold text-red-900">
-                          {new Date(selectedUser.deactivateDate).toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' })}
+                          {formatDay(selectedUser.deactivateDate, DATE_FORMATS.DAY_LONG)}
                         </p>
                       </div>
                     </div>

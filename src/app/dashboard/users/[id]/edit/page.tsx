@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
+import { dayKey, formatInstant, todayKey } from "@/lib/datetime";
 import { useRouter } from "next-nprogress-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,7 +78,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       role: "",
       department: "",
       isActive: true,
-      deactivateDate: new Date().toISOString().split("T")[0],
+      deactivateDate: todayKey(),
     }
   });
 
@@ -86,9 +87,9 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       // Handle either string IDs or populated objects safely
       const roleId = typeof user.role === "string" ? user.role : (user.role?._id || (user.role as any)?.id || "");
       const deptId = typeof user.department === "string" ? user.department : (user.department?._id || (user.department as any)?.id || "");
-      const formattedDeactivateDate = user.deactivateDate 
-        ? user.deactivateDate.split("T")[0] 
-        : new Date().toISOString().split("T")[0];
+      const formattedDeactivateDate = user.deactivateDate
+        ? dayKey(user.deactivateDate)
+        : todayKey();
 
       reset({
         name: user.name || "",
@@ -156,7 +157,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
           <p className="text-sm text-gray-500 mt-1">Update details and permissions for {user.name}.</p>
           {user.updatedAt && (
             <p className="text-xs text-gray-400 mt-1">
-              Last updated: {new Date(user.updatedAt).toLocaleString()}
+              Last updated: {formatInstant(user.updatedAt)}
             </p>
           )}
         </div>
@@ -289,7 +290,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                           onCheckedChange={(checked) => {
                             field.onChange(checked);
                             if (!checked && !watch("deactivateDate")) {
-                              setValue("deactivateDate", new Date().toISOString().split("T")[0]);
+                              setValue("deactivateDate", todayKey());
                             }
                           }}
                         />

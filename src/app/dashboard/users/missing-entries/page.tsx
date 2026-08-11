@@ -2,7 +2,7 @@
 import { Loader } from "@/components/ui/loader";
 
 import { useState } from "react";
-import { format } from "date-fns";
+import { formatDay, formatDayRange, startOfMonthKey, todayKey } from "@/lib/datetime";
 import { useGetAllMissingEntriesCountQuery } from "@/features/worklogs/api/worklogs.queries";
 import { useGetDepartmentsQuery } from "@/features/departments/api/departments.queries";
 import { Search, AlertCircle, Building } from "lucide-react";
@@ -22,12 +22,8 @@ function MissingEntriesPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const defaultStartDate = () => {
-    const d = new Date();
-    d.setDate(1);
-    return format(d, "yyyy-MM-dd");
-  };
-  const defaultEndDate = () => format(new Date(), "yyyy-MM-dd");
+  const defaultStartDate = () => startOfMonthKey(todayKey());
+  const defaultEndDate = () => todayKey();
 
   const [draftFilters, setDraftFilters] = useState({
     department: searchParams.get("department") || "all_departments",
@@ -239,7 +235,7 @@ function MissingEntriesPageContent() {
           <span className="text-xs font-medium text-gray-500">Applied Filters:</span>
           
           <span className="inline-flex items-center px-2 py-1 rounded-md bg-white border border-gray-200 text-xs font-medium text-gray-700 shadow-sm">
-            Date: {format(new Date(appliedFilters.startDate), "MMM d, yyyy")} to {format(new Date(appliedFilters.endDate), "MMM d, yyyy")}
+            Date: {formatDayRange(appliedFilters.startDate, appliedFilters.endDate)}
           </span>
           
           {appliedFilters.department !== "all_departments" && (
@@ -356,8 +352,8 @@ function MissingEntriesPageContent() {
                 <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-2">
                   {selectedEntry.missingDates?.map((d: string, idx: number) => (
                     <div key={idx} className="px-3 py-1.5 bg-white border border-gray-200 rounded-md text-sm text-gray-700 shadow-sm flex items-center justify-between">
-                      <span className="font-medium">{format(new Date(d), "MMM d, yyyy")}</span>
-                      <span className="text-gray-400">{format(new Date(d), "EEE")}</span>
+                      <span className="font-medium">{formatDay(d)}</span>
+                      <span className="text-gray-400">{formatDay(d, "EEE")}</span>
                     </div>
                   ))}
                 </div>

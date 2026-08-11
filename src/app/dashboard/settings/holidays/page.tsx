@@ -2,7 +2,7 @@
 import { Loader } from "@/components/ui/loader";
 
 import { useState } from "react";
-import { format } from "date-fns";
+import { DATE_FORMATS, appCurrentYear, dayKey, formatDay } from "@/lib/datetime";
 import { Plus, Trash2, Calendar as CalendarIcon } from "lucide-react";
 import { useGetHolidaysQuery } from "@/features/holidays/api/holidays.queries";
 import { useCreateHolidayMutation, useDeleteHolidayMutation } from "@/features/holidays/api/holidays.mutations";
@@ -20,7 +20,7 @@ import { Suspense } from "react";
 type ModeType = "single" | "multiple" | "range";
 
 function HolidaysPageContent() {
-  const currentYear = new Date().getFullYear();
+  const currentYear = appCurrentYear();
   const searchParams = useSearchParams();
   const [year, setYear] = useState(currentYear.toString());
   const [isDialogOpen, setIsDialogOpen] = useState(searchParams.get("add") === "true");
@@ -111,7 +111,7 @@ function HolidaysPageContent() {
                   <div className="pt-3 border-t border-gray-100 mt-3 flex items-center gap-2 text-xs text-gray-600">
                     <CalendarIcon className="w-3.5 h-3.5 text-primary-500" />
                     <span className="font-medium text-gray-700">
-                      {format(new Date(holiday.shiftDate), "EEE, MMM d, yyyy")}
+                      {formatDay(holiday.shiftDate, DATE_FORMATS.DAY_WITH_WEEKDAY)}
                     </span>
                   </div>
                 </div>
@@ -172,20 +172,20 @@ function CreateHolidayDialog({ open, onOpenChange }: { open: boolean, onOpenChan
         setError("Please select a date");
         return;
       }
-      payload.shiftDate = format(date, "yyyy-MM-dd");
+      payload.shiftDate = dayKey(date);
     } else if (mode === "multiple") {
       if (!dates.length) {
         setError("Please select dates");
         return;
       }
-      payload.dates = dates.map(d => format(d, "yyyy-MM-dd"));
+      payload.dates = dates.map(d => dayKey(d));
     } else if (mode === "range") {
       if (!range?.from || !range?.to) {
         setError("Please select a date range");
         return;
       }
-      payload.startDate = format(range.from, "yyyy-MM-dd");
-      payload.endDate = format(range.to, "yyyy-MM-dd");
+      payload.startDate = dayKey(range.from);
+      payload.endDate = dayKey(range.to);
     }
     
     setError(null);
@@ -281,7 +281,7 @@ function CreateHolidayDialog({ open, onOpenChange }: { open: boolean, onOpenChan
               {mode === "single" && (
                 date ? (
                   <p className="text-gray-700">
-                    Selected Date: <span className="font-semibold text-primary-700">{format(date, "PPP")}</span>
+                    Selected Date: <span className="font-semibold text-primary-700">{formatDay(date, "PPP")}</span>
                   </p>
                 ) : (
                   <p className="text-amber-600 font-medium">No date selected yet</p>
@@ -295,7 +295,7 @@ function CreateHolidayDialog({ open, onOpenChange }: { open: boolean, onOpenChan
                     <div className="flex flex-wrap gap-1 justify-center mt-2">
                       {dates.map(d => (
                         <span key={d.toISOString()} className="px-2 py-1 bg-primary-50 text-primary-700 border border-primary-100 rounded text-xs font-medium">
-                          {format(d, "MMM d, yyyy")}
+                          {formatDay(d)}
                         </span>
                       ))}
                     </div>
@@ -310,7 +310,7 @@ function CreateHolidayDialog({ open, onOpenChange }: { open: boolean, onOpenChan
                   <p className="text-gray-700">
                     Selected Range: 
                     <span className="font-semibold text-primary-700 ml-1">
-                      {range.from ? format(range.from, "PPP") : "..."} — {range.to ? format(range.to, "PPP") : "..."}
+                      {range.from ? formatDay(range.from, "PPP") : "..."} — {range.to ? formatDay(range.to, "PPP") : "..."}
                     </span>
                   </p>
                 ) : (
