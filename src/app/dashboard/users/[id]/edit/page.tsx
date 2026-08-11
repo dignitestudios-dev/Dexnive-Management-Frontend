@@ -29,6 +29,15 @@ const updateUserSchema = z.object({
   role: z.string().min(1, "Role is required"),
   department: z.string().min(1, "Department is required"),
   isActive: z.boolean(),
+  deactivateDate: z.string().optional(),
+}).refine((data) => {
+  if (!data.isActive && (!data.deactivateDate || data.deactivateDate.trim() === "")) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Deactivation date is required when deactivating a user",
+  path: ["deactivateDate"],
 });
 
 type UpdateUserFormValues = z.infer<typeof updateUserSchema>;
@@ -56,6 +65,8 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     control,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<UpdateUserFormValues>({
     resolver: zodResolver(updateUserSchema),
@@ -66,6 +77,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       role: "",
       department: "",
       isActive: true,
+      deactivateDate: new Date().toISOString().split("T")[0],
     }
   });
 
@@ -74,13 +86,17 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       // Handle either string IDs or populated objects safely
       const roleId = typeof user.role === "string" ? user.role : (user.role?._id || (user.role as any)?.id || "");
       const deptId = typeof user.department === "string" ? user.department : (user.department?._id || (user.department as any)?.id || "");
+      const formattedDeactivateDate = user.deactivateDate 
+        ? user.deactivateDate.split("T")[0] 
+        : new Date().toISOString().split("T")[0];
 
       reset({
         name: user.name || "",
         employeeCode: user.employeeCode || "",
         role: roleId,
         department: deptId,
-        isActive: !user.isDeleted,
+        isActive: !user.deactivateDate,
+        deactivateDate: formattedDeactivateDate,
         password: "", // Don't pre-fill password
       });
     }
@@ -88,8 +104,12 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
 
   const onSubmit = (data: UpdateUserFormValues) => {
     setError("");
-    const { isActive, ...restData } = data;
-    const payload = { ...restData, isDeleted: !isActive, userId };
+    const { isActive, deactivateDate, ...restData } = data;
+    const payload: any = {
+      ...restData,
+      userId,
+      deactivateDate: isActive ? null : deactivateDate,
+    };
     
     // Remove empty password so we don't update it unless typed
     if (!payload.password) {
@@ -102,7 +122,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         router.back();
       },
       onError: (err: any) => {
-        setError(err?.response?.data?.message || "Failed to update user");
+        setError(err?.response?.data?.message || err?.message || "Failed to update user");
       },
     });
   };
@@ -253,21 +273,50 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                 control={control}
                 name="isActive"
                 render={({ field }) => (
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50/50">
-                    <div>
-                      <p className="font-medium text-gray-900">Account Status</p>
-                      <p className="text-sm text-gray-500">User account is currently {field.value ? "active" : "inactive"}.</p>
+                  <div className="flex flex-col gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50/50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">Account Status</p>
+                        <p className="text-sm text-gray-500">User account is currently {field.value ? "active" : "inactive"}.</p>
+                      </div>
+                      <div className={`flex items-center gap-3 px-3 py-2 rounded-md border ${field.value ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'}`}>
+                        <Label htmlFor="isActive" className={`cursor-pointer text-sm font-medium ${field.value ? 'text-green-700' : 'text-gray-700'}`}>
+                          {field.value ? "Active" : "Inactive"}
+                        </Label>
+                        <Switch
+                          id="isActive"
+                          checked={field.value}
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked);
+                            if (!checked && !watch("deactivateDate")) {
+                              setValue("deactivateDate", new Date().toISOString().split("T")[0]);
+                            }
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className={`flex items-center gap-3 px-3 py-2 rounded-md border ${field.value ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'}`}>
-                      <Label htmlFor="isActive" className={`cursor-pointer text-sm font-medium ${field.value ? 'text-green-700' : 'text-gray-700'}`}>
-                        {field.value ? "Active" : "Inactive"}
-                      </Label>
-                      <Switch
-                        id="isActive"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </div>
+
+                    {!field.value && (
+                      <div className="pt-3 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+                        <div>
+                          <Label htmlFor="deactivateDate" className="text-sm font-medium text-gray-900">
+                            Deactivation Date <span className="text-red-500">*</span>
+                          </Label>
+                          <p className="text-xs text-gray-500">Select the date on which this user account becomes inactive.</p>
+                        </div>
+                        <div className="w-full sm:w-64">
+                          <Input
+                            id="deactivateDate"
+                            type="date"
+                            {...register("deactivateDate")}
+                            className={errors.deactivateDate ? "border-red-500 bg-white" : "bg-white"}
+                          />
+                          {errors.deactivateDate && (
+                            <p className="text-xs text-red-500 mt-1">{errors.deactivateDate.message}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               />

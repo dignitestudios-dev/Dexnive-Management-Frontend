@@ -247,6 +247,7 @@ function UsersPageContent() {
   // Dialog State
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [deactivateDateInput, setDeactivateDateInput] = useState<string>("");
 
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -257,6 +258,7 @@ function UsersPageContent() {
   const updateUserMutation = useUpdateUserMutation();
 
   const handleToggleActive = useCallback((user: any) => {
+    setDeactivateDateInput(user.deactivateDate ? "" : new Date().toISOString().split("T")[0]);
     setConfirmDialog({ isOpen: true, type: "toggleActive", user });
   }, []);
 
@@ -275,9 +277,14 @@ function UsersPageContent() {
         onSuccess: () => setConfirmDialog(prev => ({ ...prev, isOpen: false }))
       });
     } else {
+      const isDeactivating = !confirmDialog.user.deactivateDate;
+      if (isDeactivating && !deactivateDateInput) {
+        return;
+      }
+
       updateUserMutation.mutate({
         userId: confirmDialog.user._id,
-        deactivateDate: confirmDialog.user.deactivateDate ? null : new Date().toISOString()
+        deactivateDate: isDeactivating ? deactivateDateInput : null
       }, {
         onSuccess: () => setConfirmDialog(prev => ({ ...prev, isOpen: false }))
       });
@@ -557,6 +564,20 @@ function UsersPageContent() {
                       {selectedUser.joiningDate ? new Date(selectedUser.joiningDate).toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' }) : "Not specified"}
                     </p>
                   </div>
+                  {selectedUser.deactivateDate && (
+                    <div className="col-span-2 p-3.5 bg-red-50 border border-red-200/80 rounded-lg flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-semibold text-red-700 uppercase tracking-wider">Account Status</p>
+                        <p className="text-sm text-red-900 font-medium">Deactivated</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-semibold text-red-700 uppercase tracking-wider">Deactivation Date</p>
+                        <p className="text-sm font-bold text-red-900">
+                          {new Date(selectedUser.deactivateDate).toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -586,17 +607,34 @@ function UsersPageContent() {
               </DialogTitle>
               <DialogDescription>
                 {confirmDialog.user?.deactivateDate 
-                    ? "Are you sure you want to reactivate this user? They will regain access to the platform." 
-                    : "Are you sure you want to deactivate this user? They will temporarily lose access to the platform."}
+                    ? `Are you sure you want to reactivate ${confirmDialog.user?.name || "this user"}? They will regain access to the platform.` 
+                    : `Specify the date on which ${confirmDialog.user?.name || "this user"} will be deactivated.`}
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter>
+
+            {!confirmDialog.user?.deactivateDate && (
+              <div className="py-2 space-y-2">
+                <label htmlFor="dialogDeactivateDate" className="text-sm font-medium text-gray-900 block">
+                  Deactivation Date <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="dialogDeactivateDate"
+                  type="date"
+                  value={deactivateDateInput}
+                  onChange={(e) => setDeactivateDateInput(e.target.value)}
+                  className="w-full bg-white"
+                />
+                <p className="text-xs text-gray-500">Required. The account will become inactive starting on this date.</p>
+              </div>
+            )}
+
+            <DialogFooter className="mt-2">
               <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}>
                 Cancel
               </Button>
               <Button 
                 onClick={confirmAction}
-                disabled={updateUserMutation.isPending}
+                disabled={updateUserMutation.isPending || (!confirmDialog.user?.deactivateDate && !deactivateDateInput)}
               >
                 {updateUserMutation.isPending ? <Loader className="w-4 h-4 mr-2 text-current" /> : "Confirm"}
               </Button>
