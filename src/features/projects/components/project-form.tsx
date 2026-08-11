@@ -69,12 +69,12 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
       return;
     }
 
-    const { activateFirstStage, code, ...restFormData } = formData;
+    const { activateFirstStage, code, price, ...restFormData } = formData;
     
     const payload: any = {
       ...restFormData,
-      budgetedHours: formData.budgetedHours ? Number(formData.budgetedHours) : undefined,
-      ...(hasFinancialAccess && formData.price !== "" ? { price: Number(formData.price) } : {}),
+      budgetedHours: formData.budgetedHours ? Number(formData.budgetedHours) : 0,
+      price: hasFinancialAccess && formData.price !== "" ? Number(formData.price) : 0,
       division: (formData.division && formData.division !== "none") ? formData.division : undefined,
       estimatedStartDate: formData.estimatedStartDate || undefined,
       estimatedEndDate: formData.estimatedEndDate || undefined,
@@ -222,9 +222,11 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
               <label className="text-sm font-medium text-gray-700 mb-1 block">Project Price ($)</label>
               <Input 
                 type="number"
+                min="0"
+                step="any"
                 value={formData.price} 
                 onChange={(e) => setFormData(p => ({...p, price: e.target.value}))} 
-                placeholder="e.g. 5000"
+                placeholder="0"
                 autoComplete="off"
                 className="h-9 bg-white"
               />
