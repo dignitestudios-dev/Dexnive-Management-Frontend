@@ -36,14 +36,14 @@ export function Sidebar() {
   // Main sidebar expanded by default
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Sub-group option dropdowns inside the sidebar collapsed by default
+  // Sub-group option dropdowns inside the sidebar expanded by default
   const [groupsOpen, setGroupsOpen] = useState({
-    team: false,
-    org: false,
-    projects: false,
-    reports: false,
-    ops: false,
-    settings: false,
+    team: true,
+    org: true,
+    projects: true,
+    reports: true,
+    ops: true,
+    settings: true,
   });
 
   // Load collapse state from localStorage on mount
