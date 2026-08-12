@@ -67,6 +67,16 @@ export default function ReportsPage() {
 
   const overallHoursTotal = result.reduce((sum, row) => sum + (row.total || 0), 0);
 
+  const overallHoursBillableTotal = result.reduce((sum, row) => {
+    const rowBillable = Object.values(row.hours || {}).reduce((acc: number, curr: any) => acc + (curr.billable || 0), 0);
+    return sum + rowBillable;
+  }, 0);
+
+  const overallHoursNonBillableTotal = result.reduce((sum, row) => {
+    const rowNonBillable = Object.values(row.hours || {}).reduce((acc: number, curr: any) => acc + (curr.nonBillable || 0), 0);
+    return sum + rowNonBillable;
+  }, 0);
+
   const colAmountsTotals = departmentNames.reduce((acc, dept) => {
     acc[dept] = result.reduce((sum, row) => sum + (row.amounts?.[dept]?.total || 0), 0);
     return acc;
@@ -373,49 +383,49 @@ export default function ReportsPage() {
       {/* Reports Dashboard Metrics & Table */}
       {!isLoading && !error && (
         <div className="space-y-6">
-          {/* Sleek Metrics Ribbon with Color-Coded Accent Icons */}
+          {/* Sleek Metrics Ribbon displaying the 6 exact Backend Metrics */}
           <div className="bg-white border border-gray-300 rounded-2xl shadow-sm overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             <RibbonMetric
-              title="WORKED HOURS"
-              value={(metrics?.totalWorkedHours ?? metrics?.totalHours ?? overallHoursTotal).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              title="TOTAL HOURS"
+              value={(metrics?.totalHours ?? metrics?.totalWorkedHours ?? overallHoursTotal).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
               subtext={subtext}
               icon={<Clock className="w-3.5 h-3.5" />}
               colorTheme="purple"
             />
             <RibbonMetric
-              title="ABSENT HOURS"
-              value={(metrics?.totalAbsentHours ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-              subtext={subtext}
-              icon={<UserX className="w-3.5 h-3.5" />}
-              colorTheme="red"
-            />
-            <RibbonMetric
-              title="BILLING AMOUNT"
-              value={(metrics?.totalBillingAmount ?? overallAmountsTotal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              subtext={subtext}
-              icon={<DollarSign className="w-3.5 h-3.5" />}
-              colorTheme="emerald"
-            />
-            <RibbonMetric
               title="BILLABLE HOURS"
-              value={(metrics?.billableHours ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              value={(metrics?.billableHours ?? overallHoursBillableTotal ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
               subtext={subtext}
-              icon={<DollarSign className="w-3.5 h-3.5" />}
+              icon={<Clock className="w-3.5 h-3.5" />}
               colorTheme="emerald"
             />
             <RibbonMetric
               title="NON-BILLABLE HOURS"
-              value={(metrics?.nonBillableHours ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              value={(metrics?.nonBillableHours ?? overallHoursNonBillableTotal ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
               subtext={subtext}
               icon={<Briefcase className="w-3.5 h-3.5" />}
               colorTheme="amber"
             />
             <RibbonMetric
+              title="ABSENT HOURS"
+              value={(metrics?.absentHours ?? metrics?.totalAbsentHours ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              subtext={subtext}
+              icon={<UserX className="w-3.5 h-3.5" />}
+              colorTheme="red"
+            />
+            <RibbonMetric
               title="WORKING DAYS"
-              value={metrics?.totalWorkingDays ?? "0"}
+              value={(metrics?.totalWorkingDays ?? 0).toLocaleString()}
               subtext={subtext}
               icon={<Calendar className="w-3.5 h-3.5" />}
               colorTheme="blue"
+            />
+            <RibbonMetric
+              title="ACTIVE EMPLOYEES"
+              value={(metrics?.activeEmployeesCount ?? 0).toLocaleString()}
+              subtext={subtext}
+              icon={<Users className="w-3.5 h-3.5" />}
+              colorTheme="indigo"
             />
           </div>
 

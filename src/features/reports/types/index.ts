@@ -23,6 +23,7 @@ export interface ProjectReportRow {
 export interface ReportMetrics {
   totalHours?: number;
   totalWorkedHours?: number;
+  absentHours?: number;
   totalAbsentHours?: number;
   totalBillingAmount?: number;
   billableHours?: number;
