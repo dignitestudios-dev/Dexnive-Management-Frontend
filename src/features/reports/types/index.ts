@@ -21,21 +21,28 @@ export interface ProjectReportRow {
 }
 
 export interface ReportMetrics {
-  totalHours: number;
-  billableHours: number;
-  nonBillableHours: number;
-  totalWorkingDays: number;
-  activeEmployeesCount: number;
+  totalHours?: number;
+  totalWorkedHours?: number;
+  totalAbsentHours?: number;
+  totalBillingAmount?: number;
+  billableHours?: number;
+  nonBillableHours?: number;
+  totalWorkingDays?: number;
+  activeEmployeesCount?: number;
 }
 
 export interface ReportsResponse {
   result: ProjectReportRow[];
   metrics: ReportMetrics;
-  month: number;
-  year: number;
+  startDate?: string;
+  endDate?: string;
+  month?: number;
+  year?: number;
 }
 
 export interface GetReportsParams {
+  startDate?: string;
+  endDate?: string;
   month?: number;
   year?: number;
 }

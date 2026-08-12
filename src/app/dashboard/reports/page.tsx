@@ -2,17 +2,14 @@
 
 import { useState } from "react";
 import { appNow } from "@/lib/datetime";
+import { format, startOfMonth } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader } from "@/components/ui/loader";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/cn";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
@@ -26,6 +23,7 @@ import {
   Briefcase,
   Calendar,
   Users,
+  UserX,
   Filter,
   AlertCircle,
   FileBarChart,
@@ -34,39 +32,20 @@ import {
 import { useGetProjectHoursBreakdownQuery } from "@/features/reports/api/reports.queries";
 import XLSX from "xlsx-js-style";
 
-const MONTH_NAMES = [
-  { value: 1, label: "Jan", fullName: "January" },
-  { value: 2, label: "Feb", fullName: "February" },
-  { value: 3, label: "Mar", fullName: "March" },
-  { value: 4, label: "Apr", fullName: "April" },
-  { value: 5, label: "May", fullName: "May" },
-  { value: 6, label: "Jun", fullName: "June" },
-  { value: 7, label: "Jul", fullName: "July" },
-  { value: 8, label: "Aug", fullName: "August" },
-  { value: 9, label: "Sep", fullName: "September" },
-  { value: 10, label: "Oct", fullName: "October" },
-  { value: 11, label: "Nov", fullName: "November" },
-  { value: 12, label: "Dec", fullName: "December" },
-];
-
 export default function ReportsPage() {
-  const currentDate = appNow();
-  const currentMonthValue = currentDate.getMonth() + 1;
-  const currentYearValue = currentDate.getFullYear();
+  const defaultStartDate = format(startOfMonth(new Date()), "yyyy-MM-dd");
+  const defaultEndDate = format(new Date(), "yyyy-MM-dd");
 
-  // Populate years dynamically from 2024 (inception of logs) to the current year
-  const YEARS = Array.from({ length: currentYearValue - 2024 + 1 }, (_, i) => 2024 + i);
+  const [appliedStartDate, setAppliedStartDate] = useState<string>(defaultStartDate);
+  const [appliedEndDate, setAppliedEndDate] = useState<string>(defaultEndDate);
 
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const [month, setMonth] = useState<number>(currentMonthValue);
-  const [year, setYear] = useState<number>(currentYearValue);
+  const [startDate, setStartDate] = useState<string>(defaultStartDate);
+  const [endDate, setEndDate] = useState<string>(defaultEndDate);
+  const [isPopoverOpen, setIsPopoverOpen] = useState<boolean>(false);
 
   const { data: reportsData, isLoading, error } = useGetProjectHoursBreakdownQuery({
-    month,
-    year,
+    startDate: appliedStartDate,
+    endDate: appliedEndDate,
   });
 
   const responseData = reportsData?.data;
@@ -95,36 +74,24 @@ export default function ReportsPage() {
 
   const overallAmountsTotal = result.reduce((sum, row) => sum + (row.totalAmount || 0), 0);
 
-  const selectedMonthObj = MONTH_NAMES.find(m => m.value === month);
-  const subtext = selectedMonthObj ? `${selectedMonthObj.label} ${year}` : `${year}`;
+  const subtext = `${appliedStartDate} to ${appliedEndDate}`;
+  const isCurrentDefault = appliedStartDate === defaultStartDate && appliedEndDate === defaultEndDate;
 
-  const isCurrentDefault = month === currentMonthValue && year === currentYearValue;
-
-  const handleClearMonth = () => {
-    setMonth(currentMonthValue);
+  const handleResetDates = () => {
+    setStartDate(defaultStartDate);
+    setEndDate(defaultEndDate);
+    setAppliedStartDate(defaultStartDate);
+    setAppliedEndDate(defaultEndDate);
   };
 
-  const handleClearYear = () => {
-    setYear(currentYearValue);
-  };
-
-  const handleClearAll = () => {
-    setMonth(currentMonthValue);
-    setYear(currentYearValue);
-  };
-
-  const handleYearChange = (selectedYear: number) => {
-    setYear(selectedYear);
-    // If selecting current year and current month is in the future, automatically reset month to current month
-    if (selectedYear === currentYearValue && month > currentMonthValue) {
-      setMonth(currentMonthValue);
-    }
+  const handleApplyFilter = () => {
+    setAppliedStartDate(startDate);
+    setAppliedEndDate(endDate);
+    setIsPopoverOpen(false);
   };
 
   const handleExportExcel = () => {
     if (result.length === 0) return;
-
-    const monthLabel = MONTH_NAMES.find(m => m.value === month)?.label || month.toString();
 
     const wb = XLSX.utils.book_new();
 
@@ -261,7 +228,7 @@ export default function ReportsPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `production_hours_report_${monthLabel}_${year}.xlsx`);
+    link.setAttribute("download", `production_hours_report_${appliedStartDate}_to_${appliedEndDate}.xlsx`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -289,7 +256,7 @@ export default function ReportsPage() {
           </button>
 
           {/* Filter Popup Trigger */}
-          <Popover>
+          <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger className={cn(
               "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input rounded-md px-4 py-2 h-9 gap-2 shadow-sm cursor-pointer",
               !isCurrentDefault
@@ -308,59 +275,51 @@ export default function ReportsPage() {
               <PopoverHeader className="px-0 pt-0 pb-2 border-b border-gray-100">
                 <PopoverTitle className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                   <Filter className="w-4 h-4 text-purple-600" />
-                  Filter Report Range
+                  Filter Date Range
                 </PopoverTitle>
               </PopoverHeader>
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">Month</label>
-                  <Select
-                    value={month.toString()}
-                    onValueChange={(val) => setMonth(Number(val))}
-                  >
-                    <SelectTrigger className="w-full h-9 text-xs">
-                      <span className="flex-1 text-left truncate">
-                        {MONTH_NAMES.find((m) => m.value === month)?.fullName || "Select Month"}
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MONTH_NAMES.map((m) => {
-                        const isFutureMonth = year === currentYearValue && m.value > currentMonthValue;
-                        return (
-                          <SelectItem 
-                            key={m.value} 
-                            value={m.value.toString()} 
-                            className="text-xs"
-                            disabled={isFutureMonth}
-                          >
-                            {m.fullName}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
+                  <label className="text-xs font-medium text-gray-500 block">Start Date</label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full h-9 text-xs bg-white"
+                  />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">Year</label>
-                  <Select
-                    value={year.toString()}
-                    onValueChange={(val) => handleYearChange(Number(val))}
-                  >
-                    <SelectTrigger className="w-full h-9 text-xs">
-                      <span className="flex-1 text-left truncate">
-                        {year || "Select Year"}
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {YEARS.map((y) => (
-                        <SelectItem key={y} value={y.toString()} className="text-xs">
-                          {y}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <label className="text-xs font-medium text-gray-500 block">End Date</label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full h-9 text-xs bg-white"
+                  />
                 </div>
+              </div>
+
+              <div className="pt-3 border-t border-gray-100 flex justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setStartDate(appliedStartDate);
+                    setEndDate(appliedEndDate);
+                    setIsPopoverOpen(false);
+                  }}
+                  className="h-8 text-xs px-3"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleApplyFilter}
+                  className="h-8 text-xs px-3.5 bg-purple-600 hover:bg-purple-700 text-white font-medium"
+                >
+                  Apply Filter
+                </Button>
               </div>
             </PopoverContent>
           </Popover>
@@ -369,41 +328,25 @@ export default function ReportsPage() {
 
       {/* Active Filter Badges */}
       <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mt-2 bg-gray-50 border border-gray-200 p-2.5 rounded-xl">
-        <span className="font-medium text-gray-500 mr-1 text-xs select-none">Selected Filters:</span>
+        <span className="font-medium text-gray-500 mr-1 text-xs select-none">Selected Range:</span>
         <Badge 
           variant="secondary" 
-          className="flex items-center gap-1 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 px-2.5 py-1 rounded-lg text-xs font-medium"
+          className="flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-lg text-xs font-medium"
         >
-          Month: {MONTH_NAMES.find((m) => m.value === month)?.label}
-          {month !== currentMonthValue && (
-            <button 
-              onClick={handleClearMonth} 
-              className="hover:text-purple-950 font-bold ml-1.5 focus:outline-none"
-            >
-              ×
-            </button>
-          )}
+          From: {appliedStartDate}
         </Badge>
         <Badge 
           variant="secondary" 
-          className="flex items-center gap-1 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 px-2.5 py-1 rounded-lg text-xs font-medium"
+          className="flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-lg text-xs font-medium"
         >
-          Year: {year}
-          {year !== currentYearValue && (
-            <button 
-              onClick={handleClearYear} 
-              className="hover:text-purple-950 font-bold ml-1.5 focus:outline-none"
-            >
-              ×
-            </button>
-          )}
+          To: {appliedEndDate}
         </Badge>
         {!isCurrentDefault && (
           <button 
-            onClick={handleClearAll} 
+            onClick={handleResetDates} 
             className="text-purple-600 hover:text-purple-800 font-semibold hover:underline text-xs ml-2 focus:outline-none"
           >
-            Reset to default
+            Reset to default (This Month)
           </button>
         )}
       </div>
@@ -431,24 +374,38 @@ export default function ReportsPage() {
       {!isLoading && !error && (
         <div className="space-y-6">
           {/* Sleek Metrics Ribbon with Color-Coded Accent Icons */}
-          <div className="bg-white border border-gray-300 rounded-2xl shadow-sm overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200 grid grid-cols-2 md:grid-cols-5">
+          <div className="bg-white border border-gray-300 rounded-2xl shadow-sm overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             <RibbonMetric
-              title="TOTAL HOURS"
-              value={metrics?.totalHours != null ? metrics.totalHours.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+              title="WORKED HOURS"
+              value={(metrics?.totalWorkedHours ?? metrics?.totalHours ?? overallHoursTotal).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
               subtext={subtext}
               icon={<Clock className="w-3.5 h-3.5" />}
               colorTheme="purple"
             />
             <RibbonMetric
+              title="ABSENT HOURS"
+              value={(metrics?.totalAbsentHours ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              subtext={subtext}
+              icon={<UserX className="w-3.5 h-3.5" />}
+              colorTheme="red"
+            />
+            <RibbonMetric
+              title="BILLING AMOUNT"
+              value={(metrics?.totalBillingAmount ?? overallAmountsTotal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              subtext={subtext}
+              icon={<DollarSign className="w-3.5 h-3.5" />}
+              colorTheme="emerald"
+            />
+            <RibbonMetric
               title="BILLABLE HOURS"
-              value={metrics?.billableHours != null ? metrics.billableHours.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+              value={(metrics?.billableHours ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
               subtext={subtext}
               icon={<DollarSign className="w-3.5 h-3.5" />}
               colorTheme="emerald"
             />
             <RibbonMetric
               title="NON-BILLABLE HOURS"
-              value={metrics?.nonBillableHours != null ? metrics.nonBillableHours.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
+              value={(metrics?.nonBillableHours ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
               subtext={subtext}
               icon={<Briefcase className="w-3.5 h-3.5" />}
               colorTheme="amber"
@@ -459,13 +416,6 @@ export default function ReportsPage() {
               subtext={subtext}
               icon={<Calendar className="w-3.5 h-3.5" />}
               colorTheme="blue"
-            />
-            <RibbonMetric
-              title="ACTIVE EMPLOYEES"
-              value={metrics?.activeEmployeesCount ?? "0"}
-              subtext={subtext}
-              icon={<Users className="w-3.5 h-3.5" />}
-              colorTheme="indigo"
             />
           </div>
 
@@ -620,7 +570,7 @@ interface RibbonMetricProps {
   value: string | number;
   subtext: string;
   icon: React.ReactNode;
-  colorTheme: "purple" | "emerald" | "amber" | "blue" | "indigo";
+  colorTheme: "purple" | "emerald" | "amber" | "blue" | "indigo" | "red";
 }
 
 function RibbonMetric({
@@ -636,6 +586,7 @@ function RibbonMetric({
     amber: "bg-amber-50 text-amber-600 border-amber-100/70",
     blue: "bg-blue-50 text-blue-600 border-blue-100/70",
     indigo: "bg-indigo-50 text-indigo-600 border-indigo-100/70",
+    red: "bg-red-50 text-red-600 border-red-100/70",
   };
 
   const currentThemeClass = themeClasses[colorTheme];

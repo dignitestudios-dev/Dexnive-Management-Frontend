@@ -219,7 +219,7 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
 
           {hasFinancialAccess && (
             <div className="space-y-1">
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Project Price ($)</label>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Project Price</label>
               <Input 
                 type="number"
                 min="0"

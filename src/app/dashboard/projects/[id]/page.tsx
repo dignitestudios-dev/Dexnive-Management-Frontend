@@ -302,14 +302,14 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
               <div className="flex flex-col">
                 <span className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Project Price</span>
                 <span className="font-bold text-emerald-700 text-base">
-                  {project.price != null ? `$${project.price.toLocaleString()}` : "--"}
+                  {project.price != null ? project.price.toLocaleString() : "--"}
                 </span>
               </div>
               <div className="flex flex-col">
                 <span className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Logged Cost</span>
                 <span className="font-bold text-emerald-700 text-base">
                   {(project.loggedAmount ?? (stats as any)?.loggedAmount) != null
-                    ? `$${(project.loggedAmount ?? (stats as any)?.loggedAmount).toLocaleString()}`
+                    ? (project.loggedAmount ?? (stats as any)?.loggedAmount).toLocaleString()
                     : "--"}
                 </span>
               </div>
