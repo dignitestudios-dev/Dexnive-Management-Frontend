@@ -63,6 +63,7 @@ interface ProjectSelectComboboxProps {
   isLoading?: boolean;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  isAllProjectsLoaded?: boolean;
 }
 
 function ProjectSelectCombobox({
@@ -75,10 +76,27 @@ function ProjectSelectCombobox({
   isLoading,
   searchQuery,
   onSearchChange,
+  isAllProjectsLoaded,
 }: ProjectSelectComboboxProps) {
   const [open, setOpen] = useState(false);
 
   const selectedProject = projects?.find((p: any) => p._id === value) || allProjectsMap.get(value);
+
+  const displayedProjects = useMemo(() => {
+    if (!projects) return [];
+    if (!searchQuery || searchQuery.trim() === "") return projects;
+
+    if (isAllProjectsLoaded) {
+      const q = searchQuery.toLowerCase().trim();
+      return projects.filter(
+        (p: any) =>
+          p.name?.toLowerCase().includes(q) ||
+          (p.code && p.code.toLowerCase().includes(q))
+      );
+    }
+
+    return projects;
+  }, [projects, searchQuery, isAllProjectsLoaded]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -110,13 +128,13 @@ function ProjectSelectCombobox({
                 <Loader className="w-3.5 h-3.5 text-primary-600" /> Searching projects...
               </div>
             )}
-            {!isLoading && (!projects || projects.length === 0) && (
+            {!isLoading && (!displayedProjects || displayedProjects.length === 0) && (
               <CommandEmpty className="py-4 text-center text-xs text-gray-500">
                 No project found.
               </CommandEmpty>
             )}
             <CommandGroup className="max-h-60 overflow-y-auto p-1">
-              {projects?.map((project: any) => {
+              {displayedProjects?.map((project: any) => {
                 const isSelectedElsewhere = watchedEntries?.some(
                   (e: any, i: number) => i !== currentIndex && e.project === project._id
                 );
@@ -159,6 +177,7 @@ function ProjectSelectCombobox({
   );
 }
 
+import { WorklogDescription } from "@/features/worklogs/components/worklog-description";
 import { useGetProjectsQuery } from "@/features/projects/api/projects.queries";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { 
@@ -360,11 +379,25 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
     return () => clearTimeout(timer);
   }, [projectSearch]);
 
+  // First check if all available projects fit within the initial 100 limit
+  // We use a baseline query to get totalItems
+  const { data: initialProjectsData } = useGetProjectsQuery({
+    availableForLogging: true,
+    limit: 100,
+  });
+
+  const totalProjectsCount = initialProjectsData?.pagination?.totalItems ?? 0;
+  const isAllProjectsLoaded = initialProjectsData?.pagination ? totalProjectsCount <= 100 : false;
+
+  // If total projects <= 100, do not hit API when searching (perform FE search).
+  // If total projects > 100, hit API with debounced search query.
+  const apiSearchParam = isAllProjectsLoaded ? undefined : (debouncedProjectSearch || undefined);
+
   const { data: myWorklog, isLoading: isLoadingWorklog, refetch } = useGetMyWorklogByDateQuery(today);
   const { data: projectsData, isLoading: isProjectsLoading } = useGetProjectsQuery({ 
     availableForLogging: true, 
     limit: 100,
-    search: debouncedProjectSearch || undefined,
+    search: apiSearchParam,
   });
 
   useEffect(() => {
@@ -930,8 +963,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                         <div className="p-5 border-t border-gray-100">
                           {entry.description && (
                             <div className={entry.reasonAllocations?.length > 0 ? "mb-5" : ""}>
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Description</span>
-                                <p className="text-gray-700 text-sm leading-relaxed">{entry.description}</p>
+                              <WorklogDescription description={entry.description} isBackend={isBackendUser} />
                             </div>
                           )}
                           
@@ -1049,6 +1081,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                                              isLoading={isProjectsLoading}
                                              searchQuery={projectSearch}
                                              onSearchChange={setProjectSearch}
+                                             isAllProjectsLoaded={isAllProjectsLoaded}
                                            />
                                          </FormControl>
                                          <FormMessage className="text-xs" />

@@ -29,6 +29,7 @@ import { Loader } from "@/components/ui/loader";
 
 import { useGetUserTimesheetQuery } from "@/features/worklogs/api/worklogs.queries";
 import { useGetUsersQuery } from "@/features/users/api/users.queries";
+import { WorklogDescription } from "@/features/worklogs/components/worklog-description";
 
 function TimesheetContent() {
   const router = useRouter();
@@ -83,6 +84,12 @@ function TimesheetContent() {
 
   const { data: usersData, isLoading: isUsersLoading } = useGetUsersQuery({ limit: 100, search: debouncedSearch });
   const users = usersData?.data || [];
+
+  const selectedUser = users.find((u: any) => u._id === selectedUserId);
+  const userDeptName = selectedUser?.department 
+    ? (typeof selectedUser.department === "object" ? selectedUser.department.name : typeof selectedUser.department === "string" ? selectedUser.department : "") 
+    : "";
+  const isBackendDept = userDeptName?.toLowerCase() === "backend";
 
   const { data: timesheetData, isLoading: isTimesheetLoading, isFetching } = useGetUserTimesheetQuery({
     user: selectedUserId,
@@ -313,7 +320,7 @@ function TimesheetContent() {
       )}
 
       <Dialog open={!!selectedDay} onOpenChange={(open) => !open && setSelectedDay(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <CalendarDays className="w-5 h-5 text-gray-400" />
@@ -346,7 +353,7 @@ function TimesheetContent() {
               </div>
 
               {selectedDay.projects?.length > 0 ? (
-                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
                   <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Projects Worked</p>
                   {selectedDay.projects.map((p: any, i: number) => (
                     <div key={i} className="flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:border-gray-300 transition-colors">
@@ -374,11 +381,7 @@ function TimesheetContent() {
                           </span>
                         </div>
                       </div>
-                      {p.description && (
-                        <div className="p-3.5 border-t border-gray-100 bg-white">
-                          <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{p.description}</p>
-                        </div>
-                      )}
+                      <WorklogDescription description={p.description} isBackend={isBackendDept} />
                     </div>
                   ))}
                 </div>
