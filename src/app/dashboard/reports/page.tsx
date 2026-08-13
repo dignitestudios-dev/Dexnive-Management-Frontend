@@ -107,14 +107,11 @@ export default function ReportsPage() {
 
     const headerRow1 = [
       "#", "Project", "Type", "Division",
-      "Hours", ...Array(departmentNames.length).fill(""),
-      "Amounts", ...Array(departmentNames.length).fill("")
+      "Hours", ...Array(departmentNames.length).fill("")
     ];
 
     const headerRow2 = [
       "", "", "", "",
-      ...departmentNames.map(dept => displayDeptName(dept)),
-      "Total",
       ...departmentNames.map(dept => displayDeptName(dept)),
       "Total"
     ];
@@ -131,12 +128,7 @@ export default function ReportsPage() {
           const val = row.hours?.[dept]?.total ?? 0;
           return val > 0 ? val : 0;
         }),
-        row.total ?? 0,
-        ...departmentNames.map(dept => {
-          const val = row.amounts?.[dept]?.total ?? 0;
-          return val > 0 ? val : 0;
-        }),
-        row.totalAmount ?? 0
+        row.total ?? 0
       ];
       rawRows.push(rowData as any[]);
     });
@@ -147,9 +139,7 @@ export default function ReportsPage() {
       "",
       "",
       ...departmentNames.map(dept => colHoursTotals[dept] ?? 0),
-      overallHoursTotal,
-      ...departmentNames.map(dept => colAmountsTotals[dept] ?? 0),
-      overallAmountsTotal
+      overallHoursTotal
     ];
     rawRows.push(totalRow as any[]);
 
@@ -208,8 +198,7 @@ export default function ReportsPage() {
       { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } },
       { s: { r: 0, c: 2 }, e: { r: 1, c: 2 } },
       { s: { r: 0, c: 3 }, e: { r: 1, c: 3 } },
-      { s: { r: 0, c: 4 }, e: { r: 0, c: 4 + departmentNames.length } },
-      { s: { r: 0, c: 5 + departmentNames.length }, e: { r: 0, c: 5 + (departmentNames.length * 2) } }
+      { s: { r: 0, c: 4 }, e: { r: 0, c: 4 + departmentNames.length } }
     ];
 
     ws["!cols"] = [
@@ -217,8 +206,6 @@ export default function ReportsPage() {
       { wch: 25 },
       { wch: 12 },
       { wch: 18 },
-      ...departmentNames.map(() => ({ wch: 12 })),
-      { wch: 14 },
       ...departmentNames.map(() => ({ wch: 12 })),
       { wch: 14 }
     ];
@@ -448,8 +435,7 @@ export default function ReportsPage() {
                       <th rowSpan={2} className="px-6 py-3 text-left border-r border-purple-200 font-semibold w-52 min-w-[180px] bg-purple-50 sticky top-0 z-30">Project</th>
                       <th rowSpan={2} className="px-4 py-3 text-center border-r border-purple-200 font-semibold w-24 bg-purple-50 sticky top-0 z-30">Type</th>
                       <th rowSpan={2} className="px-6 py-3 text-left border-r border-purple-200 font-semibold w-40 bg-purple-50 sticky top-0 z-30">Division</th>
-                      <th colSpan={departmentNames.length + 1} className="px-4 py-2 text-center border-b border-r border-purple-200 font-bold bg-purple-50 sticky top-0">Hours</th>
-                      <th colSpan={departmentNames.length + 1} className="px-4 py-2 text-center border-b border-purple-200 font-bold bg-purple-50 sticky top-0">Amounts</th>
+                      <th colSpan={departmentNames.length + 1} className="px-4 py-2 text-center border-b border-purple-200 font-bold bg-purple-50 sticky top-0">Hours</th>
                     </tr>
                     <tr className="bg-purple-50 border-b border-purple-200">
                       {/* Hours departments list */}
@@ -459,14 +445,6 @@ export default function ReportsPage() {
                         </th>
                       ))}
                       <th className="px-3 py-2 text-center border-r border-purple-200 font-bold bg-purple-50 w-24 sticky top-[38px] z-20">Total</th>
-
-                      {/* Amounts departments list */}
-                      {departmentNames.map((dept) => (
-                        <th key={`amounts-${dept}`} className="px-3 py-2 text-center border-r border-purple-200 font-medium normal-case w-20 text-xs text-gray-500 bg-purple-50 sticky top-[38px] z-20">
-                          {displayDeptName(dept)}
-                        </th>
-                      ))}
-                      <th className="px-3 py-2 text-center font-bold bg-purple-50 w-24 sticky top-[38px] z-20">Total</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white text-sm text-gray-700">
@@ -513,20 +491,6 @@ export default function ReportsPage() {
                               </span>
                             </div>
                           </td>
-
-                          {/* Amounts departments cells - NORMAL font weight */}
-                          {departmentNames.map((dept) => {
-                            const value = row.amounts?.[dept]?.total ?? 0;
-                            return (
-                              <td key={`amounts-cell-${dept}`} className="px-3 py-2 border-r border-gray-300 border-b border-gray-300 text-center font-normal text-gray-700">
-                                {value > 0 ? value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
-                              </td>
-                            );
-                          })}
-                          {/* Amounts Total cell - BOLD font weight */}
-                          <td className="px-3 py-2 border-b border-gray-300 text-center font-bold bg-[#efeaf7]/30 text-gray-955">
-                            {row.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                          </td>
                         </tr>
                       );
                     })}
@@ -549,19 +513,6 @@ export default function ReportsPage() {
                       })}
                       <td className="px-3 py-3 border-r border-gray-300 text-center bg-[#efeaf7]/50 text-purple-950 font-extrabold text-sm">
                         {overallHoursTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                      </td>
-
-                      {/* Amounts departments totals */}
-                      {departmentNames.map((dept) => {
-                        const total = colAmountsTotals[dept] || 0;
-                        return (
-                          <td key={`total-amounts-${dept}`} className="px-3 py-3 border-r border-gray-300 text-center text-gray-900">
-                            {total > 0 ? total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : "0"}
-                          </td>
-                        );
-                      })}
-                      <td className="px-3 py-3 text-center bg-[#efeaf7]/50 text-purple-950 font-extrabold text-sm">
-                        {overallAmountsTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                       </td>
                     </tr>
                   </tfoot>
