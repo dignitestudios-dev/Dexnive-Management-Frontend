@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { RecentWorklogs } from "@/features/worklogs/components/recent-worklogs";
+import { WorklogDescription } from "@/features/worklogs/components/worklog-description";
 import { useGetMyWorklogByDateQuery, useGetMyMissingEntriesQuery } from "@/features/worklogs/api/worklogs.queries";
 import {
   DATE_FORMATS,
@@ -39,6 +40,7 @@ import {
 export default function DashboardPage() {
   const router = useRouter();
   const { user, isFullManager } = useAuth();
+  const isBackendDept = user?.department?.name?.toLowerCase() === 'backend';
   const todayDateStr = todayKey();
   
   const { data: dailyWorklogData, isLoading } = useGetMyWorklogByDateQuery(todayDateStr);
@@ -295,7 +297,12 @@ export default function DashboardPage() {
                             </span>
                           </div>
                           {entry.description && (
-                            <p className="text-sm text-gray-600 line-clamp-2 mt-1">{entry.description}</p>
+                            <WorklogDescription 
+                              description={entry.description}
+                              isBackend={isBackendDept}
+                              className="mt-1"
+                              lineClamp={2}
+                            />
                           )}
                         </div>
                       ))}

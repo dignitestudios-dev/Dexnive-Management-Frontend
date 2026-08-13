@@ -320,7 +320,7 @@ function TimesheetContent() {
       )}
 
       <Dialog open={!!selectedDay} onOpenChange={(open) => !open && setSelectedDay(null)}>
-        <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-w-[95vw] max-h-[90vh] overflow-y-auto">
+        <DialogContent className={cn("max-w-[95vw] max-h-[90vh] overflow-y-auto", isBackendDept ? "sm:max-w-5xl md:max-w-6xl lg:max-w-7xl" : "sm:max-w-2xl md:max-w-3xl lg:max-w-4xl")}>
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <CalendarDays className="w-5 h-5 text-gray-400" />

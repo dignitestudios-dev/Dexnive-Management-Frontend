@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -208,12 +209,17 @@ const entrySchema = z.object({
 });
 
 const draftFormSchema = z.object({
-  entries: z.array(entrySchema).min(1, "At least one entry is required"),
+  isFreeDay: z.boolean().default(false),
+  entries: z.array(entrySchema).optional(),
 }).refine(data => {
-  const totalMinutes = data.entries.reduce((acc, entry) => acc + (entry.hours * 60) + entry.minutes, 0);
-  return totalMinutes <= 24 * 60;
+  if (!data.isFreeDay) {
+    if (!data.entries || data.entries.length === 0) return false;
+    const totalMinutes = data.entries.reduce((acc, entry) => acc + (entry.hours * 60) + entry.minutes, 0);
+    return totalMinutes <= 24 * 60;
+  }
+  return true;
 }, {
-  message: "Total logged time cannot exceed 24 hours per day",
+  message: "At least one valid project entry is required, and total time cannot exceed 24 hours per day",
   path: ["root"], // Use root to easily display form-level errors
 });
 
@@ -367,6 +373,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   const today = defaultDateOnly || todayKey();
   const { user } = useAuth();
   const isBackendUser = user?.department && typeof user.department === "object" && user.department.name.toLowerCase() === "backend";
+  const isLead = user?.role?.name?.toLowerCase() === "lead";
   
   const [projectSearch, setProjectSearch] = useState("");
   const [debouncedProjectSearch, setDebouncedProjectSearch] = useState("");
@@ -459,6 +466,8 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   const [allocations, setAllocations] = useState<Record<string, { reason: string; minutes: number; note?: string }[]>>({});
   const [submittingAction, setSubmittingAction] = useState<'draft' | 'continue' | null>(null);
 
+  const [isReviewFree, setIsReviewFree] = useState(false);
+
   const draftForm = useForm<z.infer<typeof draftFormSchema>>({
     resolver: zodResolver(draftFormSchema),
     defaultValues: {
@@ -475,6 +484,8 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
     control: draftForm.control,
     name: "entries",
   });
+
+  const watchedIsFreeDay = draftForm.watch("isFreeDay");
 
   // Calculate live total minutes from the form
   const liveTotalMinutes = (watchedEntries || []).reduce((acc, entry) => {
@@ -505,14 +516,34 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
       const newAllocations: Record<string, { reason: string; minutes: number }[]> = {};
       let needsAlloc = false;
 
-      (data.entries || []).forEach((entry: any) => {
-        if (entry.nonBillableMinutes > 0) {
-          needsAlloc = true;
-          newAllocations[entry._id] = entry.reasonAllocations?.length 
-            ? entry.reasonAllocations 
-            : [{ reason: "", minutes: entry.nonBillableMinutes }];
+      const entriesWithNonBillable = (data.entries || []).filter((e: any) => e.nonBillableMinutes > 0);
+      
+      if (entriesWithNonBillable.length > 0) {
+        needsAlloc = true;
+        const totalNonBillable = entriesWithNonBillable.reduce((sum: number, e: any) => sum + e.nonBillableMinutes, 0);
+        
+        let maxEntry = entriesWithNonBillable[0];
+        for (const e of entriesWithNonBillable) {
+          if ((e.loggedMinutes || 0) > (maxEntry.loggedMinutes || 0)) {
+            maxEntry = e;
+          }
         }
-      });
+        
+        let hasExistingAllocations = false;
+        entriesWithNonBillable.forEach((e: any) => {
+          if (e.reasonAllocations?.length > 0) hasExistingAllocations = true;
+        });
+        
+        if (hasExistingAllocations) {
+          (data.entries || []).forEach((e: any) => {
+            if (e.reasonAllocations?.length > 0) {
+              newAllocations[e._id] = e.reasonAllocations;
+            }
+          });
+        } else {
+          newAllocations[maxEntry._id] = [{ reason: "", minutes: totalNonBillable }];
+        }
+      }
 
       setAllocations(newAllocations);
       
@@ -561,6 +592,8 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
     } else if (data.status === "submitted") {
       setStep(2); // Keep it on the review view
     }
+    
+    setIsReviewFree(false);
   }, [myWorklog, draftForm, isBackendUser]);
 
   const submitMissingReasonMutation = useSubmitMissingReasonMutation();
@@ -600,9 +633,42 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
 
   const onDraftSubmit = (values: z.infer<typeof draftFormSchema>, goToNextStep: boolean = true) => {
     setSubmittingAction(goToNextStep ? 'continue' : 'draft');
+    
+    if (values.isFreeDay) {
+      const payload = {
+        shiftDate: today,
+        entries: [],
+        noMoreWorkAssigned: true as any,
+        remainingHoursType: "free"
+      };
+
+      saveDraftMutation.mutate(payload as any, {
+        onSuccess: () => {
+          submitWorklogMutation.mutate({
+            shiftDate: today,
+            reasonAllocations: {}
+          }, {
+            onSuccess: () => {
+              toast.success("Worklog submitted successfully.");
+              refetch().then(() => setSubmittingAction(null));
+            },
+            onError: (error: any) => {
+              toast.error(error.message || "Failed to submit worklog");
+              setSubmittingAction(null);
+            }
+          });
+        },
+        onError: (error: any) => {
+          toast.error(error.message || "Failed to submit free day");
+          setSubmittingAction(null);
+        }
+      });
+      return;
+    }
+
     const payload = {
       shiftDate: today,
-      entries: values.entries.map(e => {
+      entries: (values.entries || []).map(e => {
         let finalDescription = e.description;
         if (isBackendUser && e.backendTasks && e.backendTasks.length > 0) {
           const validTasks = e.backendTasks.filter((t: any) => t.module && t.task);
@@ -657,37 +723,55 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   const onFinalSubmit = () => {
     if (!myWorklog?.data) return;
     
+    if (isReviewFree) {
+      const payload = {
+        shiftDate: today,
+        noMoreWorkAssigned: true as any,
+        entries: (myWorklog.data.entries || []).map((e: any) => ({
+          project: e.project._id || e.project,
+          minutes: e.loggedMinutes,
+          description: e.description
+        }))
+      };
+      
+      saveDraftMutation.mutate(payload as any, {
+        onSuccess: () => {
+          submitWorklogMutation.mutate({
+            shiftDate: today,
+            reasonAllocations: {},
+          }, {
+            onSuccess: () => handleSubmissionSuccess(),
+            onError: (error: any) => toast.error(error.message || "Failed to submit worklog")
+          });
+        },
+        onError: (error: any) => toast.error(error.message || "Failed to save final draft")
+      });
+      return;
+    }
+
     let isValid = true;
-    const entries = myWorklog.data.entries || [];
+    const totalNonBillable = (myWorklog.data.entries || []).reduce((sum: number, e: any) => sum + (e.nonBillableMinutes || 0), 0);
+    const totalAllocated = Object.values(allocations).flat().reduce((sum: number, a: any) => sum + (a.minutes || 0), 0);
     
-    for (const entry of entries) {
-      if (entry.nonBillableMinutes > 0) {
-        const entryAllocs = allocations[entry._id] || [];
-        const totalAllocated = entryAllocs.reduce((sum, a) => sum + (a.minutes || 0), 0);
-        
-        if (totalAllocated !== entry.nonBillableMinutes) {
-          toast.error(`Please allocate exactly ${entry.nonBillableMinutes} minutes for missing time.`);
-          isValid = false;
-          break;
+    if (totalAllocated !== totalNonBillable) {
+      toast.error(`Please allocate exactly ${totalNonBillable} minutes for missing time. You have allocated ${totalAllocated}m.`);
+      return;
+    }
+    
+    for (const entryId of Object.keys(allocations)) {
+      const entryAllocs = allocations[entryId] || [];
+      for (const a of entryAllocs) {
+        if (!a.reason) {
+          toast.error("Please select a reason for all non-billable time allocations.");
+          return;
         }
-        
-        for (const a of entryAllocs) {
-          if (!a.reason) {
-            toast.error("Please select a reason for all non-billable time");
-            isValid = false;
-            break;
-          }
-          const reasonObj = reasonsData?.data?.find((r: any) => r._id === a.reason);
-          if (reasonObj?.requiresNote && !a.note?.trim()) {
-            toast.error(`Please provide a note for the reason: ${reasonObj.name}`);
-            isValid = false;
-            break;
-          }
+        const reasonObj = reasonsData?.data?.find((r: any) => r._id === a.reason);
+        if (reasonObj?.requiresNote && !a.note?.trim()) {
+          toast.error(`Please provide a note for the reason: ${reasonObj.name}`);
+          return;
         }
       }
     }
-
-    if (!isValid) return;
 
     submitWorklogMutation.mutate({
       shiftDate: today,
@@ -847,15 +931,17 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="absent">Absent</SelectItem>
+                      <SelectItem value="free">Unassigned / Free</SelectItem>
+                      <SelectItem value="lead_work">Lead Work</SelectItem>
                       <SelectItem value="forgot">Forgot to log</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {missingReasonForm.reason === "other" && (
+                {(missingReasonForm.reason === "other" || missingReasonForm.reason === "free") && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Note</label>
+                    <label className="text-sm font-medium text-gray-700">Note {missingReasonForm.reason === "free" ? "(Required for Free days)" : ""}</label>
                     <Textarea 
                       placeholder="Please explain..." 
                       value={missingReasonForm.note}
@@ -867,16 +953,20 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                 <div className="pt-2">
                   <Button 
                     className="w-full md:w-auto"
-                    disabled={!missingReasonForm.reason || (missingReasonForm.reason === "other" && !missingReasonForm.note.trim()) || submitMissingReasonMutation.isPending}
+                    disabled={
+                      !missingReasonForm.reason || 
+                      ((missingReasonForm.reason === "other" || missingReasonForm.reason === "free") && !missingReasonForm.note.trim()) || 
+                      submitMissingReasonMutation.isPending
+                    }
                     onClick={() => {
-                      if (missingReasonForm.reason === "absent") {
+                      if (["absent", "free", "lead_work"].includes(missingReasonForm.reason)) {
                         submitMissingReasonMutation.mutate({
                           shiftDate: today,
-                          reason: "absent",
+                          reason: missingReasonForm.reason,
                           note: missingReasonForm.note
                         }, {
                           onSuccess: () => {
-                            toast.success("Absent reason submitted successfully");
+                            toast.success("Reason submitted successfully");
                             if (defaultDate) router.push("/dashboard");
                             else refetch();
                           },
@@ -889,7 +979,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                     }}
                   >
                     {submitMissingReasonMutation.isPending ? <Loader className="w-4 h-4 mr-2" /> : null}
-                    {missingReasonForm.reason === "absent" ? "Submit Reason" : "Continue to Log Time"}
+                    {["absent", "free", "lead_work"].includes(missingReasonForm.reason) ? "Submit Reason" : "Continue to Log Time"}
                   </Button>
                 </div>
               </div>
@@ -1043,7 +1133,30 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                         </div>
                       )}
                       <div className="space-y-3">
-                        {fields.map((field, index) => (
+                        <div className="space-y-4 mb-6">
+                          <div className="flex flex-col gap-3">
+                            <div className="flex items-center space-x-2 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                              <Checkbox
+                                id="freeDay"
+                                checked={watchedIsFreeDay}
+                                onCheckedChange={(checked) => {
+                                  draftForm.setValue("isFreeDay", !!checked);
+                                  if (checked) {
+                                    draftForm.setValue("entries", []);
+                                    draftForm.clearErrors("root");
+                                  } else {
+                                    draftForm.setValue("entries", [{ project: "", hours: 0, minutes: 0, description: "" }]);
+                                  }
+                                }}
+                              />
+                              <label htmlFor="freeDay" className="text-sm font-medium leading-none cursor-pointer text-gray-700">
+                                Free (No projects assigned today)
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
+                        {!watchedIsFreeDay && fields.map((field, index) => (
                           <div 
                             key={field.id}
                             className="p-5 rounded-xl border border-gray-200 bg-gray-50/50 relative group transition-all hover:border-gray-300 hover:shadow-sm"
@@ -1208,45 +1321,63 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                           </div>
                         )}
 
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="w-full border-dashed border border-gray-200 text-gray-500 hover:text-primary-600 hover:border-primary-200 hover:bg-primary-50 transition-colors"
-                          onClick={() => append({ project: "", hours: 0, minutes: 0, description: "" })}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add Project Entry
-                        </Button>
+                        {!watchedIsFreeDay && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="w-full border-dashed border border-gray-200 text-gray-500 hover:text-primary-600 hover:border-primary-200 hover:bg-primary-50 transition-colors"
+                            onClick={() => append({ project: "", hours: 0, minutes: 0, description: "" })}
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Project Entry
+                          </Button>
+                        )}
+
+                        {/* Removed noMoreWorkAssigned block */}
                       </div>
                       
                       <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-4">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={draftForm.handleSubmit(v => onDraftSubmit(v, false), onInvalid)}
-                          disabled={submittingAction !== null || liveTotalMinutes === 0}
-                          className="border-gray-200 text-gray-700 hover:bg-gray-50 min-w-[120px]"
-                        >
-                          {submittingAction === 'draft' ? <Loader className="w-4 h-4 mr-2" /> : null}
-                          Save Draft
-                        </Button>
-                        <Button 
-                          type="submit" 
-                          disabled={submittingAction !== null || liveTotalMinutes === 0}
-                          className="bg-primary-600 hover:bg-primary-700 text-white shadow-sm min-w-[150px]"
-                        >
-                          {submittingAction === 'continue' ? (
-                            <>
-                              <Loader className="w-4 h-4 mr-2" />
-                              Processing...
-                            </>
-                          ) : (
-                            <>
-                              Review
-                              <ArrowRight className="w-4 h-4 ml-2" />
-                            </>
-                          )}
-                        </Button>
+                        {!watchedIsFreeDay ? (
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={draftForm.handleSubmit(v => onDraftSubmit(v, false), onInvalid)}
+                              disabled={submittingAction !== null || liveTotalMinutes === 0}
+                              className="border-gray-200 text-gray-700 hover:bg-gray-50 min-w-[120px]"
+                            >
+                              {submittingAction === 'draft' ? <Loader className="w-4 h-4 mr-2" /> : null}
+                              Save Draft
+                            </Button>
+                            <Button 
+                              type="submit" 
+                              disabled={submittingAction !== null || liveTotalMinutes === 0}
+                              className="bg-primary-600 hover:bg-primary-700 text-white shadow-sm min-w-[150px]"
+                            >
+                              {submittingAction === 'continue' ? (
+                                <>
+                                  <Loader className="w-4 h-4 mr-2" />
+                                  Processing...
+                                </>
+                              ) : (
+                                <>
+                                  Review
+                                  <ArrowRight className="w-4 h-4 ml-2" />
+                                </>
+                              )}
+                            </Button>
+                          </>
+                        ) : (
+                          <Button 
+                            type="button" 
+                            onClick={draftForm.handleSubmit(v => onDraftSubmit(v, false), onInvalid)}
+                            disabled={submittingAction !== null}
+                            className="bg-primary-600 hover:bg-primary-700 text-white shadow-sm min-w-[150px]"
+                          >
+                            {submittingAction !== null ? <Loader className="w-4 h-4 mr-2" /> : null}
+                            Submit Free Day
+                          </Button>
+                        )}
                       </div>
                     </form>
                   </Form>
@@ -1265,36 +1396,81 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
 
                   {needsAllocations ? (
                     <div className="space-y-5">
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                        <div className="flex items-start gap-3">
-                          <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
-                          <div>
-                            <h3 className="font-medium text-amber-900">Missing Time Allocation</h3>
-                            <p className="text-sm text-amber-700 mt-1">
-                              You logged {formatMins(worklog.totalLoggedMinutes)} today, which is under the 8-hour target. 
-                              Please specify reasons for the non-billable time.
-                            </p>
+                      <div className="flex items-center space-x-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100 hover:bg-blue-50 transition-colors shadow-sm mb-6">
+                        <Checkbox
+                          id="reviewFreeDay"
+                          checked={isReviewFree}
+                          onCheckedChange={(checked) => setIsReviewFree(!!checked)}
+                          className="w-5 h-5 border-blue-300 data-[state=checked]:bg-blue-600"
+                        />
+                        <div className="flex flex-col">
+                          <label htmlFor="reviewFreeDay" className="text-sm font-semibold leading-none cursor-pointer text-blue-900">
+                            Free (No work assigned in remaining hours)
+                          </label>
+                          <span className="text-xs text-blue-700 mt-1">Check this if you have no other work for today. Remaining hours will be marked as Free.</span>
+                        </div>
+                      </div>
+
+                      {!isReviewFree && (
+                        <>
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                          <div className="flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                            <div>
+                              <h3 className="font-medium text-amber-900">Missing Time Allocation</h3>
+                              <p className="text-sm text-amber-700 mt-1">
+                                You logged {formatMins(worklog.totalLoggedMinutes)} today, which is under the 8-hour target. 
+                                Please specify reasons for the remaining time.
+                              </p>
+                            </div>
+                          </div>
+                          <div className="bg-white px-4 py-2 rounded-md border border-amber-200 shadow-sm shrink-0">
+                            <span className="text-xs text-amber-600 font-bold uppercase tracking-wider block mb-0.5">Remaining to Allocate</span>
+                            <span className="text-xl font-bold text-amber-700">
+                              {(() => {
+                                const totalNonBillable = (worklog.entries || []).reduce((sum: number, e: any) => sum + (e.nonBillableMinutes || 0), 0);
+                                const totalAllocated = Object.values(allocations).flat().reduce((sum: number, a: any) => sum + (a.minutes || 0), 0);
+                                const remaining = totalNonBillable - totalAllocated;
+                                return remaining === 0 ? "Perfect" : `${remaining}m`;
+                              })()}
+                            </span>
                           </div>
                         </div>
                       </div>
 
                       <div className="space-y-3">
-                        {worklog.entries?.filter(e => e.nonBillableMinutes > 0).map(entry => {
+                        {worklog.entries?.map((entry: any) => {
                           const entryAllocs = allocations[entry._id] || [];
-                          const totalAllocated = entryAllocs.reduce((sum, a) => sum + (a.minutes || 0), 0);
-                          const remaining = entry.nonBillableMinutes - totalAllocated;
                           const projectName = typeof entry.project === "object" ? entry.project.name : "Unknown Project";
-
+                          
                           return (
                             <div key={entry._id} className="border border-gray-200 rounded-lg p-5 bg-white shadow-sm">
-                              <div className="flex items-center justify-between mb-4">
+                              <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-3">
                                 <div>
                                   <h4 className="font-medium text-gray-900">{projectName}</h4>
-                                  <p className="text-gray-500 text-xs mt-0.5">Requires {entry.nonBillableMinutes}m allocation</p>
+                                  <p className="text-gray-500 text-xs mt-0.5">Logged: {formatMins(entry.loggedMinutes)}</p>
                                 </div>
-                                <Badge variant="outline" className={`px-2 py-0.5 text-xs font-medium ${remaining === 0 ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
-                                  {remaining === 0 ? "Perfectly Allocated" : `${remaining}m left`}
-                                </Badge>
+                                <Button 
+                                  type="button" 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="text-primary-600 border-primary-200 hover:bg-primary-50 shrink-0"
+                                  onClick={() => {
+                                    setAllocations(prev => {
+                                      const current = prev[entry._id] || [];
+                                      const totalNonBillable = (worklog.entries || []).reduce((sum: number, e: any) => sum + (e.nonBillableMinutes || 0), 0);
+                                      const totalAllocated = Object.values(prev).flat().reduce((sum: number, a: any) => sum + (a.minutes || 0), 0);
+                                      const remaining = totalNonBillable - totalAllocated;
+                                      return {
+                                        ...prev,
+                                        [entry._id]: [...current, { reason: "", minutes: remaining > 0 ? remaining : 0 }]
+                                      };
+                                    });
+                                  }}
+                                >
+                                  <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Allocation
+                                </Button>
                               </div>
                               
                               <div className="space-y-2">
@@ -1353,11 +1529,13 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                                                 const cleanRaw = raw.replace(/^0+/, '') || '0';
                                                 let val = parseInt(cleanRaw) || 0;
                                                 
-                                                // Calculate remaining non-billable time for this entry
-                                                const totalLogged = entry.loggedMinutes || 0;
-                                                const currentOthers = (allocations[entry._id] || []).reduce((acc: number, a: any, i: number) => i === idx ? acc : acc + (a.minutes || 0), 0);
-                                                const maxAllowed = totalLogged - currentOthers;
+                                                // Validate against GLOBAL max allowed
+                                                const totalNonBillable = (worklog.entries || []).reduce((sum: number, entry: any) => sum + (entry.nonBillableMinutes || 0), 0);
+                                                const currentOthers = Object.entries(allocations).flatMap(([eId, allocs]) => 
+                                                  allocs.map((a, i) => (eId === entry._id && i === idx) ? 0 : (a.minutes || 0))
+                                                ).reduce((sum, m) => sum + m, 0);
                                                 
+                                                const maxAllowed = totalNonBillable - currentOthers;
                                                 if (val > maxAllowed) val = Math.max(0, maxAllowed);
 
                                                 setAllocations(prev => {
@@ -1412,29 +1590,12 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                                   );
                                 })}
                               </div>
-                              
-                              {remaining > 0 && (
-                                <Button 
-                                  type="button" 
-                                  variant="ghost" 
-                                  className="mt-3 text-primary-600 hover:text-primary-700 hover:bg-primary-50 h-8 px-3 text-sm"
-                                  onClick={() => {
-                                    setAllocations(prev => {
-                                      const current = prev[entry._id] || [];
-                                      return {
-                                        ...prev,
-                                        [entry._id]: [...current, { reason: "", minutes: remaining > 0 ? remaining : 0 }]
-                                      };
-                                    });
-                                  }}
-                                >
-                                  <Plus className="w-3.5 h-3.5 mr-1.5" /> Split remaining {remaining}m
-                                </Button>
-                              )}
                             </div>
                           );
                         })}
                       </div>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 text-center">
