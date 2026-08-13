@@ -23,7 +23,9 @@ import {
   ChevronRight,
   Clock,
   ArrowRight,
-  Info
+  Info,
+  ChevronsUpDown,
+  Check
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -45,8 +47,117 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+
+interface ProjectSelectComboboxProps {
+  value: string;
+  onChange: (value: string) => void;
+  watchedEntries: any[];
+  currentIndex: number;
+  projects: any[];
+  allProjectsMap: Map<string, any>;
+  isLoading?: boolean;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+}
+
+function ProjectSelectCombobox({
+  value,
+  onChange,
+  watchedEntries,
+  currentIndex,
+  projects,
+  allProjectsMap,
+  isLoading,
+  searchQuery,
+  onSearchChange,
+}: ProjectSelectComboboxProps) {
+  const [open, setOpen] = useState(false);
+
+  const selectedProject = projects?.find((p: any) => p._id === value) || allProjectsMap.get(value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger render={
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between bg-white border-gray-200 shadow-sm h-10 text-sm font-normal text-gray-900 hover:bg-gray-50"
+        >
+          <span className="truncate">
+            {selectedProject ? selectedProject.name : "Select project"}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-gray-500" />
+        </Button>
+      } />
+      <PopoverContent className="w-[300px] sm:w-[360px] p-0 z-[100]" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Search project..."
+            className="h-9 text-sm"
+            value={searchQuery}
+            onValueChange={onSearchChange}
+          />
+          <CommandList>
+            {isLoading && (
+              <div className="py-4 text-center text-xs text-gray-500 flex items-center justify-center gap-2">
+                <Loader className="w-3.5 h-3.5 text-primary-600" /> Searching projects...
+              </div>
+            )}
+            {!isLoading && (!projects || projects.length === 0) && (
+              <CommandEmpty className="py-4 text-center text-xs text-gray-500">
+                No project found.
+              </CommandEmpty>
+            )}
+            <CommandGroup className="max-h-60 overflow-y-auto p-1">
+              {projects?.map((project: any) => {
+                const isSelectedElsewhere = watchedEntries?.some(
+                  (e: any, i: number) => i !== currentIndex && e.project === project._id
+                );
+                const isSelected = value === project._id;
+
+                return (
+                  <CommandItem
+                    key={project._id}
+                    value={project.name + " " + project._id}
+                    disabled={isSelectedElsewhere}
+                    onSelect={() => {
+                      onChange(project._id);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "cursor-pointer flex items-center justify-between text-sm py-2 px-2.5 rounded-md hover:bg-gray-100",
+                      isSelectedElsewhere && "opacity-40 cursor-not-allowed"
+                    )}
+                  >
+                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                      <Check
+                        className={cn(
+                          "h-4 w-4 shrink-0",
+                          isSelected ? "opacity-100 text-primary-600" : "opacity-0"
+                        )}
+                      />
+                      <span className="truncate font-medium text-gray-900">{project.name}</span>
+                    </div>
+                    {isSelectedElsewhere && (
+                      <span className="text-[10px] text-gray-400 italic shrink-0">Already selected</span>
+                    )}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 import { useGetProjectsQuery } from "@/features/projects/api/projects.queries";
 import { useAuth } from "@/features/auth/hooks/use-auth";
@@ -238,8 +349,34 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   const { user } = useAuth();
   const isBackendUser = user?.department && typeof user.department === "object" && user.department.name.toLowerCase() === "backend";
   
+  const [projectSearch, setProjectSearch] = useState("");
+  const [debouncedProjectSearch, setDebouncedProjectSearch] = useState("");
+  const [allProjectsMap, setAllProjectsMap] = useState<Map<string, any>>(new Map());
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedProjectSearch(projectSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [projectSearch]);
+
   const { data: myWorklog, isLoading: isLoadingWorklog, refetch } = useGetMyWorklogByDateQuery(today);
-  const { data: projectsData } = useGetProjectsQuery({ availableForLogging: true, limit: 100 });
+  const { data: projectsData, isLoading: isProjectsLoading } = useGetProjectsQuery({ 
+    availableForLogging: true, 
+    limit: 100,
+    search: debouncedProjectSearch || undefined,
+  });
+
+  useEffect(() => {
+    if (projectsData?.data) {
+      setAllProjectsMap((prev) => {
+        const next = new Map(prev);
+        projectsData.data.forEach((p: any) => next.set(p._id, p));
+        return next;
+      });
+    }
+  }, [projectsData]);
+
   const { data: reasonsData } = useGetNonBillableReasonsQuery();
 
   const { data: missingEntriesData } = useGetMyMissingEntriesQuery({
@@ -895,36 +1032,29 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                               {/* Top row: Project + Time Spent (or full grid for non-backend) */}
                               <div className={isBackendUser ? "flex flex-col sm:flex-row gap-4 items-start" : "grid grid-cols-1 md:grid-cols-12 gap-5 items-start"}>
                                 <div className={isBackendUser ? "flex-1 w-full" : "md:col-span-4"}>
-                                  <FormField
-                                    control={draftForm.control}
-                                    name={`entries.${index}.project`}
-                                    render={({ field }: any) => (
-                                      <FormItem>
-                                        <FormLabel className="text-gray-700 font-semibold">Project</FormLabel>
-                                        <FormControl>
-                                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                                            <SelectTrigger className="bg-white border-gray-200 shadow-sm h-10">
-                                              <SelectValue placeholder="Select project">
-                                                {projectsData?.data?.find((p: any) => p._id === field.value)?.name || "Select project"}
-                                              </SelectValue>
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              {projectsData?.data?.map((project: any) => {
-                                                const isSelectedElsewhere = watchedEntries?.some((e: any, i: number) => i !== index && e.project === 
-project._id);
-                                                return (
-                                                  <SelectItem key={project._id} value={project._id} disabled={isSelectedElsewhere}>
-                                                    {project.name}
-                                                  </SelectItem>
-                                                );
-                                              })}
-                                            </SelectContent>
-                                          </Select>
-                                        </FormControl>
-                                        <FormMessage className="text-xs" />
-                                      </FormItem>
-                                    )}
-                                  />
+                                   <FormField
+                                     control={draftForm.control}
+                                     name={`entries.${index}.project`}
+                                     render={({ field }: any) => (
+                                       <FormItem>
+                                         <FormLabel className="text-gray-700 font-semibold">Project</FormLabel>
+                                         <FormControl>
+                                           <ProjectSelectCombobox
+                                             value={field.value}
+                                             onChange={field.onChange}
+                                             watchedEntries={watchedEntries}
+                                             currentIndex={index}
+                                             projects={projectsData?.data || []}
+                                             allProjectsMap={allProjectsMap}
+                                             isLoading={isProjectsLoading}
+                                             searchQuery={projectSearch}
+                                             onSearchChange={setProjectSearch}
+                                           />
+                                         </FormControl>
+                                         <FormMessage className="text-xs" />
+                                       </FormItem>
+                                     )}
+                                   />
                                 </div>
                                 
                                 {!isBackendUser && (
