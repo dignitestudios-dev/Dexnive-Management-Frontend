@@ -6,6 +6,7 @@ import { format, startOfMonth, endOfMonth, subMonths, addMonths, startOfWeek, en
 import { DATE_FORMATS, dayKey, formatDay, isToday, parseMonthParam } from "@/lib/datetime";
 import { EMPTY_DAY_STATUS, getDayStatusConfig } from "@/features/worklogs/lib/timesheet-status";
 import { TimesheetDayExtras } from "@/features/worklogs/components/timesheet-day-extras";
+import { ResetDayButton } from "@/features/worklogs/components/reset-day-button";
 import { 
   CalendarDays, 
   ChevronLeft, 
@@ -345,6 +346,20 @@ function TimesheetContent() {
               </div>
 
               <TimesheetDayExtras day={selectedDay} />
+
+              <div className="flex justify-end mb-4">
+                <ResetDayButton
+                  userId={selectedUserId}
+                  userName={selectedUser?.name}
+                  shiftDate={dayKey(selectedDay.shiftDate)}
+                  hasData={
+                    selectedDay.status === "present" ||
+                    selectedDay.status === "absent" ||
+                    selectedDay.status === "other"
+                  }
+                  onReset={() => setSelectedDay(null)}
+                />
+              </div>
 
               {selectedDay.projects?.length > 0 ? (
                 <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
