@@ -324,7 +324,6 @@ export function Sidebar() {
             isActive={isGroupActive([
               "/dashboard/settings/holidays",
               "/dashboard/settings/rates",
-              "/dashboard/settings/reasons",
             ])}
           >
             <SidebarLink

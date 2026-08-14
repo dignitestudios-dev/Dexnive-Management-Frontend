@@ -3,6 +3,7 @@ import { Loader } from "@/components/ui/loader";
 
 import { useState } from "react";
 import { dayKey, formatDay, formatDayRange, startOfMonthKey, todayKey } from "@/lib/datetime";
+import { toWorklogStatus } from "@/features/worklogs/lib/filters";
 import { useGetMyWorklogsQuery } from "@/features/worklogs/api/worklogs.queries";
 import { useGetProjectsQuery } from "@/features/projects/api/projects.queries";
 import { Search, FileText } from "lucide-react";
@@ -67,7 +68,7 @@ function MyWorklogsHistoryContent() {
 
   const { data: worklogsData, isLoading, isError, refetch } = useGetMyWorklogsQuery({
     project: appliedFilters.project && appliedFilters.project !== "all" ? appliedFilters.project : undefined,
-    status: appliedFilters.status && appliedFilters.status !== "all" ? appliedFilters.status : undefined,
+    status: toWorklogStatus(appliedFilters.status),
     startDate: appliedFilters.startDate,
     endDate: appliedFilters.endDate
   });

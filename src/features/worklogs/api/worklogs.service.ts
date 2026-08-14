@@ -1,28 +1,22 @@
 import axiosInstance from "@/lib/axios";
-import { 
-  GetMissingEntriesParams, 
+import {
+  GetMissingEntriesParams,
   MissingEntriesResponse,
+  MissingReasonPayload,
+  ResetWorklogDayParams,
+  SaveDraftPayload,
+  SingleWorklogResponse,
+  SubmitWorklogPayload,
   WorklogQueryParams,
   WorklogsResponse,
   WorklogSummaryParams,
   WorklogSummaryResponse,
-  SaveDraftPayload,
-  SubmitWorklogPayload,
-  SingleWorklogResponse
 } from "../types";
 
-export async function getMissingEntries(params?: GetMissingEntriesParams): Promise<MissingEntriesResponse> {
-  const { data } = await axiosInstance.get<MissingEntriesResponse>("/worklogs/missing", { params });
-  return data;
-}
+/* ── Employee: own data ─────────────────────────────────────────────────── */
 
-export async function getMyMissingEntries(params?: GetMissingEntriesParams): Promise<MissingEntriesResponse> {
-  const { data } = await axiosInstance.get<MissingEntriesResponse>("/worklogs/my/missing", { params });
-  return data;
-}
-
-export async function getAllWorklogs(params?: WorklogQueryParams): Promise<WorklogsResponse> {
-  const { data } = await axiosInstance.get<WorklogsResponse>("/worklogs", { params });
+export async function getMyWorklogByDate(shiftDate: string): Promise<SingleWorklogResponse> {
+  const { data } = await axiosInstance.get<SingleWorklogResponse>(`/worklogs/my/${shiftDate}`);
   return data;
 }
 
@@ -31,48 +25,44 @@ export async function getMyWorklogs(params?: WorklogQueryParams): Promise<Worklo
   return data;
 }
 
-export async function getSummary(params?: WorklogSummaryParams): Promise<WorklogSummaryResponse> {
-  const { data } = await axiosInstance.get<WorklogSummaryResponse>("/worklogs/summary", { params });
+export async function getMyTimesheet(params: { startDate: string; endDate: string }): Promise<any> {
+  const { data } = await axiosInstance.get<any>("/worklogs/my/timesheet", { params });
   return data;
 }
 
-export async function getNonBillableReasons() {
-  const { data } = await axiosInstance.get<{ message: string; data: any[] }>("/non-billable-reasons");
+export async function getMyMissingEntries(params?: GetMissingEntriesParams): Promise<MissingEntriesResponse> {
+  const { data } = await axiosInstance.get<MissingEntriesResponse>("/worklogs/my/missing", { params });
   return data;
 }
 
-export async function createNonBillableReason(payload: { name: string; category?: string; description?: string }) {
-  const { data } = await axiosInstance.post("/non-billable-reasons", payload);
-  return data;
-}
+/* ── Employee: draft / submit ───────────────────────────────────────────── */
 
-export async function updateNonBillableReason({ id, payload }: { id: string; payload: any }) {
-  const { data } = await axiosInstance.patch(`/non-billable-reasons/${id}`, payload);
-  return data;
-}
-
-export async function deleteNonBillableReason(id: string) {
-  const { data } = await axiosInstance.delete(`/non-billable-reasons/${id}`);
-  return data;
-}
-
+/** Save or overwrite the day. Does not lock it. */
 export async function saveDraft(payload: SaveDraftPayload): Promise<SingleWorklogResponse> {
   const { data } = await axiosInstance.post<SingleWorklogResponse>("/worklogs/draft", payload);
   return data;
 }
 
+/** Lock the day. Needs unassignedNonBillableNote only when the draft reported unassigned minutes. */
 export async function submitWorklog(payload: SubmitWorklogPayload): Promise<SingleWorklogResponse> {
   const { data } = await axiosInstance.post<SingleWorklogResponse>("/worklogs/submit", payload);
   return data;
 }
 
-export async function getMyWorklogByDate(shiftDate: string): Promise<SingleWorklogResponse> {
-  const { data } = await axiosInstance.get<SingleWorklogResponse>(`/worklogs/my/${shiftDate}`);
+/**
+ * File a reason for a past working day with no submission.
+ * `forgot` backfills through the same balance rules as a draft and auto-submits
+ * unless it produces unassigned non-billable minutes.
+ */
+export async function submitMissingReason(payload: MissingReasonPayload): Promise<any> {
+  const { data } = await axiosInstance.post<any>("/worklogs/my/missing/reason", payload);
   return data;
 }
 
-export async function getMyTimesheet(params: { startDate: string; endDate: string }): Promise<any> {
-  const { data } = await axiosInstance.get<any>("/worklogs/my/timesheet", { params });
+/* ── Management (Admin/Lead) ────────────────────────────────────────────── */
+
+export async function getAllWorklogs(params?: WorklogQueryParams): Promise<WorklogsResponse> {
+  const { data } = await axiosInstance.get<WorklogsResponse>("/worklogs", { params });
   return data;
 }
 
@@ -81,8 +71,8 @@ export async function getUserTimesheet(params: { user: string; startDate: string
   return data;
 }
 
-export async function submitMissingReason(payload: { shiftDate: string; reason: string; note?: string; entries?: any[] }): Promise<any> {
-  const { data } = await axiosInstance.post<any>("/worklogs/my/missing/reason", payload);
+export async function getMissingEntries(params?: GetMissingEntriesParams): Promise<MissingEntriesResponse> {
+  const { data } = await axiosInstance.get<MissingEntriesResponse>("/worklogs/missing", { params });
   return data;
 }
 
@@ -91,7 +81,24 @@ export async function getAllMissingEntriesCount(params: { startDate?: string; en
   return data;
 }
 
+export async function getSummary(params?: WorklogSummaryParams): Promise<WorklogSummaryResponse> {
+  const { data } = await axiosInstance.get<WorklogSummaryResponse>("/worklogs/summary", { params });
+  return data;
+}
+
+/* ── Management: deletion ───────────────────────────────────────────────── */
+
+/** Generic delete by document id — resolves to a submission, an entry, or a missing-entry. */
 export async function deleteWorklog(id: string): Promise<any> {
   const { data } = await axiosInstance.delete<any>(`/worklogs/${id}`);
+  return data;
+}
+
+/**
+ * Wipe a user's submission, its entries and any missing-entry excuse for one
+ * day, so they can log it again from scratch. Powers the "Reset this day" action.
+ */
+export async function resetWorklogDay({ userId, shiftDate }: ResetWorklogDayParams): Promise<any> {
+  const { data } = await axiosInstance.delete<any>(`/worklogs/reset/${userId}/${shiftDate}`);
   return data;
 }

@@ -1,87 +1,76 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { saveDraft, submitWorklog, createNonBillableReason, updateNonBillableReason, deleteNonBillableReason, submitMissingReason, deleteWorklog } from "./worklogs.service";
-import { SaveDraftPayload, SubmitWorklogPayload } from "../types";
+import {
+  deleteWorklog,
+  resetWorklogDay,
+  saveDraft,
+  submitMissingReason,
+  submitWorklog,
+} from "./worklogs.service";
+import {
+  MissingReasonPayload,
+  ResetWorklogDayParams,
+  SaveDraftPayload,
+  SubmitWorklogPayload,
+} from "../types";
 import { worklogKeys } from "./worklogs.queries";
 
-export function useSaveDraftMutation() {
+/**
+ * Any write to a day can move totals on the calendar, the missing-day list and
+ * the summary at once, so every worklog mutation invalidates the whole
+ * `worklogs` tree plus the specific day it touched.
+ */
+function useInvalidateWorklogs() {
   const queryClient = useQueryClient();
+  return (shiftDate?: string) => {
+    if (shiftDate) {
+      queryClient.invalidateQueries({ queryKey: worklogKeys.my(shiftDate) });
+    }
+    queryClient.invalidateQueries({ queryKey: worklogKeys.all });
+  };
+}
+
+export function useSaveDraftMutation() {
+  const invalidate = useInvalidateWorklogs();
 
   return useMutation({
     mutationFn: (payload: SaveDraftPayload) => saveDraft(payload),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: worklogKeys.my(variables.shiftDate) });
-      queryClient.invalidateQueries({ queryKey: worklogKeys.list() });
-      queryClient.invalidateQueries({ queryKey: worklogKeys.summary() });
-      queryClient.invalidateQueries({ queryKey: worklogKeys.all }); // just invalidate all worklogs related to be safe and refresh missing list
-    },
+    onSuccess: (_, variables) => invalidate(variables.shiftDate),
   });
 }
 
 export function useSubmitWorklogMutation() {
-  const queryClient = useQueryClient();
+  const invalidate = useInvalidateWorklogs();
 
   return useMutation({
     mutationFn: (payload: SubmitWorklogPayload) => submitWorklog(payload),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: worklogKeys.my(variables.shiftDate) });
-      queryClient.invalidateQueries({ queryKey: worklogKeys.list() });
-      queryClient.invalidateQueries({ queryKey: worklogKeys.summary() });
-      queryClient.invalidateQueries({ queryKey: worklogKeys.all }); // just invalidate all worklogs related to be safe and refresh missing list
-    },
-  });
-}
-
-export function useCreateReasonMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: createNonBillableReason,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: worklogKeys.reasons() });
-    },
-  });
-}
-
-export function useUpdateReasonMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: updateNonBillableReason,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: worklogKeys.reasons() });
-    },
-  });
-}
-
-export function useDeleteReasonMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: deleteNonBillableReason,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: worklogKeys.reasons() });
-    },
+    onSuccess: (_, variables) => invalidate(variables.shiftDate),
   });
 }
 
 export function useSubmitMissingReasonMutation() {
-  const queryClient = useQueryClient();
+  const invalidate = useInvalidateWorklogs();
+
   return useMutation({
-    mutationFn: submitMissingReason,
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: worklogKeys.my(variables.shiftDate) });
-      queryClient.invalidateQueries({ queryKey: worklogKeys.list() });
-      queryClient.invalidateQueries({ queryKey: worklogKeys.summary() });
-      queryClient.invalidateQueries({ queryKey: worklogKeys.all }); 
-    },
+    mutationFn: (payload: MissingReasonPayload) => submitMissingReason(payload),
+    onSuccess: (_, variables) => invalidate(variables.shiftDate),
   });
 }
 
 export function useDeleteWorklogMutation() {
-  const queryClient = useQueryClient();
+  const invalidate = useInvalidateWorklogs();
+
   return useMutation({
-    mutationFn: deleteWorklog,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: worklogKeys.list() });
-      queryClient.invalidateQueries({ queryKey: worklogKeys.summary() });
-      queryClient.invalidateQueries({ queryKey: worklogKeys.all });
-    },
+    mutationFn: (id: string) => deleteWorklog(id),
+    onSuccess: () => invalidate(),
+  });
+}
+
+/** Admin/Lead: clear a locked day so the user can log it again. */
+export function useResetWorklogDayMutation() {
+  const invalidate = useInvalidateWorklogs();
+
+  return useMutation({
+    mutationFn: (params: ResetWorklogDayParams) => resetWorklogDay(params),
+    onSuccess: (_, variables) => invalidate(variables.shiftDate),
   });
 }

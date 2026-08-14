@@ -1,5 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { getMissingEntries, getMyMissingEntries, getAllWorklogs, getMyWorklogs, getSummary, getMyWorklogByDate, getNonBillableReasons, getMyTimesheet, getUserTimesheet, getAllMissingEntriesCount } from "./worklogs.service";
+import {
+  getAllMissingEntriesCount,
+  getAllWorklogs,
+  getMissingEntries,
+  getMyMissingEntries,
+  getMyTimesheet,
+  getMyWorklogByDate,
+  getMyWorklogs,
+  getSummary,
+  getUserTimesheet,
+} from "./worklogs.service";
 import { GetMissingEntriesParams, WorklogQueryParams, WorklogSummaryParams } from "../types";
 
 export const worklogKeys = {
@@ -9,15 +19,9 @@ export const worklogKeys = {
   myMissing: (params?: GetMissingEntriesParams) => [...worklogKeys.all, "myMissing", params] as const,
   summary: (params?: WorklogSummaryParams) => [...worklogKeys.all, "summary", params] as const,
   my: (shiftDate: string) => [...worklogKeys.all, "my", shiftDate] as const,
-  reasons: () => [...worklogKeys.all, "reasons"] as const,
+  timesheet: (params?: unknown) => [...worklogKeys.all, "timesheet", params] as const,
+  userTimesheet: (params?: unknown) => [...worklogKeys.all, "userTimesheet", params] as const,
 };
-
-export function useGetNonBillableReasonsQuery() {
-  return useQuery({
-    queryKey: worklogKeys.reasons(),
-    queryFn: () => getNonBillableReasons(),
-  });
-}
 
 export function useMissingEntriesQuery(params?: GetMissingEntriesParams) {
   return useQuery({
@@ -64,7 +68,7 @@ export function useGetMyWorklogByDateQuery(shiftDate: string) {
 
 export function useGetMyTimesheetQuery(params: { startDate: string; endDate: string }) {
   return useQuery({
-    queryKey: [...worklogKeys.all, "timesheet", params],
+    queryKey: worklogKeys.timesheet(params),
     queryFn: () => getMyTimesheet(params),
     enabled: !!params.startDate && !!params.endDate,
   });
@@ -72,7 +76,7 @@ export function useGetMyTimesheetQuery(params: { startDate: string; endDate: str
 
 export function useGetUserTimesheetQuery(params: { user: string; startDate: string; endDate: string }) {
   return useQuery({
-    queryKey: [...worklogKeys.all, "userTimesheet", params],
+    queryKey: worklogKeys.userTimesheet(params),
     queryFn: () => getUserTimesheet(params),
     enabled: !!params.user && !!params.startDate && !!params.endDate,
   });

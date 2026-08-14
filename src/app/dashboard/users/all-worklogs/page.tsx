@@ -3,6 +3,7 @@ import { Loader } from "@/components/ui/loader";
 
 import { useState } from "react";
 import { formatDay, formatDayRange, startOfMonthKey, todayKey } from "@/lib/datetime";
+import { toWorklogStatus } from "@/features/worklogs/lib/filters";
 import { useGetAllWorklogsQuery } from "@/features/worklogs/api/worklogs.queries";
 import { useDeleteWorklogMutation } from "@/features/worklogs/api/worklogs.mutations";
 import { useGetUsersQuery, useGetMyUserQuery } from "@/features/users/api/users.queries";
@@ -67,7 +68,7 @@ function AllWorklogsContent() {
   const { data: worklogsData, isLoading, isError, refetch } = useGetAllWorklogsQuery({
     user: appliedFilters.user && appliedFilters.user !== "all" ? appliedFilters.user : undefined,
     project: appliedFilters.project && appliedFilters.project !== "all" ? appliedFilters.project : undefined,
-    status: appliedFilters.status && appliedFilters.status !== "all" ? appliedFilters.status : undefined,
+    status: toWorklogStatus(appliedFilters.status),
     startDate: appliedFilters.startDate,
     endDate: appliedFilters.endDate
   });
