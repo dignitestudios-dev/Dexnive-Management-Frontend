@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next-nprogress-bar";
 
 import { Loader } from "@/components/ui/loader";
 import { dayKey, todayKey } from "@/lib/datetime";
 
 import { useGetMyWorklogByDateQuery } from "../api/worklogs.queries";
 import { DayComposer } from "./day-composer";
+import { LogDatePicker } from "./log-date-picker";
 import { MissingDayReasonCard } from "./missing-day-reason-card";
 
 /**
@@ -18,6 +20,8 @@ import { MissingDayReasonCard } from "./missing-day-reason-card";
  * endpoint rather than the plain draft one).
  */
 export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
+  const router = useRouter();
+
   const day = (defaultDate ? dayKey(defaultDate) : "") || todayKey();
   const isPastDay = day < todayKey();
 
@@ -31,29 +35,49 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
     setBackfilling(false);
   }, [day]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Loader className="w-6 h-6 text-primary-600" />
-      </div>
+  const goToDay = (next: string) => {
+    router.push(
+      next === todayKey()
+        ? "/dashboard/daily-log"
+        : `/dashboard/daily-log?date=${next}`,
     );
-  }
+  };
 
   const needsReason = isPastDay && !hasSubmission && !backfilling;
 
-  if (needsReason) {
-    return (
-      <MissingDayReasonCard
-        shiftDate={day}
-        onBackfill={() => setBackfilling(true)}
-      />
-    );
-  }
-
   return (
-    <DayComposer
-      shiftDate={day}
-      missingReason={isPastDay && !hasSubmission ? "forgot" : undefined}
-    />
+    <div className="w-full space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            Logging for
+          </p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Pick another date to log or backfill a day you missed.
+          </p>
+        </div>
+        <LogDatePicker value={day} onChange={goToDay} className="min-w-[210px]" />
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-24">
+          <Loader className="w-6 h-6 text-primary-600" />
+        </div>
+      ) : needsReason ? (
+        <MissingDayReasonCard
+          shiftDate={day}
+          onBackfill={() => setBackfilling(true)}
+          onResolved={() => goToDay(todayKey())}
+        />
+      ) : (
+        <DayComposer
+          shiftDate={day}
+          missingReason={isPastDay && !hasSubmission ? "forgot" : undefined}
+          onCompleted={() => {
+            if (isPastDay) goToDay(todayKey());
+          }}
+        />
+      )}
+    </div>
   );
 }

@@ -59,15 +59,21 @@ export function DayBudgetBar({
         <StatusLine balance={balance} />
       </div>
 
-      <div
-        className="relative h-9 w-full rounded-lg bg-gray-100 overflow-hidden flex ring-1 ring-inset ring-gray-200"
-        role="img"
-        aria-label={`${formatMinutes(loggedMinutes)} logged to projects, ${formatMinutes(
-          freeMinutes,
-        )} free, ${formatMinutes(leadWorkMinutes)} lead work, ${formatMinutes(
-          remaining,
-        )} still to account for.`}
-      >
+      <div className="relative">
+        <div
+          className="relative h-9 w-full rounded-lg bg-gray-100 overflow-hidden flex ring-1 ring-inset ring-gray-200"
+          role="img"
+          aria-label={[
+            `${formatMinutes(loggedMinutes)} logged to projects`,
+            freeMinutes > 0 ? `${formatMinutes(freeMinutes)} free` : null,
+            leadWorkMinutes > 0
+              ? `${formatMinutes(leadWorkMinutes)} lead work`
+              : null,
+            `${formatMinutes(remaining)} still to account for`,
+          ]
+            .filter(Boolean)
+            .join(", ")}
+        >
         <Segment
           width={billableWidth}
           className="bg-primary-600"
@@ -92,20 +98,35 @@ export function DayBudgetBar({
           label={formatMinutes(overtimeMinutes)}
         />
 
+          {/* Boundary between a standard day and overtime. */}
+          {isOvertime && (
+            <div
+              className="absolute inset-y-0 w-px bg-white/80 shadow-[0_0_0_1px_rgba(17,24,39,0.55)]"
+              style={{ left: `${pct(STANDARD_WORK_MINUTES)}%` }}
+              aria-hidden
+            />
+          )}
+        </div>
+
+        {/* Marker label sits below the track: the bar itself is overflow-hidden
+            (to clip the rounded segment corners), so anything inside it gets cut off. */}
         {isOvertime && (
-          <div
-            className="absolute inset-y-0 w-0.5 bg-gray-900/70"
+          <span
+            className="absolute top-full mt-1 -translate-x-1/2 text-[10px] font-semibold text-gray-500 whitespace-nowrap"
             style={{ left: `${pct(STANDARD_WORK_MINUTES)}%` }}
             aria-hidden
           >
-            <span className="absolute -top-0.5 left-1 text-[9px] font-bold text-gray-900 whitespace-nowrap">
-              8h
-            </span>
-          </div>
+            8h
+          </span>
         )}
       </div>
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-x-4 gap-y-1.5",
+          isOvertime ? "mt-6" : "mt-2.5",
+        )}
+      >
         {loggedMinutes > 0 && (
           <Legend className="bg-primary-600" label="Project time" value={Math.min(loggedMinutes, STANDARD_WORK_MINUTES)} />
         )}

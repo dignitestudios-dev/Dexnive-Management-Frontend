@@ -81,45 +81,52 @@ const entrySchema = z.object({
     .optional(),
 });
 
-const composerSchema = z
-  .object({
-    entries: z.array(entrySchema).default([]),
-    freeMinutes: z.coerce.number().min(0).default(0),
-    leadWorkMinutes: z.coerce.number().min(0).default(0),
-  })
-  .superRefine((values, ctx) => {
-    // Every row that exists must carry time — a blank row is a user mistake.
-    values.entries.forEach((entry, index) => {
-      if (combineMinutes(entry.hours, entry.minutes) <= 0) {
+/**
+ * Built per-user rather than at module scope: the balance message wording
+ * depends on whether this user can log lead work, and non-Leads must never see
+ * the term.
+ */
+const makeComposerSchema = (canLogLeadWork: boolean) =>
+  z
+    .object({
+      entries: z.array(entrySchema).default([]),
+      freeMinutes: z.coerce.number().min(0).default(0),
+      leadWorkMinutes: z.coerce.number().min(0).default(0),
+    })
+    .superRefine((values, ctx) => {
+      // Every row that exists must carry time — a blank row is a user mistake.
+      values.entries.forEach((entry, index) => {
+        if (combineMinutes(entry.hours, entry.minutes) <= 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Add some time",
+            path: ["entries", index, "minutes"],
+          });
+        }
+      });
+
+      const balance = validateDayBalance({
+        entries: values.entries.map((entry) => ({
+          project: entry.project,
+          minutes: combineMinutes(entry.hours, entry.minutes),
+        })),
+        freeMinutes: values.freeMinutes,
+        leadWorkMinutes: values.leadWorkMinutes,
+        canLogLeadWork,
+      });
+
+      if (!balance.valid) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Add some time",
-          path: ["entries", index, "minutes"],
+          message: balance.message,
+          // Matches where the API reports balance failures, so server-side and
+          // client-side rejections surface in the same place.
+          path: ["freeMinutes"],
         });
       }
     });
 
-    const balance = validateDayBalance({
-      entries: values.entries.map((entry) => ({
-        project: entry.project,
-        minutes: combineMinutes(entry.hours, entry.minutes),
-      })),
-      freeMinutes: values.freeMinutes,
-      leadWorkMinutes: values.leadWorkMinutes,
-    });
-
-    if (!balance.valid) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: balance.message,
-        // Matches where the API reports balance failures, so server-side and
-        // client-side rejections surface in the same place.
-        path: ["freeMinutes"],
-      });
-    }
-  });
-
-type ComposerValues = z.input<typeof composerSchema>;
+type ComposerValues = z.input<ReturnType<typeof makeComposerSchema>>;
 
 const blankEntry = (isBackendUser: boolean) => ({
   project: "",
@@ -208,6 +215,8 @@ export function DayComposer({
 
   /* ── Form ──────────────────────────────────────────────────────────────── */
 
+  const composerSchema = useMemo(() => makeComposerSchema(isLead), [isLead]);
+
   const form = useForm<ComposerValues>({
     resolver: zodResolver(composerSchema) as any,
     mode: "onChange",
@@ -237,8 +246,9 @@ export function DayComposer({
         })),
         freeMinutes: watchedFree,
         leadWorkMinutes: watchedLead,
+        canLogLeadWork: isLead,
       }),
-    [watchedEntries, watchedFree, watchedLead],
+    [watchedEntries, watchedFree, watchedLead, isLead],
   );
 
   // Hydrate from a saved draft.
@@ -432,7 +442,9 @@ export function DayComposer({
 
             {fields.length === 0 && (
               <p className="text-xs text-gray-500 bg-gray-50 border border-dashed border-gray-200 rounded-lg p-4 text-center">
-                No project work today — record the full day as free or lead-work time below.
+                {isLead
+                  ? "No project work today — record the full day as free or lead-work time below."
+                  : "No project work today — record the full day as free time below."}
               </p>
             )}
 

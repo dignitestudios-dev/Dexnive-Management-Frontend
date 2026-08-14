@@ -37,6 +37,12 @@ export interface DayBalanceInput {
   entries: Pick<WorklogEntryPayload, "project" | "minutes">[];
   freeMinutes?: number;
   leadWorkMinutes?: number;
+  /**
+   * Whether the current user may log lead work. Only affects wording: lead
+   * work is a Lead-only concept, so messages shown to anyone else must not
+   * mention it. Pass `isLead` from useAuth().
+   */
+  canLogLeadWork?: boolean;
 }
 
 export interface DayBalanceResult {
@@ -84,6 +90,10 @@ export function validateDayBalance(input: DayBalanceInput): DayBalanceResult {
   const freeMinutes = toMinutes(input.freeMinutes);
   const leadWorkMinutes = toMinutes(input.leadWorkMinutes);
 
+  // Never name lead work to a user who cannot log it.
+  const timeTerm = input.canLogLeadWork ? "Free and lead-work time" : "Free time";
+  const timeTermLower = input.canLogLeadWork ? "free and lead-work time" : "free time";
+
   const loggedMinutes = sumEntryMinutes(entries);
   const nonProjectMinutes = freeMinutes + leadWorkMinutes;
   const deficit = Math.max(0, STANDARD_WORK_MINUTES - loggedMinutes);
@@ -115,7 +125,7 @@ export function validateDayBalance(input: DayBalanceInput): DayBalanceResult {
       ...base,
       valid: false,
       code: "negative-input",
-      message: "Free and lead-work time cannot be negative.",
+      message: `${timeTerm} cannot be negative.`,
     };
   }
 
@@ -144,8 +154,9 @@ export function validateDayBalance(input: DayBalanceInput): DayBalanceResult {
         ...base,
         valid: false,
         code: "empty-day-must-total-standard",
-        message:
-          "With no project time logged, free and lead-work time must add up to exactly 8 hours.",
+        message: input.canLogLeadWork
+          ? "With no project time logged, free and lead-work time must add up to exactly 8 hours."
+          : "With no project time logged, free time must be exactly 8 hours.",
       };
     }
     return { ...base, valid: true, code: "ok", message: "" };
@@ -157,8 +168,7 @@ export function validateDayBalance(input: DayBalanceInput): DayBalanceResult {
         ...base,
         valid: false,
         code: "full-day-allows-no-extra",
-        message:
-          "A full day is already logged to projects, so free and lead-work time must be 0.",
+        message: `A full day is already logged to projects, so ${timeTermLower} must be 0.`,
       };
     }
     return { ...base, valid: true, code: "ok", message: "" };
@@ -170,7 +180,7 @@ export function validateDayBalance(input: DayBalanceInput): DayBalanceResult {
       ...base,
       valid: false,
       code: "exceeds-deficit",
-      message: `Free and lead-work time cannot exceed the ${formatMinutes(deficit)} left in the day.`,
+      message: `${timeTerm} cannot exceed the ${formatMinutes(deficit)} left in the day.`,
     };
   }
 
