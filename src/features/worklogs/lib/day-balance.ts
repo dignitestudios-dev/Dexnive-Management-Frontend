@@ -187,6 +187,34 @@ export function validateDayBalance(input: DayBalanceInput): DayBalanceResult {
   return { ...base, valid: true, code: "ok", message: "" };
 }
 
+/**
+ * Shrink non-project time so it fits the room left in the day.
+ *
+ * Used when project hours grow: someone logs 2h, marks the other 6h free, then
+ * corrects the project to 5h — the free time follows down to 3h instead of the
+ * day being rejected as unbalanced.
+ *
+ * Free is reduced first because it is the residual bucket; lead work is a
+ * deliberate categorisation and is only cut once free has reached zero. Returns
+ * the inputs untouched when they already fit.
+ */
+export function clampNonProjectTime(
+  freeMinutes: number,
+  leadWorkMinutes: number,
+  deficit: number,
+): { freeMinutes: number; leadWorkMinutes: number } {
+  const free = Math.max(0, Math.trunc(freeMinutes || 0));
+  const lead = Math.max(0, Math.trunc(leadWorkMinutes || 0));
+  const room = Math.max(0, Math.trunc(deficit || 0));
+
+  if (free + lead <= room) return { freeMinutes: free, leadWorkMinutes: lead };
+
+  const nextFree = Math.min(free, room);
+  const nextLead = Math.max(0, Math.min(lead, room - nextFree));
+
+  return { freeMinutes: nextFree, leadWorkMinutes: nextLead };
+}
+
 /* ==========================================================================
  * Display helpers
  * ========================================================================== */

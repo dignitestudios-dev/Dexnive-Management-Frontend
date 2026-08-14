@@ -43,6 +43,7 @@ import {
 import type { SaveDraftPayload, WorklogSubmission } from "../types";
 import {
   STANDARD_WORK_MINUTES,
+  clampNonProjectTime,
   combineMinutes,
   formatMinutes,
   validateDayBalance,
@@ -59,6 +60,7 @@ import { NonProjectTimeCard } from "./non-project-time-card";
 import { ProjectSelectCombobox } from "./project-select-combobox";
 import { UnassignedNoteDialog } from "./unassigned-note-dialog";
 import { DayResultPanel } from "./day-result-panel";
+import { DayModeChooser, type DayMode } from "./day-mode-chooser";
 
 /* ==========================================================================
  * Form schema — mirrors the server's accepted shape, with the balance rule
@@ -213,6 +215,13 @@ export function DayComposer({
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"draft" | "submit" | null>(null);
 
+  /**
+   * null = the chooser has not been answered yet. A day that already has
+   * something saved answers it implicitly, so returning to a draft never
+   * re-asks the question.
+   */
+  const [mode, setMode] = useState<DayMode | null>(null);
+
   /* ── Form ──────────────────────────────────────────────────────────────── */
 
   const composerSchema = useMemo(() => makeComposerSchema(isLead), [isLead]);
@@ -251,6 +260,29 @@ export function DayComposer({
     [watchedEntries, watchedFree, watchedLead, isLead],
   );
 
+  /**
+   * Keep non-project time inside the day as project hours grow.
+   *
+   * Someone logs 2h, marks the remaining 6h free, then realises they actually
+   * worked 5h. Rather than rejecting the day as unbalanced, the free time
+   * shrinks to fit the 3h that is left. Free is reduced first because it is the
+   * residual bucket — lead work is a deliberate categorisation and is only
+   * touched once free has reached zero.
+   *
+   * When a full day is logged to projects there is no room left at all, so both
+   * drop to zero and NonProjectTimeCard disables itself.
+   */
+  useEffect(() => {
+    const next = clampNonProjectTime(watchedFree, watchedLead, balance.deficit);
+
+    if (next.freeMinutes !== watchedFree) {
+      form.setValue("freeMinutes", next.freeMinutes, { shouldValidate: true });
+    }
+    if (next.leadWorkMinutes !== watchedLead) {
+      form.setValue("leadWorkMinutes", next.leadWorkMinutes, { shouldValidate: true });
+    }
+  }, [balance.deficit, watchedFree, watchedLead, form]);
+
   // Hydrate from a saved draft.
   useEffect(() => {
     if (!worklogResponse) return;
@@ -284,7 +316,35 @@ export function DayComposer({
       freeMinutes: worklog.freeMinutes ?? 0,
       leadWorkMinutes: worklog.leadWorkMinutes ?? 0,
     });
+
+    // A saved day has already answered the chooser — infer which way.
+    setMode(
+      entries.length > 0
+        ? "projects"
+        : (worklog.leadWorkMinutes ?? 0) > 0
+          ? "leadWork"
+          : "free",
+    );
   }, [worklogResponse, worklog, form, isBackendUser]);
+
+  /** Answer the chooser and seed the form for that shape of day. */
+  const chooseMode = (next: DayMode) => {
+    if (next === "projects") {
+      form.reset({
+        entries: [blankEntry(isBackendUser)],
+        freeMinutes: 0,
+        leadWorkMinutes: 0,
+      });
+    } else {
+      // A whole day with no project work: the chosen bucket carries all 480.
+      form.reset({
+        entries: [],
+        freeMinutes: next === "free" ? STANDARD_WORK_MINUTES : 0,
+        leadWorkMinutes: next === "leadWork" ? STANDARD_WORK_MINUTES : 0,
+      });
+    }
+    setMode(next);
+  };
 
   /* ── Payload ───────────────────────────────────────────────────────────── */
 
@@ -405,8 +465,20 @@ export function DayComposer({
     );
   }
 
+  // Nothing saved yet and no answer given — ask before showing any form.
+  if (mode === null) {
+    return (
+      <DayModeChooser
+        shiftDate={day}
+        canLogLeadWork={isLead}
+        onChoose={chooseMode}
+      />
+    );
+  }
+
   const isBusy = pendingAction !== null;
   const projects = projectsData?.data ?? [];
+  const isNonProjectDay = mode === "free" || mode === "leadWork";
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-5">
@@ -422,60 +494,84 @@ export function DayComposer({
 
       <Form {...form}>
         <form onSubmit={(e) => e.preventDefault()} className="space-y-5">
-          <Card className="p-5 sm:p-6 shadow-sm border-gray-200 rounded-xl bg-white space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-primary-600" />
-                  Project time
-                </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  What you worked on today. This is always billable.
-                </p>
-              </div>
-              <span className="text-xs text-gray-500 tabular-nums shrink-0">
-                {formatMinutes(balance.loggedMinutes)} logged
-              </span>
-            </div>
-
-            {fields.length === 0 && (
-              <p className="text-xs text-gray-500 bg-gray-50 border border-dashed border-gray-200 rounded-lg p-4 text-center">
-                {isLead
-                  ? "No project work today — record the full day as free or lead-work time below."
-                  : "No project work today — record the full day as free time below."}
+          {isNonProjectDay ? (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+              <p className="text-sm text-gray-700">
+                {mode === "free"
+                  ? "Recording a full free day — no project work."
+                  : "Recording a full day of lead work — no project work."}
               </p>
-            )}
-
-            <div className="space-y-3">
-              {fields.map((field, index) => (
-                <EntryRow
-                  key={field.id}
-                  index={index}
-                  form={form}
-                  isBackendUser={isBackendUser}
-                  projects={projects}
-                  allProjectsMap={allProjectsMap}
-                  isProjectsLoading={isProjectsLoading}
-                  isAllProjectsLoaded={isAllProjectsLoaded}
-                  projectSearch={projectSearch}
-                  onProjectSearch={setProjectSearch}
-                  watchedEntries={watchedEntries as any[]}
-                  onRemove={() => remove(index)}
-                  canRemove={fields.length > 0}
-                />
-              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => chooseMode("projects")}
+                disabled={isBusy}
+                className="h-8 text-xs font-medium shrink-0"
+              >
+                I did work on a project
+              </Button>
             </div>
+          ) : (
+            <Card className="p-5 sm:p-6 shadow-sm border-gray-200 rounded-xl bg-white space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-primary-600" />
+                    Project time
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    What you worked on today. This is always billable.
+                  </p>
+                </div>
+                <span className="text-xs text-gray-500 tabular-nums shrink-0">
+                  {formatMinutes(balance.loggedMinutes)} logged
+                </span>
+              </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append(blankEntry(isBackendUser) as any)}
-              className="h-8 text-xs font-medium border-dashed border-gray-300 text-gray-600 hover:text-primary-700 hover:border-primary-300"
-            >
-              <Plus className="w-3.5 h-3.5 mr-1" /> Add project
-            </Button>
-          </Card>
+              <div className="space-y-3">
+                {fields.map((field, index) => (
+                  <EntryRow
+                    key={field.id}
+                    index={index}
+                    form={form}
+                    isBackendUser={isBackendUser}
+                    projects={projects}
+                    allProjectsMap={allProjectsMap}
+                    isProjectsLoading={isProjectsLoading}
+                    isAllProjectsLoaded={isAllProjectsLoaded}
+                    projectSearch={projectSearch}
+                    onProjectSearch={setProjectSearch}
+                    watchedEntries={watchedEntries as any[]}
+                    onRemove={() => remove(index)}
+                    canRemove={fields.length > 1}
+                  />
+                ))}
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => append(blankEntry(isBackendUser) as any)}
+                  className="h-8 text-xs font-medium border-dashed border-gray-300 text-gray-600 hover:text-primary-700 hover:border-primary-300"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Add project
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => chooseMode("free")}
+                  disabled={isBusy}
+                  className="h-8 text-xs font-medium text-gray-500 hover:text-gray-800"
+                >
+                  I had no project work today
+                </Button>
+              </div>
+            </Card>
+          )}
 
           <NonProjectTimeCard
             freeMinutes={watchedFree}
