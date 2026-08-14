@@ -90,3 +90,8 @@ export async function getAllMissingEntriesCount(params: { startDate?: string; en
   const { data } = await axiosInstance.get<any>("/worklogs/all/missing-count", { params });
   return data;
 }
+
+export async function deleteWorklog(id: string): Promise<any> {
+  const { data } = await axiosInstance.delete<any>(`/worklogs/${id}`);
+  return data;
+}

@@ -8,12 +8,14 @@ interface WorklogDescriptionProps {
   description?: string;
   isBackend?: boolean;
   className?: string;
+  lineClamp?: number;
 }
 
 export function WorklogDescription({
   description,
   isBackend,
   className,
+  lineClamp,
 }: WorklogDescriptionProps) {
   if (!description) return null;
 
@@ -91,7 +93,9 @@ export function WorklogDescription({
 
   return (
     <div className={cn("", className)}>
-      <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">
+      <p 
+        className={cn("text-xs text-gray-700 leading-relaxed whitespace-pre-wrap", lineClamp && `line-clamp-${lineClamp}`)}
+      >
         {description}
       </p>
     </div>

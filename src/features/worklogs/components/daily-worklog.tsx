@@ -209,10 +209,11 @@ const entrySchema = z.object({
 });
 
 const draftFormSchema = z.object({
-  isFreeDay: z.boolean().default(false),
+  isFreeDay: z.boolean().optional(),
+  isLeadWorkDay: z.boolean().optional(),
   entries: z.array(entrySchema).optional(),
 }).refine(data => {
-  if (!data.isFreeDay) {
+  if (!data.isFreeDay && !data.isLeadWorkDay) {
     if (!data.entries || data.entries.length === 0) return false;
     const totalMinutes = data.entries.reduce((acc, entry) => acc + (entry.hours * 60) + entry.minutes, 0);
     return totalMinutes <= 24 * 60;
@@ -373,7 +374,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   const today = defaultDateOnly || todayKey();
   const { user } = useAuth();
   const isBackendUser = user?.department && typeof user.department === "object" && user.department.name.toLowerCase() === "backend";
-  const isLead = user?.role?.name?.toLowerCase() === "lead";
+  const isLead = typeof user?.role === "object" ? user.role.name?.toLowerCase() === "lead" : false;
   
   const [projectSearch, setProjectSearch] = useState("");
   const [debouncedProjectSearch, setDebouncedProjectSearch] = useState("");
@@ -467,6 +468,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   const [submittingAction, setSubmittingAction] = useState<'draft' | 'continue' | null>(null);
 
   const [isReviewFree, setIsReviewFree] = useState(false);
+  const [isReviewLeadWork, setIsReviewLeadWork] = useState(false);
 
   const draftForm = useForm<z.infer<typeof draftFormSchema>>({
     resolver: zodResolver(draftFormSchema),
@@ -486,6 +488,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   });
 
   const watchedIsFreeDay = draftForm.watch("isFreeDay");
+  const watchedIsLeadWorkDay = draftForm.watch("isLeadWorkDay");
 
   // Calculate live total minutes from the form
   const liveTotalMinutes = (watchedEntries || []).reduce((acc, entry) => {
@@ -594,6 +597,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
     }
     
     setIsReviewFree(false);
+    setIsReviewLeadWork(false);
   }, [myWorklog, draftForm, isBackendUser]);
 
   const submitMissingReasonMutation = useSubmitMissingReasonMutation();
@@ -634,12 +638,12 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   const onDraftSubmit = (values: z.infer<typeof draftFormSchema>, goToNextStep: boolean = true) => {
     setSubmittingAction(goToNextStep ? 'continue' : 'draft');
     
-    if (values.isFreeDay) {
+    if (values.isFreeDay || values.isLeadWorkDay) {
       const payload = {
         shiftDate: today,
         entries: [],
         noMoreWorkAssigned: true as any,
-        remainingHoursType: "free"
+        remainingHoursType: values.isFreeDay ? "freeMinutes" : "leadWorkMinutes"
       };
 
       saveDraftMutation.mutate(payload as any, {
@@ -723,10 +727,11 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   const onFinalSubmit = () => {
     if (!myWorklog?.data) return;
     
-    if (isReviewFree) {
+    if (isReviewFree || isReviewLeadWork) {
       const payload = {
         shiftDate: today,
         noMoreWorkAssigned: true as any,
+        remainingHoursType: isReviewFree ? "freeMinutes" : "leadWorkMinutes",
         entries: (myWorklog.data.entries || []).map((e: any) => ({
           project: e.project._id || e.project,
           minutes: e.loggedMinutes,
@@ -931,17 +936,15 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="absent">Absent</SelectItem>
-                      <SelectItem value="free">Unassigned / Free</SelectItem>
-                      <SelectItem value="lead_work">Lead Work</SelectItem>
                       <SelectItem value="forgot">Forgot to log</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {(missingReasonForm.reason === "other" || missingReasonForm.reason === "free") && (
+                {(missingReasonForm.reason === "other") && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Note {missingReasonForm.reason === "free" ? "(Required for Free days)" : ""}</label>
+                    <label className="text-sm font-medium text-gray-700">Note</label>
                     <Textarea 
                       placeholder="Please explain..." 
                       value={missingReasonForm.note}
@@ -1135,28 +1138,89 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                       <div className="space-y-3">
                         <div className="space-y-4 mb-6">
                           <div className="flex flex-col gap-3">
-                            <div className="flex items-center space-x-2 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <div 
+                              className={`flex items-start space-x-3 p-4 rounded-xl border transition-all cursor-pointer ${watchedIsFreeDay ? "bg-emerald-50 border-emerald-200 shadow-sm" : "bg-gray-50/50 border-gray-200 hover:bg-gray-50 hover:border-gray-300"}`}
+                              onClick={() => {
+                                const checked = !watchedIsFreeDay;
+                                draftForm.setValue("isFreeDay", checked);
+                                if (checked) {
+                                  draftForm.setValue("isLeadWorkDay", false);
+                                  draftForm.setValue("entries", []);
+                                  draftForm.clearErrors("root");
+                                } else if (!draftForm.getValues("isLeadWorkDay")) {
+                                  draftForm.setValue("entries", [{ project: "", hours: 0, minutes: 0, description: "" }]);
+                                }
+                              }}
+                            >
                               <Checkbox
                                 id="freeDay"
                                 checked={watchedIsFreeDay}
                                 onCheckedChange={(checked) => {
                                   draftForm.setValue("isFreeDay", !!checked);
                                   if (checked) {
+                                    draftForm.setValue("isLeadWorkDay", false);
                                     draftForm.setValue("entries", []);
                                     draftForm.clearErrors("root");
-                                  } else {
+                                  } else if (!draftForm.getValues("isLeadWorkDay")) {
                                     draftForm.setValue("entries", [{ project: "", hours: 0, minutes: 0, description: "" }]);
                                   }
                                 }}
+                                className={`mt-0.5 ${watchedIsFreeDay ? "data-[state=checked]:bg-emerald-600 border-emerald-400" : ""}`}
                               />
-                              <label htmlFor="freeDay" className="text-sm font-medium leading-none cursor-pointer text-gray-700">
-                                Free (No projects assigned today)
-                              </label>
+                              <div className="flex flex-col gap-1.5">
+                                <label htmlFor="freeDay" className={`text-sm font-semibold leading-none cursor-pointer ${watchedIsFreeDay ? "text-emerald-900" : "text-gray-700"}`}>
+                                  Mark Entire Day as Free
+                                </label>
+                                <span className={`text-xs ${watchedIsFreeDay ? "text-emerald-700" : "text-gray-500"}`}>
+                                  Check this if you have absolutely no work or projects assigned for today. This will bypass project entry.
+                                </span>
+                              </div>
                             </div>
+                            
+                            {isLead && (
+                              <div 
+                                className={`flex items-start space-x-3 p-4 rounded-xl border transition-all cursor-pointer ${watchedIsLeadWorkDay ? "bg-purple-50 border-purple-200 shadow-sm" : "bg-gray-50/50 border-gray-200 hover:bg-gray-50 hover:border-gray-300"}`}
+                                onClick={() => {
+                                  const checked = !watchedIsLeadWorkDay;
+                                  draftForm.setValue("isLeadWorkDay", checked);
+                                  if (checked) {
+                                    draftForm.setValue("isFreeDay", false);
+                                    draftForm.setValue("entries", []);
+                                    draftForm.clearErrors("root");
+                                  } else if (!draftForm.getValues("isFreeDay")) {
+                                    draftForm.setValue("entries", [{ project: "", hours: 0, minutes: 0, description: "" }]);
+                                  }
+                                }}
+                              >
+                                <Checkbox
+                                  id="leadWorkDay"
+                                  checked={watchedIsLeadWorkDay}
+                                  onCheckedChange={(checked) => {
+                                    draftForm.setValue("isLeadWorkDay", !!checked);
+                                    if (checked) {
+                                      draftForm.setValue("isFreeDay", false);
+                                      draftForm.setValue("entries", []);
+                                      draftForm.clearErrors("root");
+                                    } else if (!draftForm.getValues("isFreeDay")) {
+                                      draftForm.setValue("entries", [{ project: "", hours: 0, minutes: 0, description: "" }]);
+                                    }
+                                  }}
+                                  className={`mt-0.5 ${watchedIsLeadWorkDay ? "data-[state=checked]:bg-purple-600 border-purple-400" : ""}`}
+                                />
+                                <div className="flex flex-col gap-1.5">
+                                  <label htmlFor="leadWorkDay" className={`text-sm font-semibold leading-none cursor-pointer ${watchedIsLeadWorkDay ? "text-purple-900" : "text-gray-700"}`}>
+                                    Mark Entire Day as Lead Work
+                                  </label>
+                                  <span className={`text-xs ${watchedIsLeadWorkDay ? "text-purple-700" : "text-gray-500"}`}>
+                                    Check this if you spent the entire day doing internal management or lead activities.
+                                  </span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
 
-                        {!watchedIsFreeDay && fields.map((field, index) => (
+                        {!watchedIsFreeDay && !watchedIsLeadWorkDay && fields.map((field, index) => (
                           <div 
                             key={field.id}
                             className="p-5 rounded-xl border border-gray-200 bg-gray-50/50 relative group transition-all hover:border-gray-300 hover:shadow-sm"
@@ -1187,7 +1251,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                                            <ProjectSelectCombobox
                                              value={field.value}
                                              onChange={field.onChange}
-                                             watchedEntries={watchedEntries}
+                                             watchedEntries={watchedEntries || []}
                                              currentIndex={index}
                                              projects={projectsData?.data || []}
                                              allProjectsMap={allProjectsMap}
@@ -1337,7 +1401,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                       </div>
                       
                       <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-4">
-                        {!watchedIsFreeDay ? (
+                        {(!watchedIsFreeDay && !watchedIsLeadWorkDay) ? (
                           <>
                             <Button
                               type="button"
@@ -1375,7 +1439,7 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
                             className="bg-primary-600 hover:bg-primary-700 text-white shadow-sm min-w-[150px]"
                           >
                             {submittingAction !== null ? <Loader className="w-4 h-4 mr-2" /> : null}
-                            Submit Free Day
+                            Submit
                           </Button>
                         )}
                       </div>
@@ -1396,22 +1460,61 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
 
                   {needsAllocations ? (
                     <div className="space-y-5">
-                      <div className="flex items-center space-x-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100 hover:bg-blue-50 transition-colors shadow-sm mb-6">
+                      <div 
+                        className={`flex items-start space-x-3 p-4 rounded-xl border transition-all shadow-sm mb-6 cursor-pointer ${isReviewFree ? "bg-blue-50/80 border-blue-200" : "bg-gray-50/50 border-gray-200 hover:bg-gray-50"}`}
+                        onClick={() => {
+                          setIsReviewFree(!isReviewFree);
+                          if (!isReviewFree) setIsReviewLeadWork(false);
+                        }}
+                      >
                         <Checkbox
                           id="reviewFreeDay"
                           checked={isReviewFree}
-                          onCheckedChange={(checked) => setIsReviewFree(!!checked)}
-                          className="w-5 h-5 border-blue-300 data-[state=checked]:bg-blue-600"
+                          onCheckedChange={(checked) => {
+                            setIsReviewFree(!!checked);
+                            if (checked) setIsReviewLeadWork(false);
+                          }}
+                          className={`mt-0.5 w-5 h-5 ${isReviewFree ? "data-[state=checked]:bg-blue-600 border-blue-400" : ""}`}
                         />
-                        <div className="flex flex-col">
-                          <label htmlFor="reviewFreeDay" className="text-sm font-semibold leading-none cursor-pointer text-blue-900">
-                            Free (No work assigned in remaining hours)
+                        <div className="flex flex-col gap-1.5">
+                          <label htmlFor="reviewFreeDay" className={`text-sm font-semibold leading-none cursor-pointer ${isReviewFree ? "text-blue-900" : "text-gray-700"}`}>
+                            Mark Remaining Hours as Free
                           </label>
-                          <span className="text-xs text-blue-700 mt-1">Check this if you have no other work for today. Remaining hours will be marked as Free.</span>
+                          <span className={`text-xs ${isReviewFree ? "text-blue-700" : "text-gray-500"}`}>
+                            Check this if you've finished all assigned work for the day and the remaining unlogged hours were unassigned.
+                          </span>
                         </div>
                       </div>
 
-                      {!isReviewFree && (
+                      {isLead && (
+                        <div 
+                          className={`flex items-start space-x-3 p-4 rounded-xl border transition-all shadow-sm mb-6 cursor-pointer ${isReviewLeadWork ? "bg-purple-50/80 border-purple-200" : "bg-gray-50/50 border-gray-200 hover:bg-gray-50"}`}
+                          onClick={() => {
+                            setIsReviewLeadWork(!isReviewLeadWork);
+                            if (!isReviewLeadWork) setIsReviewFree(false);
+                          }}
+                        >
+                          <Checkbox
+                            id="reviewLeadWork"
+                            checked={isReviewLeadWork}
+                            onCheckedChange={(checked) => {
+                              setIsReviewLeadWork(!!checked);
+                              if (checked) setIsReviewFree(false);
+                            }}
+                            className={`mt-0.5 w-5 h-5 ${isReviewLeadWork ? "data-[state=checked]:bg-purple-600 border-purple-400" : ""}`}
+                          />
+                          <div className="flex flex-col gap-1.5">
+                            <label htmlFor="reviewLeadWork" className={`text-sm font-semibold leading-none cursor-pointer ${isReviewLeadWork ? "text-purple-900" : "text-gray-700"}`}>
+                              Mark Remaining Hours as Lead Work
+                            </label>
+                            <span className={`text-xs ${isReviewLeadWork ? "text-purple-700" : "text-gray-500"}`}>
+                              Check this if you spent the remaining unlogged hours doing internal management or lead activities.
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {(!isReviewFree && !isReviewLeadWork) && (
                         <>
                           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">

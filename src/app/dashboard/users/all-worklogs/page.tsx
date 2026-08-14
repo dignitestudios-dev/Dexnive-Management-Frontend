@@ -4,9 +4,11 @@ import { Loader } from "@/components/ui/loader";
 import { useState } from "react";
 import { formatDay, formatDayRange, startOfMonthKey, todayKey } from "@/lib/datetime";
 import { useGetAllWorklogsQuery } from "@/features/worklogs/api/worklogs.queries";
-import { useGetUsersQuery } from "@/features/users/api/users.queries";
+import { useDeleteWorklogMutation } from "@/features/worklogs/api/worklogs.mutations";
+import { useGetUsersQuery, useGetMyUserQuery } from "@/features/users/api/users.queries";
 import { useGetProjectsQuery } from "@/features/projects/api/projects.queries";
-import { Search, FileText } from "lucide-react";
+import { Search, FileText, Trash2, Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -56,6 +58,11 @@ function AllWorklogsContent() {
 
   const { data: usersData } = useGetUsersQuery({ limit: 100 });
   const { data: projectsData } = useGetProjectsQuery({ limit: 100 });
+  const { data: myUserData } = useGetMyUserQuery();
+  const isAdmin = typeof myUserData?.data?.role === "object" ? myUserData?.data?.role?.name?.toLowerCase() === "admin" : false;
+  
+  const [deleteDialogData, setDeleteDialogData] = useState<{ id: string; userName: string; date: string } | null>(null);
+  const deleteWorklogMutation = useDeleteWorklogMutation();
 
   const { data: worklogsData, isLoading, isError, refetch } = useGetAllWorklogsQuery({
     user: appliedFilters.user && appliedFilters.user !== "all" ? appliedFilters.user : undefined,
@@ -387,10 +394,11 @@ function AllWorklogsContent() {
                   <th className="px-6 py-4">Logged Hours</th>
                   <th className="px-6 py-4">Billable</th>
                   <th className="px-6 py-4">Non-Billable</th>
+                  {isAdmin && <th className="px-6 py-4 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {worklogsData?.data.map((log) => (
+                {worklogsData?.data.map((log: any) => (
                   <tr key={log._id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-medium text-gray-900">{log.user?.name || "Unknown"}</div>
@@ -416,6 +424,18 @@ function AllWorklogsContent() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-amber-600 font-medium">{formatMins(log.totalNonBillableMinutes)}</td>
+                    {isAdmin && (
+                      <td className="px-6 py-4 text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteDialogData({ id: log._id, userName: log.user?.name || "Unknown", date: formatDay(log.shiftDate) })}
+                          className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -423,6 +443,55 @@ function AllWorklogsContent() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!deleteDialogData} onOpenChange={(open) => !open && setDeleteDialogData(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              Delete Worklog
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-600 mb-4">Are you sure you want to delete this worklog? This action cannot be undone.</p>
+            <div className="bg-gray-50 border border-gray-100 rounded-lg p-4 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-500">User:</span>
+                <span className="text-sm text-gray-900 font-medium">{deleteDialogData?.userName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-500">Date:</span>
+                <span className="text-sm text-gray-900 font-medium">{deleteDialogData?.date}</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogData(null)} disabled={deleteWorklogMutation.isPending}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                if (!deleteDialogData) return;
+                deleteWorklogMutation.mutate(deleteDialogData.id, {
+                  onSuccess: () => {
+                    toast.success("Worklog deleted successfully");
+                    setDeleteDialogData(null);
+                    refetch();
+                  },
+                  onError: (err: any) => {
+                    toast.error(err.message || "Failed to delete worklog");
+                  }
+                });
+              }}
+              disabled={deleteWorklogMutation.isPending}
+            >
+              {deleteWorklogMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Delete Worklog
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

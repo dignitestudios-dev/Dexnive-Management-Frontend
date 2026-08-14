@@ -24,12 +24,13 @@ import {
   ChevronRight,
   ChevronDown,
   LockKeyhole,
-  BarChart3
+  BarChart3,
+  Edit
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 export function Sidebar() {
-  const { isAdmin, isFullManager, canManageProjects, hasFinancialAccess } = useAuth();
+  const { isAdmin, isFullManager, canManageProjects, hasFinancialAccess, isLead } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -44,6 +45,7 @@ export function Sidebar() {
     reports: true,
     ops: true,
     settings: true,
+    leadWorkspace: true,
   });
 
   // Load collapse state from localStorage on mount
@@ -142,6 +144,42 @@ export function Sidebar() {
             </>
           )}
         </div>
+
+        {/* Lead Workspace Group — Only for Leads */}
+        {isLead && (
+          <SidebarGroup
+            label="My Workspace (Lead)"
+            isOpen={groupsOpen.leadWorkspace}
+            onToggle={() => toggleGroup("leadWorkspace" as any)}
+            isCollapsed={isCollapsed}
+            isActive={isGroupActive(["/dashboard/daily-log", "/dashboard/my-timesheet", "/dashboard/history"])}
+          >
+            <SidebarLink
+              icon={<Edit className="w-4 h-4" />}
+              label="Log Work"
+              href="/dashboard/daily-log"
+              active={pathname === "/dashboard/daily-log"}
+              isCollapsed={isCollapsed}
+              nested
+            />
+            <SidebarLink
+              icon={<CalendarDays className="w-4 h-4" />}
+              label="My Timesheet"
+              href="/dashboard/my-timesheet"
+              active={pathname === "/dashboard/my-timesheet"}
+              isCollapsed={isCollapsed}
+              nested
+            />
+            <SidebarLink
+              icon={<History className="w-4 h-4" />}
+              label="Logs History"
+              href="/dashboard/history"
+              active={pathname === "/dashboard/history"}
+              isCollapsed={isCollapsed}
+              nested
+            />
+          </SidebarGroup>
+        )}
 
         {/* Team Management Group — Admin & Lead */}
         {isFullManager && (
