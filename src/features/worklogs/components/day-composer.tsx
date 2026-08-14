@@ -349,7 +349,6 @@ export function DayComposer({
               setNoteDialogOpen(true);
               return;
             }
-            toast.success("Day backfilled and submitted.");
             refetch();
             onCompleted?.();
           },
@@ -382,7 +381,6 @@ export function DayComposer({
         onSuccess: () => {
           setPendingAction(null);
           setNoteDialogOpen(false);
-          toast.success("Worklog submitted and locked.");
           refetch();
           onCompleted?.();
         },

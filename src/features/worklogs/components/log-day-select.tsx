@@ -12,8 +12,6 @@ import {
 } from "@/components/ui/select";
 import { DATE_FORMATS, dayKey, formatDay, todayKey } from "@/lib/datetime";
 
-import { useGetMyMissingEntriesQuery } from "../api/worklogs.queries";
-
 /**
  * Chooses which day to log.
  *
@@ -21,35 +19,26 @@ import { useGetMyMissingEntriesQuery } from "../api/worklogs.queries";
  * and their own outstanding missing days — everything else is rejected by the
  * API (before the worklog system start date, a weekend, a holiday, or a day
  * already submitted). The missing-entries endpoint already applies all of those
- * rules, including the user's joining date, so its response is used verbatim as
- * the option list rather than being re-derived here.
+ * rules, including the user's joining date, so its response is used verbatim
+ * rather than being re-derived here.
  *
  * Renders as static text when today is the only option, so there's no dropdown
  * that can't go anywhere.
  */
 export function LogDaySelect({
   value,
+  missingDays,
   onChange,
 }: {
   value: string;
+  /** Outstanding days, oldest first. From toMissingDays(). */
+  missingDays: string[];
   onChange: (day: string) => void;
 }) {
-  // No range passed: the backend defaults to (effective start date → yesterday),
-  // which already accounts for joining date and the system start date.
-  const { data: missingData } = useGetMyMissingEntriesQuery();
-
   const today = todayKey();
-
-  const missingDays = (missingData?.data ?? [])
-    .map((entry: any) => dayKey(typeof entry === "string" ? entry : entry?.shiftDate))
-    .filter((day): day is string => !!day && day !== "null" && day < today)
-    .sort()
-    .reverse();
-
-  const hasMissing = missingDays.length > 0;
   const selected = dayKey(value) || today;
 
-  if (!hasMissing) {
+  if (missingDays.length === 0) {
     return (
       <div className="flex items-center gap-2 text-sm text-gray-700">
         <CalendarDays className="w-4 h-4 text-primary-600 shrink-0" />
@@ -62,7 +51,7 @@ export function LogDaySelect({
   }
 
   return (
-    <div className="flex flex-col items-end gap-1.5">
+    <div className="flex flex-col items-stretch sm:items-end gap-1.5">
       <Select value={selected} onValueChange={(next) => next && onChange(next)}>
         <SelectTrigger className="w-full sm:w-[260px] h-10 bg-white border-gray-200">
           <SelectValue />

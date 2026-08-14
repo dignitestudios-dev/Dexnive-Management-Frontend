@@ -46,10 +46,7 @@ export function MissingDayReasonCard({
       mutation.mutate(
         { shiftDate, reason: "absent" },
         {
-          onSuccess: () => {
-            toast.success("Day marked as absent.");
-            onResolved?.();
-          },
+          onSuccess: () => onResolved?.(),
           onError: (error: any) =>
             toast.error(error?.message || "Failed to save reason"),
         },
@@ -66,10 +63,7 @@ export function MissingDayReasonCard({
       mutation.mutate(
         { shiftDate, reason: "other", note: trimmed },
         {
-          onSuccess: () => {
-            toast.success("Reason saved.");
-            onResolved?.();
-          },
+          onSuccess: () => onResolved?.(),
           onError: (error: any) =>
             toast.error(error?.message || "Failed to save reason"),
         },
