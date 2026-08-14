@@ -60,7 +60,11 @@ import { NonProjectTimeCard } from "./non-project-time-card";
 import { ProjectSelectCombobox } from "./project-select-combobox";
 import { UnassignedNoteDialog } from "./unassigned-note-dialog";
 import { DayResultPanel } from "./day-result-panel";
-import { DayModeChooser, type DayMode } from "./day-mode-chooser";
+import {
+  DayModeChooser,
+  type DayMode,
+  type WholeDayMode,
+} from "./day-mode-chooser";
 
 /* ==========================================================================
  * Form schema — mirrors the server's accepted shape, with the balance rule
@@ -384,9 +388,8 @@ export function DayComposer({
    * Save, then lock. A backfill of a past day goes through the missing-entry
    * endpoint instead, which auto-submits unless it leaves unassigned time.
    */
-  const onSaveAndSubmit = form.handleSubmit((values) => {
+  const saveAndSubmit = (payload: SaveDraftPayload) => {
     setPendingAction("submit");
-    const payload = buildPayload(values as ComposerValues);
 
     if (missingReason === "forgot") {
       submitMissingReasonMutation.mutate(
@@ -431,7 +434,29 @@ export function DayComposer({
       },
       onError: handleError,
     });
-  });
+  };
+
+  const onSaveAndSubmit = form.handleSubmit((values) =>
+    saveAndSubmit(buildPayload(values as ComposerValues)),
+  );
+
+  /**
+   * Submit a whole day of non-project time straight from the chooser. There is
+   * nothing else to collect, so this skips the composer entirely — the
+   * confirmation lives in the chooser, since submitting locks the day.
+   */
+  const submitWholeDay = (wholeDayMode: WholeDayMode) => {
+    // Deliberately does not set `mode`: the chooser stays mounted for the whole
+    // request, so its dialog can show progress, and a failure leaves the user
+    // exactly where they were with the error toast — nothing half-applied.
+    // On success the refetched submission drives the switch to the locked view.
+    saveAndSubmit({
+      shiftDate: day,
+      entries: [],
+      freeMinutes: wholeDayMode === "free" ? STANDARD_WORK_MINUTES : 0,
+      leadWorkMinutes: wholeDayMode === "leadWork" ? STANDARD_WORK_MINUTES : 0,
+    });
+  };
 
   const submitDay = (unassignedNonBillableNote?: string) => {
     setPendingAction("submit");
@@ -471,7 +496,9 @@ export function DayComposer({
       <DayModeChooser
         shiftDate={day}
         canLogLeadWork={isLead}
-        onChoose={chooseMode}
+        isSubmitting={pendingAction === "submit"}
+        onChooseProjects={() => chooseMode("projects")}
+        onSubmitWholeDay={submitWholeDay}
       />
     );
   }
@@ -563,7 +590,7 @@ export function DayComposer({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => chooseMode("free")}
+                  onClick={() => setMode(null)}
                   disabled={isBusy}
                   className="h-8 text-xs font-medium text-gray-500 hover:text-gray-800"
                 >
