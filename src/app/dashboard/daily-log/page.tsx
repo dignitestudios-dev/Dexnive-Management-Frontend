@@ -11,13 +11,16 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 function DailyLogContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isFullManager } = useAuth();
+  const { isAdmin } = useAuth();
 
+  // Admins don't file their own worklogs. Leads do — they have a Lead-only
+  // leadWorkMinutes input, and may backfill a missed day via the "forgot"
+  // reason — so they must not be redirected away from their own worklog pages.
   useEffect(() => {
-    if (isFullManager) {
+    if (isAdmin) {
       router.push("/dashboard");
     }
-  }, [isFullManager, router]);
+  }, [isAdmin, router]);
   const rawDate = searchParams.get("date");
   const date = (rawDate === "null" || rawDate === "") ? undefined : rawDate || undefined;
 

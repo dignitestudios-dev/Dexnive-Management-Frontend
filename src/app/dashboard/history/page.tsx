@@ -31,13 +31,16 @@ function MyWorklogsHistoryContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const { isFullManager } = useAuth();
+  const { isAdmin } = useAuth();
 
+  // Admins don't file their own worklogs. Leads do — they have a Lead-only
+  // leadWorkMinutes input, and may backfill a missed day via the "forgot"
+  // reason — so they must not be redirected away from their own worklog pages.
   useEffect(() => {
-    if (isFullManager) {
+    if (isAdmin) {
       router.push("/dashboard");
     }
-  }, [isFullManager, router]);
+  }, [isAdmin, router]);
 
   const formatMins = (mins: number) => {
     const h = Math.floor(mins / 60);

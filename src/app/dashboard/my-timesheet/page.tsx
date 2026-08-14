@@ -32,15 +32,18 @@ import { WorklogDescription } from "@/features/worklogs/components/worklog-descr
 
 export default function MyTimesheetPage() {
   const router = useRouter();
-  const { user, isFullManager } = useAuth();
+  const { user, isAdmin } = useAuth();
   const deptName = user?.department && typeof user.department === "object" ? user.department.name : "";
   const isBackendDept = deptName ? deptName.toLowerCase() === "backend" : false;
 
+  // Admins don't file their own worklogs. Leads do — they have a Lead-only
+  // leadWorkMinutes input, and may backfill a missed day via the "forgot"
+  // reason — so they must not be redirected away from their own worklog pages.
   useEffect(() => {
-    if (isFullManager) {
+    if (isAdmin) {
       router.push("/dashboard");
     }
-  }, [isFullManager, router]);
+  }, [isAdmin, router]);
 
   const [currentMonth, setCurrentMonth] = useState(appNow);
   const [selectedDay, setSelectedDay] = useState<any>(null);
