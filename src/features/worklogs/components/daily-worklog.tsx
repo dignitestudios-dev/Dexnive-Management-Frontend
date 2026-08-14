@@ -8,7 +8,7 @@ import { dayKey, todayKey } from "@/lib/datetime";
 
 import { useGetMyWorklogByDateQuery } from "../api/worklogs.queries";
 import { DayComposer } from "./day-composer";
-import { LogDatePicker } from "./log-date-picker";
+import { LogDaySelect } from "./log-day-select";
 import { MissingDayReasonCard } from "./missing-day-reason-card";
 
 /**
@@ -47,16 +47,16 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
 
   return (
     <div className="w-full space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
             Logging for
           </p>
           <p className="text-sm text-gray-500 mt-0.5">
-            Pick another date to log or backfill a day you missed.
+            Today, or a day you still owe.
           </p>
         </div>
-        <LogDatePicker value={day} onChange={goToDay} className="min-w-[210px]" />
+        <LogDaySelect value={day} onChange={goToDay} />
       </div>
 
       {isLoading ? (
