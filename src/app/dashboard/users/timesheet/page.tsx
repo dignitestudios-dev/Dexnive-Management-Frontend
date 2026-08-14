@@ -4,6 +4,8 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { format, startOfMonth, endOfMonth, subMonths, addMonths, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth } from "date-fns";
 import { DATE_FORMATS, dayKey, formatDay, isToday, parseMonthParam } from "@/lib/datetime";
+import { EMPTY_DAY_STATUS, getDayStatusConfig } from "@/features/worklogs/lib/timesheet-status";
+import { TimesheetDayExtras } from "@/features/worklogs/components/timesheet-day-extras";
 import { 
   CalendarDays, 
   ChevronLeft, 
@@ -14,6 +16,7 @@ import {
   Coffee,
   CalendarCheck,
   Palmtree,
+  FileQuestion,
   User as UserIcon
 } from "lucide-react";
 
@@ -108,17 +111,6 @@ function TimesheetContent() {
     return `${h}h ${m}m`;
   };
 
-  const getStatusConfig = (status: string) => {
-    switch(status) {
-      case "present": return { color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CalendarCheck, label: "Logged" };
-      case "submitted": return { color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CalendarCheck, label: "Logged" };
-      case "draft": return { color: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock, label: "Draft" };
-      case "holiday": return { color: "bg-blue-50 text-blue-700 border-blue-200", icon: Palmtree, label: "Holiday" };
-      case "weekend": return { color: "bg-gray-50 text-gray-500 border-gray-200", icon: Coffee, label: "Weekend" };
-      case "absent": return { color: "bg-red-50 text-red-700 border-red-200", icon: AlertCircle, label: "Absent" };
-      default: return { color: "bg-gray-50 text-gray-600 border-gray-200", icon: Clock, label: "Pending" };
-    }
-  };
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -260,7 +252,7 @@ function TimesheetContent() {
                 const isCurrentMonth = isSameMonth(date, currentMonth);
                 const isTodayDate = isToday(date);
                 
-                const config = dayData ? getStatusConfig(dayData.status) : { color: "bg-transparent text-transparent border-transparent", icon: null, label: "" };
+                const config = dayData ? getDayStatusConfig(dayData.status) : EMPTY_DAY_STATUS;
                 const Icon = config.icon;
 
                 return (
@@ -333,8 +325,8 @@ function TimesheetContent() {
               <div className="flex items-center justify-between mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
                 <div>
                   <p className="text-sm text-gray-500 font-medium mb-1">Status</p>
-                  <Badge variant="outline" className={`${getStatusConfig(selectedDay.status).color} px-2 py-0.5`}>
-                    {getStatusConfig(selectedDay.status).label}
+                  <Badge variant="outline" className={`${getDayStatusConfig(selectedDay.status).color} px-2 py-0.5`}>
+                    {getDayStatusConfig(selectedDay.status).label}
                   </Badge>
                 </div>
                 {selectedDay.workedMinutes > 0 && (
@@ -351,6 +343,8 @@ function TimesheetContent() {
                   </div>
                 )}
               </div>
+
+              <TimesheetDayExtras day={selectedDay} />
 
               {selectedDay.projects?.length > 0 ? (
                 <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
@@ -407,6 +401,16 @@ function TimesheetContent() {
                     {!selectedDay.missingReason && !selectedDay.missingNote && (
                       <p className="text-sm text-red-700 mt-1">No time was logged for this date.</p>
                     )}
+                  </div>
+                </div>
+              ): selectedDay.status === "other" ? (
+                <div className="bg-violet-50 border border-violet-100 p-4 rounded-lg flex items-start gap-3">
+                  <FileQuestion className="w-5 h-5 text-violet-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-violet-900">Excused</p>
+                    <p className="text-sm text-violet-700 mt-1">
+                      {selectedDay.missingNote || "A reason was filed for this day."}
+                    </p>
                   </div>
                 </div>
               ) : selectedDay.status === "weekend" ? (
