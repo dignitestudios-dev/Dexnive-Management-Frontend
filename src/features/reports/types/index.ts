@@ -28,6 +28,13 @@ export interface ReportMetrics {
   totalBillingAmount?: number;
   billableHours?: number;
   nonBillableHours?: number;
+  /**
+   * Summed from freeMinutes/leadWorkMinutes on every submitted
+   * WorklogSubmission in range — including a Lead's zero-entry whole days.
+   * Distinct from absentHours, which comes from missing-entry records only.
+   */
+  freeHours?: number;
+  leadWorkHours?: number;
   totalWorkingDays?: number;
   activeEmployeesCount?: number;
 }

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { appNow } from "@/lib/datetime";
-import { format, startOfMonth } from "date-fns";
+import { startOfMonthKey, todayKey } from "@/lib/datetime";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader } from "@/components/ui/loader";
@@ -28,13 +27,15 @@ import {
   AlertCircle,
   FileBarChart,
   Download,
+  Coffee,
+  ShieldCheck,
 } from "lucide-react";
 import { useGetProjectHoursBreakdownQuery } from "@/features/reports/api/reports.queries";
 import XLSX from "xlsx-js-style";
 
 export default function ReportsPage() {
-  const defaultStartDate = format(startOfMonth(new Date()), "yyyy-MM-dd");
-  const defaultEndDate = format(new Date(), "yyyy-MM-dd");
+  const defaultStartDate = startOfMonthKey(todayKey());
+  const defaultEndDate = todayKey();
 
   const [appliedStartDate, setAppliedStartDate] = useState<string>(defaultStartDate);
   const [appliedEndDate, setAppliedEndDate] = useState<string>(defaultEndDate);
@@ -371,7 +372,7 @@ export default function ReportsPage() {
       {!isLoading && !error && (
         <div className="space-y-6">
           {/* Sleek Metrics Ribbon displaying the 6 exact Backend Metrics */}
-          <div className="bg-white border border-gray-300 rounded-2xl shadow-sm overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="bg-white border border-gray-300 rounded-2xl shadow-sm overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200 grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8">
             <RibbonMetric
               title="TOTAL HOURS"
               value={(metrics?.totalHours ?? metrics?.totalWorkedHours ?? overallHoursTotal).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
@@ -399,6 +400,20 @@ export default function ReportsPage() {
               subtext={subtext}
               icon={<UserX className="w-3.5 h-3.5" />}
               colorTheme="red"
+            />
+            <RibbonMetric
+              title="FREE HOURS"
+              value={(metrics?.freeHours ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              subtext={subtext}
+              icon={<Coffee className="w-3.5 h-3.5" />}
+              colorTheme="sky"
+            />
+            <RibbonMetric
+              title="LEAD WORK HOURS"
+              value={(metrics?.leadWorkHours ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              subtext={subtext}
+              icon={<ShieldCheck className="w-3.5 h-3.5" />}
+              colorTheme="violet"
             />
             <RibbonMetric
               title="WORKING DAYS"
@@ -531,7 +546,7 @@ interface RibbonMetricProps {
   value: string | number;
   subtext: string;
   icon: React.ReactNode;
-  colorTheme: "purple" | "emerald" | "amber" | "blue" | "indigo" | "red";
+  colorTheme: "purple" | "emerald" | "amber" | "blue" | "indigo" | "red" | "sky" | "violet";
 }
 
 function RibbonMetric({
@@ -548,6 +563,8 @@ function RibbonMetric({
     blue: "bg-blue-50 text-blue-600 border-blue-100/70",
     indigo: "bg-indigo-50 text-indigo-600 border-indigo-100/70",
     red: "bg-red-50 text-red-600 border-red-100/70",
+    sky: "bg-sky-50 text-sky-600 border-sky-100/70",
+    violet: "bg-violet-50 text-violet-600 border-violet-100/70",
   };
 
   const currentThemeClass = themeClasses[colorTheme];
