@@ -46,6 +46,26 @@ export interface UserRef {
   employeeCode?: string;
 }
 
+/** Difficulty of a single task. Case-sensitive enum on the server. */
+export const TASK_DIFFICULTIES = ["LOW", "MEDIUM", "HIGH"] as const;
+export type TaskDifficulty = (typeof TASK_DIFFICULTIES)[number];
+
+/** Most tasks the API accepts on one entry. */
+export const MAX_TASKS_PER_ENTRY = 50;
+
+/**
+ * One row of a project entry's structured breakdown.
+ *
+ * `module` is uppercased server-side on every write (a zod transform plus the
+ * Mongoose schema), so a response never echoes back the casing that was sent —
+ * treat module names as uppercase throughout the UI.
+ */
+export interface TaskBreakdown {
+  module: string;
+  task: string;
+  difficulty: TaskDifficulty;
+}
+
 /* ==========================================================================
  * Entities
  * ========================================================================== */
@@ -68,6 +88,12 @@ export interface WorklogEntry {
   nonBillableHours?: number;
   overtimeMinutes: number;
   overtimeHours?: number;
+  tasks?: TaskBreakdown[];
+  /**
+   * Legacy freeform note. The API still accepts it as an alternative to
+   * `tasks`, but this app always logs structured tasks — so this only ever
+   * appears on entries created before the switch. Read-only in practice.
+   */
   description?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -115,10 +141,18 @@ export interface WorklogSubmission {
  * Requests — draft & submit
  * ========================================================================== */
 
+/**
+ * One project's time on the wire.
+ *
+ * The API requires exactly one of `description` or a non-empty `tasks` per
+ * entry (422 on both-or-neither). This app always sends `tasks`, so
+ * `description` is intentionally absent from this type — that constraint is
+ * satisfied by construction rather than by a runtime check.
+ */
 export interface WorklogEntryPayload {
   project: string;
   minutes: number;
-  description?: string;
+  tasks: TaskBreakdown[];
 }
 
 /**
@@ -237,6 +271,8 @@ export interface TimesheetProjectRow {
   billableMinutes: number;
   nonBillableMinutes: number;
   overtimeMinutes: number;
+  tasks?: TaskBreakdown[];
+  /** Legacy freeform note on pre-existing entries. */
   description?: string | null;
 }
 

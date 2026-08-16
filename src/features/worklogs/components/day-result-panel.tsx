@@ -17,10 +17,8 @@ import type { WorklogEntry, WorklogSubmission } from "../types";
  */
 export function DayResultPanel({
   worklog,
-  isBackendUser,
 }: {
   worklog: WorklogSubmission;
-  isBackendUser: boolean;
 }) {
   const entries = worklog.entries ?? [];
 
@@ -98,7 +96,7 @@ export function DayResultPanel({
           </div>
           <div className="divide-y divide-gray-100">
             {entries.map((entry) => (
-              <EntryRow key={entry._id} entry={entry} isBackendUser={isBackendUser} />
+              <EntryRow key={entry._id} entry={entry} />
             ))}
           </div>
         </Card>
@@ -107,13 +105,7 @@ export function DayResultPanel({
   );
 }
 
-function EntryRow({
-  entry,
-  isBackendUser,
-}: {
-  entry: WorklogEntry;
-  isBackendUser: boolean;
-}) {
+function EntryRow({ entry }: { entry: WorklogEntry }) {
   const projectName =
     typeof entry.project === "object" ? entry.project?.name : "Project";
 
@@ -144,9 +136,9 @@ function EntryRow({
         </div>
       </div>
 
-      {entry.description && (
+      {(entry.tasks?.length || entry.description) && (
         <div className="mt-3">
-          <WorklogDescription description={entry.description} isBackend={isBackendUser} />
+          <WorklogDescription tasks={entry.tasks} description={entry.description} />
         </div>
       )}
     </div>

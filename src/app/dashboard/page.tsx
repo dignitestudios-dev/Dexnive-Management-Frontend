@@ -40,7 +40,6 @@ import {
 export default function DashboardPage() {
   const router = useRouter();
   const { user, isFullManager } = useAuth();
-  const isBackendDept = user?.department?.name?.toLowerCase() === 'backend';
   const todayDateStr = todayKey();
   
   const { data: dailyWorklogData, isLoading } = useGetMyWorklogByDateQuery(todayDateStr);
@@ -296,10 +295,10 @@ export default function DashboardPage() {
                               {formatMins(entry.loggedMinutes)}
                             </span>
                           </div>
-                          {entry.description && (
-                            <WorklogDescription 
+                          {(entry.tasks?.length || entry.description) && (
+                            <WorklogDescription
+                              tasks={entry.tasks}
                               description={entry.description}
-                              isBackend={isBackendDept}
                               className="mt-1"
                               lineClamp={2}
                             />

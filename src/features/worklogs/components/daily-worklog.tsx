@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { Loader } from "@/components/ui/loader";
 import { DATE_FORMATS, dayKey, formatDay, todayKey } from "@/lib/datetime";
 
-import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
   useGetMyMissingEntriesQuery,
   useGetMyWorklogByDateQuery,
@@ -30,7 +29,6 @@ import { MissingDayReasonCard } from "./missing-day-reason-card";
  */
 export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   const router = useRouter();
-  const { isLead } = useAuth();
 
   const day = (defaultDate ? dayKey(defaultDate) : "") || todayKey();
   const isPastDay = day < todayKey();
@@ -74,16 +72,10 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
     router.push("/dashboard");
   };
 
-  /**
-   * Ask why the day is empty before letting it be filled in.
-   *
-   * Skipped for Leads: "forgot" is the only reason the API accepts from them,
-   * so a one-option question is pure friction — and its wording ("I worked, I
-   * just forgot") is wrong for a Lead whose day was entirely free or lead work.
-   * They go straight to the composer, which asks how the day went and offers
-   * free / lead work / projects.
-   */
-  const needsReason = isPastDay && !hasSubmission && !backfilling && !isLead;
+  // Ask why the day is empty before letting it be filled in. Applies to every
+  // role — only Admin is exempt from daily worklogs now, and Admins don't reach
+  // this page at all.
+  const needsReason = isPastDay && !hasSubmission && !backfilling;
 
   return (
     <div className="w-full space-y-5">

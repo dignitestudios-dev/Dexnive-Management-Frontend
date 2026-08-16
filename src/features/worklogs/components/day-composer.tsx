@@ -28,7 +28,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Loader } from "@/components/ui/loader";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DATE_FORMATS, dayKey, formatDay, todayKey } from "@/lib/datetime";
 
@@ -40,7 +39,7 @@ import {
   useSubmitMissingReasonMutation,
   useSubmitWorklogMutation,
 } from "../api/worklogs.mutations";
-import type { SaveDraftPayload, WorklogSubmission } from "../types";
+import { MAX_TASKS_PER_ENTRY, type SaveDraftPayload, type WorklogSubmission } from "../types";
 import {
   STANDARD_WORK_MINUTES,
   clampNonProjectTime,
@@ -48,13 +47,7 @@ import {
   formatMinutes,
   validateDayBalance,
 } from "../lib/day-balance";
-import {
-  EMPTY_BACKEND_TASK,
-  parseBackendTasks,
-  serializeBackendTasks,
-} from "../lib/backend-tasks";
-
-import { BackendTaskFields } from "./backend-task-fields";
+import { TaskBreakdownFields, EMPTY_TASK } from "./task-breakdown-fields";
 import { DayBudgetBar } from "./day-budget-bar";
 import { NonProjectTimeCard } from "./non-project-time-card";
 import { ProjectSelectCombobox } from "./project-select-combobox";
@@ -75,16 +68,19 @@ const entrySchema = z.object({
   project: z.string().min(1, "Pick a project"),
   hours: z.coerce.number().min(0).max(24),
   minutes: z.coerce.number().min(0).max(59),
-  description: z.string().optional(),
-  backendTasks: z
+  // Every entry carries a structured breakdown. The API wants exactly one of
+  // description / tasks and this app always chooses tasks, so `description` is
+  // not part of the form at all.
+  tasks: z
     .array(
       z.object({
-        module: z.string().min(1, "Module is required"),
-        task: z.string().min(1, "Task description is required"),
-        difficulty: z.string().min(1, "Required"),
+        module: z.string().trim().min(1, "Module is required").max(200),
+        task: z.string().trim().min(1, "Task is required").max(500),
+        difficulty: z.enum(["LOW", "MEDIUM", "HIGH"]),
       }),
     )
-    .optional(),
+    .min(1, "Add at least one task")
+    .max(MAX_TASKS_PER_ENTRY, `Up to ${MAX_TASKS_PER_ENTRY} tasks per project`),
 });
 
 /**
@@ -134,12 +130,11 @@ const makeComposerSchema = (canLogLeadWork: boolean) =>
 
 type ComposerValues = z.input<ReturnType<typeof makeComposerSchema>>;
 
-const blankEntry = (isBackendUser: boolean) => ({
+const blankEntry = () => ({
   project: "",
   hours: 0,
   minutes: 0,
-  description: "",
-  ...(isBackendUser ? { backendTasks: [{ ...EMPTY_BACKEND_TASK }] } : {}),
+  tasks: [{ ...EMPTY_TASK }],
 });
 
 /* ==========================================================================
@@ -156,12 +151,7 @@ export function DayComposer({
   missingReason?: "forgot";
   onCompleted?: () => void;
 }) {
-  const { user, isLead } = useAuth();
-
-  const isBackendUser =
-    !!user?.department &&
-    typeof user.department === "object" &&
-    user.department.name?.toLowerCase() === "backend";
+  const { isLead } = useAuth();
 
   const day = dayKey(shiftDate) || todayKey();
   const isToday = day === todayKey();
@@ -234,7 +224,7 @@ export function DayComposer({
     resolver: zodResolver(composerSchema) as any,
     mode: "onChange",
     defaultValues: {
-      entries: [blankEntry(isBackendUser)],
+      entries: [blankEntry()],
       freeMinutes: 0,
       leadWorkMinutes: 0,
     },
@@ -293,7 +283,7 @@ export function DayComposer({
 
     if (!worklog) {
       form.reset({
-        entries: [blankEntry(isBackendUser)],
+        entries: [blankEntry()],
         freeMinutes: 0,
         leadWorkMinutes: 0,
       });
@@ -301,22 +291,26 @@ export function DayComposer({
     }
 
     const entries = (worklog.entries || []).map((entry: any) => {
-      const parsedTasks = isBackendUser ? parseBackendTasks(entry.description) : null;
       return {
         project: typeof entry.project === "string" ? entry.project : entry.project?._id,
         hours: Math.floor((entry.loggedMinutes ?? 0) / 60),
         minutes: (entry.loggedMinutes ?? 0) % 60,
-        // A description that fully parses as task rows belongs in the task grid,
-        // not the free-text box — otherwise it would render twice.
-        description: parsedTasks ? "" : (entry.description ?? ""),
-        ...(isBackendUser
-          ? { backendTasks: parsedTasks ?? [{ ...EMPTY_BACKEND_TASK }] }
-          : {}),
+        // Pre-existing entries may carry a legacy freeform description instead
+        // of tasks; those reopen with a blank row to fill in, since the API no
+        // longer accepts a description alongside a breakdown.
+        tasks:
+          entry.tasks && entry.tasks.length > 0
+            ? entry.tasks.map((t: any) => ({
+                module: t.module ?? "",
+                task: t.task ?? "",
+                difficulty: t.difficulty ?? "LOW",
+              }))
+            : [{ ...EMPTY_TASK }],
       };
     });
 
     form.reset({
-      entries: entries.length > 0 ? entries : [blankEntry(isBackendUser)],
+      entries: entries.length > 0 ? entries : [blankEntry()],
       freeMinutes: worklog.freeMinutes ?? 0,
       leadWorkMinutes: worklog.leadWorkMinutes ?? 0,
     });
@@ -329,13 +323,13 @@ export function DayComposer({
           ? "leadWork"
           : "free",
     );
-  }, [worklogResponse, worklog, form, isBackendUser]);
+  }, [worklogResponse, worklog, form]);
 
   /** Answer the chooser and seed the form for that shape of day. */
   const chooseMode = (next: DayMode) => {
     if (next === "projects") {
       form.reset({
-        entries: [blankEntry(isBackendUser)],
+        entries: [blankEntry()],
         freeMinutes: 0,
         leadWorkMinutes: 0,
       });
@@ -354,14 +348,15 @@ export function DayComposer({
 
   const buildPayload = (values: ComposerValues): SaveDraftPayload => ({
     shiftDate: day,
-    entries: (values.entries ?? []).map((entry: any) => {
-      const tasks = isBackendUser ? serializeBackendTasks(entry.backendTasks) : "";
-      return {
-        project: entry.project,
-        minutes: combineMinutes(entry.hours, entry.minutes),
-        description: tasks || entry.description || undefined,
-      };
-    }),
+    entries: (values.entries ?? []).map((entry: any) => ({
+      project: entry.project,
+      minutes: combineMinutes(entry.hours, entry.minutes),
+      tasks: (entry.tasks ?? []).map((t: any) => ({
+        module: String(t.module ?? "").trim().toUpperCase(),
+        task: String(t.task ?? "").trim(),
+        difficulty: t.difficulty,
+      })),
+    })),
     freeMinutes: Number(values.freeMinutes) || 0,
     leadWorkMinutes: Number(values.leadWorkMinutes) || 0,
   });
@@ -486,7 +481,7 @@ export function DayComposer({
 
   if (isSubmitted && worklog) {
     return (
-      <SubmittedDay worklog={worklog} day={day} isBackendUser={isBackendUser} />
+      <SubmittedDay worklog={worklog} day={day} />
     );
   }
 
@@ -562,7 +557,6 @@ export function DayComposer({
                     key={field.id}
                     index={index}
                     form={form}
-                    isBackendUser={isBackendUser}
                     projects={projects}
                     allProjectsMap={allProjectsMap}
                     isProjectsLoading={isProjectsLoading}
@@ -581,7 +575,7 @@ export function DayComposer({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => append(blankEntry(isBackendUser) as any)}
+                  onClick={() => append(blankEntry() as any)}
                   className="h-8 text-xs font-medium border-dashed border-gray-300 text-gray-600 hover:text-primary-700 hover:border-primary-300"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" /> Add project
@@ -705,7 +699,6 @@ function ComposerHeader({
 function EntryRow({
   index,
   form,
-  isBackendUser,
   projects,
   allProjectsMap,
   isProjectsLoading,
@@ -809,26 +802,7 @@ function EntryRow({
         </div>
       </div>
 
-      {isBackendUser ? (
-        <BackendTaskFields control={form.control} entryIndex={index} />
-      ) : (
-        <FormField
-          control={form.control}
-          name={`entries.${index}.description`}
-          render={({ field }) => (
-            <FormItem className="space-y-1">
-              <FormControl>
-                <Textarea
-                  placeholder="What did you work on? (optional)"
-                  rows={2}
-                  className="bg-white border-gray-200 text-sm resize-none"
-                  {...field}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-      )}
+      <TaskBreakdownFields control={form.control} entryIndex={index} />
     </div>
   );
 }
@@ -836,11 +810,9 @@ function EntryRow({
 function SubmittedDay({
   worklog,
   day,
-  isBackendUser,
 }: {
   worklog: WorklogSubmission;
   day: string;
-  isBackendUser: boolean;
 }) {
   return (
     <div className="w-full max-w-4xl mx-auto space-y-5">
@@ -861,7 +833,7 @@ function SubmittedDay({
         </Badge>
       </div>
 
-      <DayResultPanel worklog={worklog} isBackendUser={isBackendUser} />
+      <DayResultPanel worklog={worklog} />
 
       <p className="flex items-start gap-2 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg p-3">
         <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-gray-400" />

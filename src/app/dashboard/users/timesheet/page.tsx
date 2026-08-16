@@ -90,10 +90,6 @@ function TimesheetContent() {
   const users = usersData?.data || [];
 
   const selectedUser = users.find((u: any) => u._id === selectedUserId);
-  const userDeptName = selectedUser?.department 
-    ? (typeof selectedUser.department === "object" ? selectedUser.department.name : typeof selectedUser.department === "string" ? selectedUser.department : "") 
-    : "";
-  const isBackendDept = userDeptName?.toLowerCase() === "backend";
 
   const { data: timesheetData, isLoading: isTimesheetLoading, isFetching } = useGetUserTimesheetQuery({
     user: selectedUserId,
@@ -313,7 +309,7 @@ function TimesheetContent() {
       )}
 
       <Dialog open={!!selectedDay} onOpenChange={(open) => !open && setSelectedDay(null)}>
-        <DialogContent className={cn("max-w-[95vw] max-h-[90vh] overflow-y-auto", isBackendDept ? "sm:max-w-5xl md:max-w-6xl lg:max-w-7xl" : "sm:max-w-2xl md:max-w-3xl lg:max-w-4xl")}>
+        <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-5xl md:max-w-6xl lg:max-w-7xl">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <CalendarDays className="w-5 h-5 text-gray-400" />
@@ -390,7 +386,7 @@ function TimesheetContent() {
                           </span>
                         </div>
                       </div>
-                      <WorklogDescription description={p.description} isBackend={isBackendDept} />
+                      <WorklogDescription tasks={p.tasks} description={p.description} />
                     </div>
                   ))}
                 </div>

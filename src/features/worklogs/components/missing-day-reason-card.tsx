@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DATE_FORMATS, formatDay } from "@/lib/datetime";
 
-import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useSubmitMissingReasonMutation } from "../api/worklogs.mutations";
 
 type Choice = "forgot" | "absent" | "other";
@@ -24,10 +23,9 @@ type Choice = "forgot" | "absent" | "other";
  * backfill with no project entries. The other two are terminal: a reason,
  * optionally a note, and the day is closed out.
  *
- * DailyWorklog does not render this for Leads at all — "forgot" is the only
- * reason the API accepts from them, so they go straight to the composer. The
- * absent/other options stay gated on isLead regardless, so the component is
- * still safe if it is ever mounted for one.
+ * All three reasons are available to every role that reaches this screen. Only
+ * Admin is exempt from daily worklog tracking, and Admins are redirected away
+ * from the worklog pages entirely.
  */
 export function MissingDayReasonCard({
   shiftDate,
@@ -38,7 +36,6 @@ export function MissingDayReasonCard({
   onBackfill: () => void;
   onResolved?: () => void;
 }) {
-  const { isLead } = useAuth();
   const [choice, setChoice] = useState<Choice | null>(null);
   const [note, setNote] = useState("");
 
@@ -88,22 +85,18 @@ export function MissingDayReasonCard({
       // how a wholly-free past day is recorded.
       body: "Fill it in now — project hours, or a full free day.",
     },
-    ...(isLead
-      ? []
-      : ([
-          {
-            value: "absent" as const,
-            icon: <UserX className="w-4 h-4" />,
-            title: "I didn't work this day",
-            body: "Leave, sick day, or otherwise off.",
-          },
-          {
-            value: "other" as const,
-            icon: <CalendarX className="w-4 h-4" />,
-            title: "Something else",
-            body: "Explain in a short note.",
-          },
-        ])),
+    {
+      value: "absent",
+      icon: <UserX className="w-4 h-4" />,
+      title: "I didn't work this day",
+      body: "Leave, sick day, or otherwise off.",
+    },
+    {
+      value: "other",
+      icon: <CalendarX className="w-4 h-4" />,
+      title: "Something else",
+      body: "Explain in a short note.",
+    },
   ];
 
   return (

@@ -33,8 +33,6 @@ import { WorklogDescription } from "@/features/worklogs/components/worklog-descr
 export default function MyTimesheetPage() {
   const router = useRouter();
   const { user, isAdmin } = useAuth();
-  const deptName = user?.department && typeof user.department === "object" ? user.department.name : "";
-  const isBackendDept = deptName ? deptName.toLowerCase() === "backend" : false;
 
   // Admins don't file their own worklogs. Leads do — they have a Lead-only
   // leadWorkMinutes input, and may backfill a missed day via the "forgot"
@@ -190,7 +188,7 @@ export default function MyTimesheetPage() {
       )}
 
       <Dialog open={!!selectedDay} onOpenChange={(open) => !open && setSelectedDay(null)}>
-        <DialogContent className={cn("max-w-[95vw] max-h-[90vh] overflow-y-auto", isBackendDept ? "sm:max-w-5xl md:max-w-6xl lg:max-w-7xl" : "sm:max-w-2xl md:max-w-3xl lg:max-w-4xl")}>
+        <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-5xl md:max-w-6xl lg:max-w-7xl">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <CalendarDays className="w-5 h-5 text-gray-400" />
@@ -253,7 +251,7 @@ export default function MyTimesheetPage() {
                           </span>
                         </div>
                       </div>
-                      <WorklogDescription description={p.description} isBackend={isBackendDept} />
+                      <WorklogDescription tasks={p.tasks} description={p.description} />
                     </div>
                   ))}
                 </div>
