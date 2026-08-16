@@ -20,11 +20,14 @@ type Choice = "forgot" | "absent" | "other";
  * Asks why a past working day has no submission.
  *
  * "forgot" hands off to the day composer, which backfills through the same
- * rules as a normal draft. The other two are terminal — a reason, optionally a
- * note, and the day is closed out.
+ * rules as a normal draft — including a whole free day, which is just a
+ * backfill with no project entries. The other two are terminal: a reason,
+ * optionally a note, and the day is closed out.
  *
- * Leads only ever see "forgot": they aren't required to log daily, so the API
- * rejects absent/other from them.
+ * DailyWorklog does not render this for Leads at all — "forgot" is the only
+ * reason the API accepts from them, so they go straight to the composer. The
+ * absent/other options stay gated on isLead regardless, so the component is
+ * still safe if it is ever mounted for one.
  */
 export function MissingDayReasonCard({
   shiftDate,
@@ -80,8 +83,10 @@ export function MissingDayReasonCard({
     {
       value: "forgot",
       icon: <PencilLine className="w-4 h-4" />,
-      title: "I worked — I just forgot to log it",
-      body: "Fill in your hours now, exactly like a normal day.",
+      title: "I just forgot to log it",
+      // Covers a free day too: with no project entries, a "forgot" backfill is
+      // how a wholly-free past day is recorded.
+      body: "Fill it in now — project hours, or a full free day.",
     },
     ...(isLead
       ? []
