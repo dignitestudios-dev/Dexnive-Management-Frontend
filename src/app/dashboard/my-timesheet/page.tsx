@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { format, startOfMonth, endOfMonth, subMonths, addMonths, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth } from "date-fns";
 import { DATE_FORMATS, appNow, dayKey, formatDay, isToday } from "@/lib/datetime";
-import { EMPTY_DAY_STATUS, getDayStatusConfig } from "@/features/worklogs/lib/timesheet-status";
+import {
+  EMPTY_DAY_STATUS,
+  getDayStatusConfig,
+  isNoProjectWorkDay,
+} from "@/features/worklogs/lib/timesheet-status";
 import { TimesheetDayExtras } from "@/features/worklogs/components/timesheet-day-extras";
 import { 
   CalendarDays, 
@@ -15,6 +19,7 @@ import {
   Coffee,
   CalendarCheck,
   Palmtree,
+  Hourglass,
   FileQuestion
 } from "lucide-react";
 
@@ -128,7 +133,9 @@ export default function MyTimesheetPage() {
                 const isCurrentMonth = isSameMonth(date, currentMonth);
                 const isTodayDate = isToday(date);
                 
-                const config = dayData ? getDayStatusConfig(dayData.status) : EMPTY_DAY_STATUS;
+                const config = dayData
+                  ? getDayStatusConfig(dayData.status, dayData)
+                  : EMPTY_DAY_STATUS;
                 const Icon = config.icon;
 
                 return (
@@ -201,8 +208,8 @@ export default function MyTimesheetPage() {
               <div className="flex items-center justify-between mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
                 <div>
                   <p className="text-sm text-gray-500 font-medium mb-1">Status</p>
-                  <Badge variant="outline" className={`${getDayStatusConfig(selectedDay.status).color} px-2 py-0.5`}>
-                    {getDayStatusConfig(selectedDay.status).label}
+                  <Badge variant="outline" className={`${getDayStatusConfig(selectedDay.status, selectedDay).color} px-2 py-0.5`}>
+                    {getDayStatusConfig(selectedDay.status, selectedDay).label}
                   </Badge>
                 </div>
                 {selectedDay.workedMinutes > 0 && (
@@ -222,7 +229,17 @@ export default function MyTimesheetPage() {
 
               <TimesheetDayExtras day={selectedDay} />
 
-              {selectedDay.projects?.length > 0 ? (
+              {isNoProjectWorkDay(selectedDay) ? (
+                <div className="bg-sky-50 border border-sky-100 p-4 rounded-lg flex items-start gap-3">
+                  <Hourglass className="w-5 h-5 text-sky-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sky-900">Free day</p>
+                    <p className="text-sm text-sky-700 mt-1">
+                      A full day was logged with no project work assigned.
+                    </p>
+                  </div>
+                </div>
+              ) : selectedDay.projects?.length > 0 ? (
                 <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
                   <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Projects Worked</p>
                   {selectedDay.projects.map((p: any, i: number) => (

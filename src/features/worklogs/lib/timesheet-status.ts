@@ -4,6 +4,7 @@ import {
   Clock,
   Coffee,
   FileQuestion,
+  Hourglass,
   Palmtree,
   type LucideIcon,
 } from "lucide-react";
@@ -71,8 +72,46 @@ const CONFIG: Record<string, DayStatusConfig> = {
   },
 };
 
-export function getDayStatusConfig(status?: string | null): DayStatusConfig {
+/**
+ * A submitted day with no project entries and no worked minutes: the whole day
+ * went to freeMinutes / leadWorkMinutes.
+ *
+ * Derived rather than read from a field — the timesheet endpoint returns
+ * neither freeMinutes nor leadWorkMinutes on a day, so an empty `projects`
+ * with zero `workedMinutes` on a submitted day is the only available signal.
+ * That also means a Lead's full lead-work day is indistinguishable from a free
+ * day here; both surface as "Free day" until the API exposes the split.
+ */
+export function isNoProjectWorkDay(day?: {
+  status?: string | null;
+  projects?: unknown[] | null;
+  workedMinutes?: number | null;
+}): boolean {
+  if (!day) return false;
+  const submitted = day.status === "present" || day.status === "submitted";
+  return (
+    submitted &&
+    (day.projects?.length ?? 0) === 0 &&
+    (day.workedMinutes ?? 0) === 0
+  );
+}
+
+const FREE_DAY: DayStatusConfig = {
+  color: "bg-sky-50 text-sky-700 border-sky-200",
+  icon: Hourglass,
+  label: "Free day",
+};
+
+/**
+ * Badge for a calendar day. Pass the whole day where available so a logged-but-
+ * empty day reads as "Free day" instead of "Logged" next to a 0h total.
+ */
+export function getDayStatusConfig(
+  status?: string | null,
+  day?: Parameters<typeof isNoProjectWorkDay>[0],
+): DayStatusConfig {
   if (!status) return EMPTY;
+  if (isNoProjectWorkDay(day)) return FREE_DAY;
   return (
     CONFIG[status] ?? {
       color: "bg-gray-50 text-gray-600 border-gray-200",
