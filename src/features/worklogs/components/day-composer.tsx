@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowRight,
   Briefcase,
   CheckCircle2,
@@ -19,6 +20,13 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -75,10 +83,6 @@ const entrySchema = z.object({
   project: z.string().min(1, "Pick a project"),
   hours: z.coerce.number().min(0).max(24),
   minutes: z.coerce.number().min(0).max(59),
-  // Which of the two the API will receive for this entry. Both fields live on
-  // the form so switching back and forth doesn't lose what was typed; only the
-  // selected one is validated and sent.
-  format: z.enum(["tasks", "notes"]),
   tasks: z
     .array(
       z.object({
@@ -101,6 +105,9 @@ const makeComposerSchema = (canLogLeadWork: boolean) =>
   z
     .object({
       entries: z.array(entrySchema).default([]),
+      // One format for the whole day — the control sits above the project list,
+      // not on each row.
+      format: z.enum(["tasks", "notes"]),
       freeMinutes: z.coerce.number().min(0).default(0),
       leadWorkMinutes: z.coerce.number().min(0).default(0),
     })
@@ -115,8 +122,8 @@ const makeComposerSchema = (canLogLeadWork: boolean) =>
           });
         }
 
-        // Mirrors the server's per-entry rule: exactly one of tasks/description.
-        if (entry.format === "notes") {
+        // The server's rule is per entry; the UI applies one format to them all.
+        if (values.format === "notes") {
           if (!entry.description?.trim()) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
@@ -176,14 +183,21 @@ const makeComposerSchema = (canLogLeadWork: boolean) =>
 
 type ComposerValues = z.input<ReturnType<typeof makeComposerSchema>>;
 
-const blankEntry = (format: EntryFormat = "tasks") => ({
+const blankEntry = () => ({
   project: "",
   hours: 0,
   minutes: 0,
-  format,
   tasks: [{ ...EMPTY_TASK }],
   description: "",
 });
+
+/** True when an entry holds anything the user typed in the given format. */
+function entryHasContent(entry: any, format: EntryFormat): boolean {
+  if (format === "notes") return Boolean(entry?.description?.trim());
+  return (entry?.tasks ?? []).some(
+    (task: any) => task?.module?.trim() || task?.task?.trim(),
+  );
+}
 
 /* ==========================================================================
  * Composer
@@ -270,6 +284,9 @@ export function DayComposer({
    */
   const [mode, setMode] = useState<DayMode | null>(null);
 
+  /** Format the user is switching to, held while the confirmation is open. */
+  const [pendingFormat, setPendingFormat] = useState<EntryFormat | null>(null);
+
   /* ── Form ──────────────────────────────────────────────────────────────── */
 
   const composerSchema = useMemo(() => makeComposerSchema(isLead), [isLead]);
@@ -278,7 +295,8 @@ export function DayComposer({
     resolver: zodResolver(composerSchema) as any,
     mode: "onChange",
     defaultValues: {
-      entries: [blankEntry(defaultFormat)],
+      entries: [blankEntry()],
+      format: defaultFormat,
       freeMinutes: 0,
       leadWorkMinutes: 0,
     },
@@ -290,6 +308,8 @@ export function DayComposer({
   });
 
   const watchedEntries = useWatch({ control: form.control, name: "entries" }) ?? [];
+  const currentFormat = (useWatch({ control: form.control, name: "format" }) ??
+    defaultFormat) as EntryFormat;
   const watchedFree = Number(useWatch({ control: form.control, name: "freeMinutes" })) || 0;
   const watchedLead =
     Number(useWatch({ control: form.control, name: "leadWorkMinutes" })) || 0;
@@ -337,7 +357,8 @@ export function DayComposer({
 
     if (!worklog) {
       form.reset({
-        entries: [blankEntry(defaultFormat)],
+        entries: [blankEntry()],
+        format: defaultFormat,
         freeMinutes: 0,
         leadWorkMinutes: 0,
       });
@@ -350,8 +371,6 @@ export function DayComposer({
         project: typeof entry.project === "string" ? entry.project : entry.project?._id,
         hours: Math.floor((entry.loggedMinutes ?? 0) / 60),
         minutes: (entry.loggedMinutes ?? 0) % 60,
-        // Whichever the entry carries is the format it reopens in.
-        format: hasTasks ? "tasks" : entry.description ? "notes" : defaultFormat,
         tasks: hasTasks
           ? entry.tasks.map((t: any) => ({
               module: t.module ?? "",
@@ -363,8 +382,18 @@ export function DayComposer({
       };
     });
 
+    // A saved day reopens in whichever format it was written in.
+    const savedFormat: EntryFormat = (worklog.entries || []).some(
+      (entry: any) => Array.isArray(entry.tasks) && entry.tasks.length > 0,
+    )
+      ? "tasks"
+      : (worklog.entries || []).some((entry: any) => entry.description)
+        ? "notes"
+        : defaultFormat;
+
     form.reset({
-      entries: entries.length > 0 ? entries : [blankEntry(defaultFormat)],
+      entries: entries.length > 0 ? entries : [blankEntry()],
+      format: savedFormat,
       freeMinutes: worklog.freeMinutes ?? 0,
       leadWorkMinutes: worklog.leadWorkMinutes ?? 0,
     });
@@ -383,7 +412,8 @@ export function DayComposer({
   const chooseMode = (next: DayMode) => {
     if (next === "projects") {
       form.reset({
-        entries: [blankEntry(defaultFormat)],
+        entries: [blankEntry()],
+        format: defaultFormat,
         freeMinutes: 0,
         leadWorkMinutes: 0,
       });
@@ -391,11 +421,49 @@ export function DayComposer({
       // A whole day with no project work: the chosen bucket carries all 480.
       form.reset({
         entries: [],
+        format: defaultFormat,
         freeMinutes: next === "free" ? STANDARD_WORK_MINUTES : 0,
         leadWorkMinutes: next === "leadWork" ? STANDARD_WORK_MINUTES : 0,
       });
     }
     setMode(next);
+  };
+
+  /**
+   * Apply a format to the whole day, clearing what the other format held.
+   *
+   * The two are mutually exclusive per entry on the server, and carrying stale
+   * text in the abandoned field would be sent on a later switch back, so the
+   * change is destructive by design — which is why it is confirmed first.
+   */
+  const applyFormat = (next: EntryFormat) => {
+    const entries = (form.getValues("entries") ?? []) as any[];
+    form.setValue(
+      "entries",
+      entries.map((entry) => ({
+        ...entry,
+        tasks: [{ ...EMPTY_TASK }],
+        description: "",
+      })) as any,
+      { shouldValidate: false },
+    );
+    form.setValue("format", next, { shouldValidate: true });
+    rememberFormat(next);
+    setPendingFormat(null);
+  };
+
+  /** Confirm before switching only when there is something to lose. */
+  const requestFormatChange = (next: EntryFormat) => {
+    if (next === currentFormat) return;
+
+    const entries = (form.getValues("entries") ?? []) as any[];
+    const hasContent = entries.some((entry) => entryHasContent(entry, currentFormat));
+
+    if (hasContent) {
+      setPendingFormat(next);
+      return;
+    }
+    applyFormat(next);
   };
 
   /* ── Payload ───────────────────────────────────────────────────────────── */
@@ -408,7 +476,7 @@ export function DayComposer({
         minutes: combineMinutes(entry.hours, entry.minutes),
       };
       // Exactly one of the two — sending both is a 422.
-      return entry.format === "notes"
+      return values.format === "notes"
         ? { ...base, description: String(entry.description ?? "").trim() }
         : {
             ...base,
@@ -613,6 +681,19 @@ export function DayComposer({
                 </span>
               </div>
 
+              {allowFreeForm && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50/60 px-3 py-2">
+                  <span className="text-xs text-gray-600">
+                    How you describe your work, for every project today
+                  </span>
+                  <EntryFormatToggle
+                    value={currentFormat}
+                    onChange={requestFormatChange}
+                    disabled={isBusy}
+                  />
+                </div>
+              )}
+
               <div className="space-y-3">
                 {fields.map((field, index) => (
                   <EntryRow
@@ -626,8 +707,7 @@ export function DayComposer({
                     projectSearch={projectSearch}
                     onProjectSearch={setProjectSearch}
                     watchedEntries={watchedEntries as any[]}
-                    allowFreeForm={allowFreeForm}
-                    onFormatChange={rememberFormat}
+                    format={currentFormat}
                     onRemove={() => remove(index)}
                     canRemove={fields.length > 1}
                   />
@@ -639,7 +719,7 @@ export function DayComposer({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => append(blankEntry(defaultFormat) as any)}
+                  onClick={() => append(blankEntry() as any)}
                   className="h-8 text-xs font-medium border-dashed border-gray-300 text-gray-600 hover:text-primary-700 hover:border-primary-300"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" /> Add project
@@ -713,6 +793,55 @@ export function DayComposer({
         </form>
       </Form>
 
+      <Dialog
+        open={pendingFormat !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingFormat(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-[460px]">
+          <DialogHeader>
+            <DialogTitle>Switch format?</DialogTitle>
+          </DialogHeader>
+
+          <div className="py-2 space-y-3">
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3.5">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-900">
+                What you&apos;ve already entered will be cleared. Switching to{" "}
+                <span className="font-semibold">
+                  {pendingFormat === "notes" ? "notes" : "a task breakdown"}
+                </span>{" "}
+                empties the{" "}
+                {currentFormat === "notes" ? "notes" : "task rows"} on every
+                project for this day.
+              </p>
+            </div>
+            <p className="text-xs text-gray-500">
+              Hours, projects and free time are kept — only the description of the
+              work is reset.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPendingFormat(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => pendingFormat && applyFormat(pendingFormat)}
+              className="bg-primary-600 hover:bg-primary-700 text-white min-w-[130px]"
+            >
+              Yes, switch
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <UnassignedNoteDialog
         open={noteDialogOpen}
         onOpenChange={setNoteDialogOpen}
@@ -763,8 +892,7 @@ function ComposerHeader({
 function EntryRow({
   index,
   form,
-  allowFreeForm,
-  onFormatChange,
+  format,
   projects,
   allProjectsMap,
   isProjectsLoading,
@@ -868,47 +996,28 @@ function EntryRow({
         </div>
       </div>
 
-      <FormField
-        control={form.control}
-        name={`entries.${index}.format`}
-        render={({ field }) => (
-          <div className="space-y-3">
-            {allowFreeForm && (
-              <EntryFormatToggle
-                value={field.value}
-                onChange={(next) => {
-                  field.onChange(next);
-                  // Remember it as the default for the next row and the next day.
-                  onFormatChange?.(next);
-                }}
-              />
-            )}
-
-            {field.value === "notes" ? (
-              <FormField
-                control={form.control}
-                name={`entries.${index}.description`}
-                render={({ field: notesField }) => (
-                  <FormItem className="space-y-1">
-                    <FormControl>
-                      <Textarea
-                        placeholder="What did you work on?"
-                        rows={3}
-                        maxLength={2000}
-                        className="bg-white border-gray-200 text-sm resize-none"
-                        {...notesField}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-[11px] font-normal" />
-                  </FormItem>
-                )}
-              />
-            ) : (
-              <TaskBreakdownFields control={form.control} entryIndex={index} />
-            )}
-          </div>
-        )}
-      />
+      {format === "notes" ? (
+        <FormField
+          control={form.control}
+          name={`entries.${index}.description`}
+          render={({ field }) => (
+            <FormItem className="space-y-1">
+              <FormControl>
+                <Textarea
+                  placeholder="What did you work on?"
+                  rows={3}
+                  maxLength={2000}
+                  className="bg-white border-gray-200 text-sm resize-none"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage className="text-[11px] font-normal" />
+            </FormItem>
+          )}
+        />
+      ) : (
+        <TaskBreakdownFields control={form.control} entryIndex={index} />
+      )}
     </div>
   );
 }
