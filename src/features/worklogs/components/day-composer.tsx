@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Loader } from "@/components/ui/loader";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DATE_FORMATS, dayKey, formatDay, todayKey } from "@/lib/datetime";
 
@@ -48,6 +49,12 @@ import {
   validateDayBalance,
 } from "../lib/day-balance";
 import { TaskBreakdownFields, EMPTY_TASK } from "./task-breakdown-fields";
+import { EntryFormatToggle } from "./entry-format-toggle";
+import {
+  canUseFreeForm,
+  useEntryFormatPreference,
+  type EntryFormat,
+} from "../lib/entry-format";
 import { DayBudgetBar } from "./day-budget-bar";
 import { NonProjectTimeCard } from "./non-project-time-card";
 import { ProjectSelectCombobox } from "./project-select-combobox";
@@ -68,19 +75,21 @@ const entrySchema = z.object({
   project: z.string().min(1, "Pick a project"),
   hours: z.coerce.number().min(0).max(24),
   minutes: z.coerce.number().min(0).max(59),
-  // Every entry carries a structured breakdown. The API wants exactly one of
-  // description / tasks and this app always chooses tasks, so `description` is
-  // not part of the form at all.
+  // Which of the two the API will receive for this entry. Both fields live on
+  // the form so switching back and forth doesn't lose what was typed; only the
+  // selected one is validated and sent.
+  format: z.enum(["tasks", "notes"]),
   tasks: z
     .array(
       z.object({
-        module: z.string().trim().min(1, "Module is required").max(200),
-        task: z.string().trim().min(1, "Task is required").max(500),
+        module: z.string().trim().max(200),
+        task: z.string().trim().max(500),
         difficulty: z.enum(["LOW", "MEDIUM", "HIGH"]),
       }),
     )
-    .min(1, "Add at least one task")
-    .max(MAX_TASKS_PER_ENTRY, `Up to ${MAX_TASKS_PER_ENTRY} tasks per project`),
+    .max(MAX_TASKS_PER_ENTRY, `Up to ${MAX_TASKS_PER_ENTRY} tasks per project`)
+    .default([]),
+  description: z.string().trim().max(2000).default(""),
 });
 
 /**
@@ -96,8 +105,8 @@ const makeComposerSchema = (canLogLeadWork: boolean) =>
       leadWorkMinutes: z.coerce.number().min(0).default(0),
     })
     .superRefine((values, ctx) => {
-      // Every row that exists must carry time — a blank row is a user mistake.
       values.entries.forEach((entry, index) => {
+        // Every row that exists must carry time — a blank row is a user mistake.
         if (combineMinutes(entry.hours, entry.minutes) <= 0) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -105,6 +114,43 @@ const makeComposerSchema = (canLogLeadWork: boolean) =>
             path: ["entries", index, "minutes"],
           });
         }
+
+        // Mirrors the server's per-entry rule: exactly one of tasks/description.
+        if (entry.format === "notes") {
+          if (!entry.description?.trim()) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Describe what you worked on",
+              path: ["entries", index, "description"],
+            });
+          }
+          return;
+        }
+
+        const tasks = entry.tasks ?? [];
+        if (tasks.length === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Add at least one task",
+            path: ["entries", index, "tasks"],
+          });
+        }
+        tasks.forEach((task, taskIndex) => {
+          if (!task.module?.trim()) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Module is required",
+              path: ["entries", index, "tasks", taskIndex, "module"],
+            });
+          }
+          if (!task.task?.trim()) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Task is required",
+              path: ["entries", index, "tasks", taskIndex, "task"],
+            });
+          }
+        });
       });
 
       const balance = validateDayBalance({
@@ -130,11 +176,13 @@ const makeComposerSchema = (canLogLeadWork: boolean) =>
 
 type ComposerValues = z.input<ReturnType<typeof makeComposerSchema>>;
 
-const blankEntry = () => ({
+const blankEntry = (format: EntryFormat = "tasks") => ({
   project: "",
   hours: 0,
   minutes: 0,
+  format,
   tasks: [{ ...EMPTY_TASK }],
+  description: "",
 });
 
 /* ==========================================================================
@@ -151,7 +199,13 @@ export function DayComposer({
   missingReason?: "forgot";
   onCompleted?: () => void;
 }) {
-  const { isLead } = useAuth();
+  const { user, isLead } = useAuth();
+
+  // Web and Backend always log a structured breakdown; everyone else, and any
+  // Lead whatever their department, may choose free-form notes instead.
+  const allowFreeForm = canUseFreeForm(user, isLead);
+  const [preferredFormat, rememberFormat] = useEntryFormatPreference();
+  const defaultFormat: EntryFormat = allowFreeForm ? preferredFormat : "tasks";
 
   const day = dayKey(shiftDate) || todayKey();
   const isToday = day === todayKey();
@@ -224,7 +278,7 @@ export function DayComposer({
     resolver: zodResolver(composerSchema) as any,
     mode: "onChange",
     defaultValues: {
-      entries: [blankEntry()],
+      entries: [blankEntry(defaultFormat)],
       freeMinutes: 0,
       leadWorkMinutes: 0,
     },
@@ -283,7 +337,7 @@ export function DayComposer({
 
     if (!worklog) {
       form.reset({
-        entries: [blankEntry()],
+        entries: [blankEntry(defaultFormat)],
         freeMinutes: 0,
         leadWorkMinutes: 0,
       });
@@ -291,26 +345,26 @@ export function DayComposer({
     }
 
     const entries = (worklog.entries || []).map((entry: any) => {
+      const hasTasks = Array.isArray(entry.tasks) && entry.tasks.length > 0;
       return {
         project: typeof entry.project === "string" ? entry.project : entry.project?._id,
         hours: Math.floor((entry.loggedMinutes ?? 0) / 60),
         minutes: (entry.loggedMinutes ?? 0) % 60,
-        // Pre-existing entries may carry a legacy freeform description instead
-        // of tasks; those reopen with a blank row to fill in, since the API no
-        // longer accepts a description alongside a breakdown.
-        tasks:
-          entry.tasks && entry.tasks.length > 0
-            ? entry.tasks.map((t: any) => ({
-                module: t.module ?? "",
-                task: t.task ?? "",
-                difficulty: t.difficulty ?? "LOW",
-              }))
-            : [{ ...EMPTY_TASK }],
+        // Whichever the entry carries is the format it reopens in.
+        format: hasTasks ? "tasks" : entry.description ? "notes" : defaultFormat,
+        tasks: hasTasks
+          ? entry.tasks.map((t: any) => ({
+              module: t.module ?? "",
+              task: t.task ?? "",
+              difficulty: t.difficulty ?? "LOW",
+            }))
+          : [{ ...EMPTY_TASK }],
+        description: entry.description ?? "",
       };
     });
 
     form.reset({
-      entries: entries.length > 0 ? entries : [blankEntry()],
+      entries: entries.length > 0 ? entries : [blankEntry(defaultFormat)],
       freeMinutes: worklog.freeMinutes ?? 0,
       leadWorkMinutes: worklog.leadWorkMinutes ?? 0,
     });
@@ -323,13 +377,13 @@ export function DayComposer({
           ? "leadWork"
           : "free",
     );
-  }, [worklogResponse, worklog, form]);
+  }, [worklogResponse, worklog, form, defaultFormat]);
 
   /** Answer the chooser and seed the form for that shape of day. */
   const chooseMode = (next: DayMode) => {
     if (next === "projects") {
       form.reset({
-        entries: [blankEntry()],
+        entries: [blankEntry(defaultFormat)],
         freeMinutes: 0,
         leadWorkMinutes: 0,
       });
@@ -348,15 +402,23 @@ export function DayComposer({
 
   const buildPayload = (values: ComposerValues): SaveDraftPayload => ({
     shiftDate: day,
-    entries: (values.entries ?? []).map((entry: any) => ({
-      project: entry.project,
-      minutes: combineMinutes(entry.hours, entry.minutes),
-      tasks: (entry.tasks ?? []).map((t: any) => ({
-        module: String(t.module ?? "").trim().toUpperCase(),
-        task: String(t.task ?? "").trim(),
-        difficulty: t.difficulty,
-      })),
-    })),
+    entries: (values.entries ?? []).map((entry: any) => {
+      const base = {
+        project: entry.project,
+        minutes: combineMinutes(entry.hours, entry.minutes),
+      };
+      // Exactly one of the two — sending both is a 422.
+      return entry.format === "notes"
+        ? { ...base, description: String(entry.description ?? "").trim() }
+        : {
+            ...base,
+            tasks: (entry.tasks ?? []).map((t: any) => ({
+              module: String(t.module ?? "").trim().toUpperCase(),
+              task: String(t.task ?? "").trim(),
+              difficulty: t.difficulty,
+            })),
+          };
+    }),
     freeMinutes: Number(values.freeMinutes) || 0,
     leadWorkMinutes: Number(values.leadWorkMinutes) || 0,
   });
@@ -564,6 +626,8 @@ export function DayComposer({
                     projectSearch={projectSearch}
                     onProjectSearch={setProjectSearch}
                     watchedEntries={watchedEntries as any[]}
+                    allowFreeForm={allowFreeForm}
+                    onFormatChange={rememberFormat}
                     onRemove={() => remove(index)}
                     canRemove={fields.length > 1}
                   />
@@ -575,7 +639,7 @@ export function DayComposer({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => append(blankEntry() as any)}
+                  onClick={() => append(blankEntry(defaultFormat) as any)}
                   className="h-8 text-xs font-medium border-dashed border-gray-300 text-gray-600 hover:text-primary-700 hover:border-primary-300"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" /> Add project
@@ -699,6 +763,8 @@ function ComposerHeader({
 function EntryRow({
   index,
   form,
+  allowFreeForm,
+  onFormatChange,
   projects,
   allProjectsMap,
   isProjectsLoading,
@@ -802,7 +868,47 @@ function EntryRow({
         </div>
       </div>
 
-      <TaskBreakdownFields control={form.control} entryIndex={index} />
+      <FormField
+        control={form.control}
+        name={`entries.${index}.format`}
+        render={({ field }) => (
+          <div className="space-y-3">
+            {allowFreeForm && (
+              <EntryFormatToggle
+                value={field.value}
+                onChange={(next) => {
+                  field.onChange(next);
+                  // Remember it as the default for the next row and the next day.
+                  onFormatChange?.(next);
+                }}
+              />
+            )}
+
+            {field.value === "notes" ? (
+              <FormField
+                control={form.control}
+                name={`entries.${index}.description`}
+                render={({ field: notesField }) => (
+                  <FormItem className="space-y-1">
+                    <FormControl>
+                      <Textarea
+                        placeholder="What did you work on?"
+                        rows={3}
+                        maxLength={2000}
+                        className="bg-white border-gray-200 text-sm resize-none"
+                        {...notesField}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-[11px] font-normal" />
+                  </FormItem>
+                )}
+              />
+            ) : (
+              <TaskBreakdownFields control={form.control} entryIndex={index} />
+            )}
+          </div>
+        )}
+      />
     </div>
   );
 }

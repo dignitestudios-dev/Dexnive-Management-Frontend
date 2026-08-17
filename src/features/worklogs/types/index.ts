@@ -89,11 +89,7 @@ export interface WorklogEntry {
   overtimeMinutes: number;
   overtimeHours?: number;
   tasks?: TaskBreakdown[];
-  /**
-   * Legacy freeform note. The API still accepts it as an alternative to
-   * `tasks`, but this app always logs structured tasks — so this only ever
-   * appears on entries created before the switch. Read-only in practice.
-   */
+  /** Free-form notes — the alternative to `tasks`, never present alongside it. */
   description?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -141,19 +137,34 @@ export interface WorklogSubmission {
  * Requests — draft & submit
  * ========================================================================== */
 
+interface WorklogEntryBase {
+  project: string;
+  minutes: number;
+}
+
+/** A structured breakdown — module / task / difficulty rows. */
+export interface WorklogEntryTasksPayload extends WorklogEntryBase {
+  tasks: TaskBreakdown[];
+  description?: never;
+}
+
+/** Free-form notes, for work that doesn't decompose into modules. */
+export interface WorklogEntryNotesPayload extends WorklogEntryBase {
+  description: string;
+  tasks?: never;
+}
+
 /**
  * One project's time on the wire.
  *
  * The API requires exactly one of `description` or a non-empty `tasks` per
- * entry (422 on both-or-neither). This app always sends `tasks`, so
- * `description` is intentionally absent from this type — that constraint is
- * satisfied by construction rather than by a runtime check.
+ * entry, rejecting both-or-neither with a 422. Modelling that as a union with
+ * `never` on the opposite field makes the constraint a compile error rather
+ * than a runtime surprise — you cannot construct a payload carrying both.
  */
-export interface WorklogEntryPayload {
-  project: string;
-  minutes: number;
-  tasks: TaskBreakdown[];
-}
+export type WorklogEntryPayload =
+  | WorklogEntryTasksPayload
+  | WorklogEntryNotesPayload;
 
 /**
  * POST /worklogs/draft — save/overwrite a day. Does not lock it.
@@ -272,7 +283,6 @@ export interface TimesheetProjectRow {
   nonBillableMinutes: number;
   overtimeMinutes: number;
   tasks?: TaskBreakdown[];
-  /** Legacy freeform note on pre-existing entries. */
   description?: string | null;
 }
 
