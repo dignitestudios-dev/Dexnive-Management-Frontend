@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 import type { TaskBreakdown } from "../types";
 
 /** `1.) Auth | Fix login | HIGH` — the pre-structured-tasks description format. */
-const LEGACY_LINE = /^(\d+\.\))\s*(.+?)\s*\|\s*(.+?)(?:\s*\|\s*(HIGH|MEDIUM|LOW))?$/i;
+const LEGACY_LINE =
+  /^(\d+\.\))\s*(.+?)\s*\|\s*(.+?)(?:\s*\|\s*(HIGH|MEDIUM|LOW))?$/i;
 
 interface WorklogDescriptionProps {
   /** Structured breakdown — the format everything is logged in now. */
@@ -43,7 +44,7 @@ export function WorklogDescription({
   }
 
   return (
-    <div className={cn("", className)}>
+    <div className={`${cn("", className)} p-2`}>
       <p
         className={cn(
           "text-xs text-gray-700 leading-relaxed whitespace-pre-wrap",
@@ -64,7 +65,7 @@ function TaskList({
   className?: string;
 }) {
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={`${cn("space-y-2", className)} p-2`}>
       <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">
         Tasks &amp; Modules
       </span>
@@ -83,16 +84,21 @@ function TaskList({
                   {t.module}
                 </span>
               )}
-              <span className="text-gray-800 leading-normal break-words">{t.task}</span>
+              <span className="text-gray-800 leading-normal break-words">
+                {t.task}
+              </span>
             </div>
             {t.difficulty && (
               <Badge
                 variant="outline"
                 className={cn(
                   "shrink-0 text-[10px] font-semibold px-2 py-0.5 border self-start sm:self-auto",
-                  t.difficulty === "HIGH" && "bg-red-50 text-red-700 border-red-200",
-                  t.difficulty === "MEDIUM" && "bg-amber-50 text-amber-700 border-amber-200",
-                  t.difficulty === "LOW" && "bg-emerald-50 text-emerald-700 border-emerald-200",
+                  t.difficulty === "HIGH" &&
+                    "bg-red-50 text-red-700 border-red-200",
+                  t.difficulty === "MEDIUM" &&
+                    "bg-amber-50 text-amber-700 border-amber-200",
+                  t.difficulty === "LOW" &&
+                    "bg-emerald-50 text-emerald-700 border-emerald-200",
                 )}
               >
                 {t.difficulty}
@@ -124,7 +130,8 @@ function parseLegacyDescription(description: string): TaskBreakdown[] {
     parsed.push({
       module: match[2].trim().toUpperCase(),
       task: match[3].trim(),
-      difficulty: (match[4]?.toUpperCase().trim() ?? "LOW") as TaskBreakdown["difficulty"],
+      difficulty: (match[4]?.toUpperCase().trim() ??
+        "LOW") as TaskBreakdown["difficulty"],
     });
   }
   return parsed;
