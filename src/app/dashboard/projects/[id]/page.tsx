@@ -75,7 +75,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
   const [stageToDelete, setStageToDelete] = useState<string | null>(null);
   
   // Tab State
-  const [activeTab, setActiveTab] = useState<"list" | "timeline" | "audit">("list");
+  const [activeTab, setActiveTab] = useState<"list" | "modules" | "timeline" | "audit">("list");
 
   const handleOpenStageDialog = (stage?: ProjectStage) => {
     if (stage) {
@@ -372,6 +372,12 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
         >
           Stages List
         </button>
+        <button
+          onClick={() => setActiveTab("modules")}
+          className={`py-3 border-b-2 transition-colors ${activeTab === "modules" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-900"}`}
+        >
+          Modules
+        </button>
         <button 
           onClick={() => setActiveTab("timeline")}
           className={`py-3 border-b-2 transition-colors ${activeTab === "timeline" ? "border-primary text-primary" : "border-transparent text-gray-500 hover:text-gray-900"}`}
@@ -548,14 +554,12 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
         </div>
         )}
 
+        {activeTab === "modules" && (
+          <ProjectModulesCard projectId={projectId} canManage={canManageProjects} />
+        )}
+
         {activeTab === "timeline" && (
-          <div className="space-y-6">
-            <ProjectModulesCard
-              projectId={projectId}
-              canManage={canManageProjects}
-            />
-            <ProjectTimeline projectId={projectId} />
-          </div>
+          <ProjectTimeline projectId={projectId} />
         )}
 
         {activeTab === "audit" && (
