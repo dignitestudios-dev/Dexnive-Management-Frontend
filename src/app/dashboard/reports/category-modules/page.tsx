@@ -52,7 +52,9 @@ export default function CategoryModuleReportPage() {
   const years = Array.from({ length: Math.max(1, year - 2025 + 1) }, (_, i) => 2025 + i);
 
   const { data, isLoading } = useGetCategoryModuleBreakdownQuery({ month, year });
-  const rows = data?.data ?? [];
+  // Rows are nested under `result`; `data` itself also carries the resolved
+  // range, matching the hours-breakdown envelope.
+  const rows = data?.data?.result ?? [];
 
   if (!isInitialized || !isFullManager) {
     return (

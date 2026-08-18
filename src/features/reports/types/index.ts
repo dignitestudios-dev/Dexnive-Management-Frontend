@@ -85,10 +85,25 @@ export interface CategoryModuleUserRow {
 export interface CategoryModuleBreakdownParams {
   month?: number;
   year?: number;
+  /** Accepted by the controller as an alternative to month/year. */
+  startDate?: string;
+  endDate?: string;
   user?: string;
+}
+
+/**
+ * The rows sit under `result`, alongside the range the server resolved —
+ * the same envelope /reports/project-hours-breakdown uses.
+ */
+export interface CategoryModuleBreakdownData {
+  result: CategoryModuleUserRow[];
+  startDate?: string;
+  endDate?: string;
+  month?: number;
+  year?: number;
 }
 
 export interface CategoryModuleBreakdownResponse {
   message: string;
-  data: CategoryModuleUserRow[];
+  data: CategoryModuleBreakdownData;
 }
