@@ -25,7 +25,8 @@ import {
   ChevronDown,
   LockKeyhole,
   BarChart3,
-  Edit
+  Edit,
+  Boxes
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 
@@ -293,6 +294,7 @@ export function Sidebar() {
             isActive={isGroupActive([
               "/dashboard/reports",
               "/dashboard/reports/breakdown",
+              "/dashboard/reports/category-modules",
             ])}
           >
             <SidebarLink
@@ -311,6 +313,14 @@ export function Sidebar() {
               isCollapsed={isCollapsed}
               nested
             />
+            <SidebarLink
+              icon={<Layers className="w-4 h-4" />}
+              label="Category & Modules"
+              href="/dashboard/reports/category-modules"
+              active={pathname === "/dashboard/reports/category-modules"}
+              isCollapsed={isCollapsed}
+              nested
+            />
           </SidebarGroup>
         )}
 
@@ -324,6 +334,8 @@ export function Sidebar() {
             isActive={isGroupActive([
               "/dashboard/settings/holidays",
               "/dashboard/settings/rates",
+              "/dashboard/settings/categories",
+              "/dashboard/settings/module-templates",
             ])}
           >
             <SidebarLink
@@ -334,6 +346,24 @@ export function Sidebar() {
               isCollapsed={isCollapsed}
               nested
             />
+            <SidebarLink
+              icon={<Layers className="w-4 h-4" />}
+              label="Categories"
+              href="/dashboard/settings/categories"
+              active={pathname === "/dashboard/settings/categories"}
+              isCollapsed={isCollapsed}
+              nested
+            />
+            {isAdmin && (
+              <SidebarLink
+                icon={<Boxes className="w-4 h-4" />}
+                label="Module Templates"
+                href="/dashboard/settings/module-templates"
+                active={pathname === "/dashboard/settings/module-templates"}
+                isCollapsed={isCollapsed}
+                nested
+              />
+            )}
             {hasFinancialAccess && (
               <SidebarLink
                 icon={<DollarSign className="w-4 h-4" />}

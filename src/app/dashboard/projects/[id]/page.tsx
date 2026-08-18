@@ -28,6 +28,7 @@ import {
 import { ProjectStage, StageStatus } from "@/features/projects/types";
 import { Division } from "@/features/divisions/types";
 import { ProjectTimeline } from "@/features/projects/components/ProjectTimeline";
+import { ProjectModulesCard } from "@/features/modules/components/project-modules-card";
 
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { DATE_FORMATS, dayKey, formatDay, formatInstant } from "@/lib/datetime";
@@ -39,7 +40,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
   const resolvedParams = use(params);
   const projectId = resolvedParams.id;
   const router = useRouter();
-  const { hasFinancialAccess } = useAuth();
+  const { hasFinancialAccess, canManageProjects } = useAuth();
 
   const { data: projectData, isLoading: isLoadingProject } = useGetProjectByIdQuery(projectId);
   const { data: statsData } = useGetProjectStatsQuery(projectId);
@@ -548,7 +549,13 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
         )}
 
         {activeTab === "timeline" && (
-          <ProjectTimeline projectId={projectId} />
+          <div className="space-y-6">
+            <ProjectModulesCard
+              projectId={projectId}
+              canManage={canManageProjects}
+            />
+            <ProjectTimeline projectId={projectId} />
+          </div>
         )}
 
         {activeTab === "audit" && (

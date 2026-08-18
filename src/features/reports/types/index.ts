@@ -54,3 +54,41 @@ export interface GetReportsParams {
   month?: number;
   year?: number;
 }
+
+/* ==========================================================================
+ * Category / module breakdown (Admin & Lead)
+ *
+ * Counts, not hours — there is no per-category minute tracking by design, so
+ * nothing here should be presented as time.
+ * ========================================================================== */
+
+export interface CategoryModuleCount {
+  _id: string;
+  name: string | null;
+  entryCount: number;
+  daysTouched: number;
+}
+
+export interface CategoryModuleProjectRow {
+  project: { _id: string; name: string; code?: string };
+  entryCount: number;
+  daysTouched: number;
+  categories: CategoryModuleCount[];
+  modules: CategoryModuleCount[];
+}
+
+export interface CategoryModuleUserRow {
+  user: { _id: string; name: string; email: string };
+  projects: CategoryModuleProjectRow[];
+}
+
+export interface CategoryModuleBreakdownParams {
+  month?: number;
+  year?: number;
+  user?: string;
+}
+
+export interface CategoryModuleBreakdownResponse {
+  message: string;
+  data: CategoryModuleUserRow[];
+}
