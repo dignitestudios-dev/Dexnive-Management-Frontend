@@ -281,6 +281,16 @@ export function Sidebar() {
                 nested
               />
             )}
+            {isAdmin && (
+              <SidebarLink
+                icon={<Boxes className="w-4 h-4" />}
+                label="Modules Template"
+                href="/dashboard/projects/module-templates"
+                active={pathname === "/dashboard/projects/module-templates"}
+                isCollapsed={isCollapsed}
+                nested
+              />
+            )}
           </SidebarGroup>
         )}
 
@@ -335,7 +345,6 @@ export function Sidebar() {
               "/dashboard/settings/holidays",
               "/dashboard/settings/rates",
               "/dashboard/settings/categories",
-              "/dashboard/settings/module-templates",
             ])}
           >
             <SidebarLink
@@ -354,16 +363,6 @@ export function Sidebar() {
               isCollapsed={isCollapsed}
               nested
             />
-            {isAdmin && (
-              <SidebarLink
-                icon={<Boxes className="w-4 h-4" />}
-                label="Module Templates"
-                href="/dashboard/settings/module-templates"
-                active={pathname === "/dashboard/settings/module-templates"}
-                isCollapsed={isCollapsed}
-                nested
-              />
-            )}
             {hasFinancialAccess && (
               <SidebarLink
                 icon={<DollarSign className="w-4 h-4" />}
