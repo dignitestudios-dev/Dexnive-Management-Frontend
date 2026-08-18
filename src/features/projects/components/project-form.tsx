@@ -198,7 +198,18 @@ export function ProjectForm({ initialData }: ProjectFormProps) {
               <SelectContent>
                 <SelectItem value="not-started" className="text-xs">Not Started</SelectItem>
                 <SelectItem value="active" className="text-xs">Active</SelectItem>
-                <SelectItem value="idle" className="text-xs">Idle</SelectItem>
+                {/*
+                  "idle" is set by the backend cron after 3 days with no logged
+                  hours, and cleared automatically when hours are logged again —
+                  it is never chosen by hand. It stays listed (disabled) only
+                  while a project is currently idle, so the field shows its real
+                  status instead of rendering blank.
+                */}
+                {formData.status === "idle" && (
+                  <SelectItem value="idle" disabled className="text-xs">
+                    Idle (set automatically)
+                  </SelectItem>
+                )}
                 <SelectItem value="on-hold" className="text-xs">On Hold</SelectItem>
                 <SelectItem value="completed" className="text-xs">Completed</SelectItem>
               </SelectContent>

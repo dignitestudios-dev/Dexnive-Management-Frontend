@@ -388,7 +388,7 @@ export default function ReportsPage() {
       {!isLoading && !error && (
         <div className="space-y-6">
           {/* Sleek Metrics Ribbon displaying the 6 exact Backend Metrics */}
-          <div className="bg-white border border-gray-300 rounded-2xl shadow-sm overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200 grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8">
+          <div className="bg-gray-200 border border-gray-300 rounded-2xl shadow-sm overflow-hidden grid grid-cols-2 sm:grid-cols-4 gap-px">
             <RibbonMetric
               title="TOTAL HOURS"
               value={(metrics?.totalHours ?? metrics?.totalWorkedHours ?? overallHoursTotal).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
@@ -629,7 +629,7 @@ function RibbonMetric({
   const currentThemeClass = themeClasses[colorTheme];
 
   return (
-    <div className="p-5 flex flex-col justify-between min-h-[96px] space-y-2 hover:bg-gray-50/30 transition-colors duration-200">
+    <div className="bg-white p-5 flex flex-col justify-between min-h-[96px] space-y-2 hover:bg-gray-50/30 transition-colors duration-200">
       <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 select-none uppercase tracking-wider">
         <div className={cn("w-6 h-6 rounded-full border flex items-center justify-center shrink-0", currentThemeClass)}>
           {icon}
