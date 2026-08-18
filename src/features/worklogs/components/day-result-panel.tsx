@@ -136,11 +136,9 @@ function EntryRow({ entry }: { entry: WorklogEntry }) {
         </div>
       </div>
 
-      {(entry.tasks?.length || entry.description) && (
-        <div className="mt-3">
-          <WorklogDescription tasks={entry.tasks} description={entry.description} />
-        </div>
-      )}
+      <div className="mt-3">
+        <WorklogDescription categoryEntries={entry.categoryEntries} />
+      </div>
     </div>
   );
 }

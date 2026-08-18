@@ -295,14 +295,11 @@ export default function DashboardPage() {
                               {formatMins(entry.loggedMinutes)}
                             </span>
                           </div>
-                          {(entry.tasks?.length || entry.description) && (
-                            <WorklogDescription
-                              tasks={entry.tasks}
-                              description={entry.description}
-                              className="mt-1"
-                              lineClamp={2}
-                            />
-                          )}
+                          <WorklogDescription
+                            categoryEntries={entry.categoryEntries}
+                            className="mt-1"
+                            lineClamp={2}
+                          />
                         </div>
                       ))}
                     </div>

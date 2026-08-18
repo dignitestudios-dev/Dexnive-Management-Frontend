@@ -1,24 +1,46 @@
-"use client";
-
-import { useCallback, useEffect, useState } from "react";
-
 /**
- * How a project entry describes its work.
+ * How a department records what it worked on.
  *
- * The API takes exactly one of `tasks` or `description` per entry, so this is a
- * genuine either/or rather than two fields that can both be filled.
+ * Every category block on a worklog entry carries either a structured task
+ * breakdown or a plain description — the API requires exactly one of the two.
+ * Which one is decided by the logging user's *department*, not by the user and
+ * not by their role: a Backend Lead logs like the Backend team, a Design Lead
+ * logs like the Design team.
+ *
+ * The reason it cannot be a free choice: `module` is a required field on every
+ * task line, so a department that should not see a Module field cannot use the
+ * task format at all.
+ *
+ * The backend enforces no department rule of its own, so this module is the
+ * only place the distinction exists.
  */
+
 export type EntryFormat = "tasks" | "notes";
 
 /**
- * Departments whose work always decomposes into module/task/difficulty, so they
- * log a structured breakdown and are not offered free-form notes.
+ * Departments that log a structured breakdown — Category, Module, Description,
+ * Complexity.
  *
- * Compared case-insensitively against the department name.
+ * Matched case-insensitively after trimming. Department records are created at
+ * runtime rather than seeded, so this is the one place to correct if a name
+ * differs in the database.
  */
-const STRUCTURED_ONLY_DEPARTMENTS = ["web", "backend"];
+const STRUCTURED_DEPARTMENTS = ["web", "backend", "frontend"];
 
-const STORAGE_KEY = "worklog-entry-format";
+/**
+ * Aliases for the descriptive departments, kept only so an unexpected spelling
+ * is still classified deliberately rather than by the fallback.
+ *
+ * Design, Project Management and SQA log Category + Description only.
+ */
+const DESCRIPTIVE_DEPARTMENTS = [
+  "design",
+  "project management",
+  "pm",
+  "sqa",
+  "qa",
+  "quality assurance",
+];
 
 /** Read a department name off a user, whether it is populated or just an id. */
 function departmentName(user: unknown): string {
@@ -29,62 +51,22 @@ function departmentName(user: unknown): string {
 }
 
 /**
- * Whether this user may choose free-form notes instead of a task breakdown.
+ * The format this user's department logs in.
  *
- * Leads always may, whatever department they sit in — the role wins over the
- * department rule. Everyone else may unless they are in a structured-only
- * department.
+ * Unknown departments fall back to "notes" on purpose: the task format depends
+ * on the project already having modules seeded, so defaulting an unrecognised
+ * department to it could leave those users unable to log at all. A description
+ * always works.
  */
-export function canUseFreeForm(user: unknown, isLead: boolean): boolean {
-  if (isLead) return true;
+export function entryFormatForUser(user: unknown): EntryFormat {
   const name = departmentName(user).trim().toLowerCase();
-  if (!name) return true; // no department on record — don't withhold the choice
-  return !STRUCTURED_ONLY_DEPARTMENTS.includes(name);
+  if (!name) return "notes";
+  if (STRUCTURED_DEPARTMENTS.includes(name)) return "tasks";
+  if (DESCRIPTIVE_DEPARTMENTS.includes(name)) return "notes";
+  return "notes";
 }
 
-function readStoredFormat(): EntryFormat | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored === "tasks" || stored === "notes" ? stored : null;
-  } catch {
-    // Private mode or blocked storage — fall back to the default.
-    return null;
-  }
-}
-
-function writeStoredFormat(format: EntryFormat): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, format);
-  } catch {
-    // Persisting the preference is a convenience, never a requirement.
-  }
-}
-
-/**
- * The user's remembered choice of entry format, used as the default for new
- * project rows.
- *
- * Asking on every entry would be noise, so the last choice sticks. It is still
- * only a *default* — the per-entry toggle can override it for a single row
- * without changing the preference.
- *
- * Starts at "tasks" on first render and syncs from storage in an effect, so the
- * server and client agree on the first paint.
- */
-export function useEntryFormatPreference(): [EntryFormat, (next: EntryFormat) => void] {
-  const [format, setFormat] = useState<EntryFormat>("tasks");
-
-  useEffect(() => {
-    const stored = readStoredFormat();
-    if (stored) setFormat(stored);
-  }, []);
-
-  const remember = useCallback((next: EntryFormat) => {
-    setFormat(next);
-    writeStoredFormat(next);
-  }, []);
-
-  return [format, remember];
+/** Whether the Module field is shown at all for this user. */
+export function showsModuleField(user: unknown): boolean {
+  return entryFormatForUser(user) === "tasks";
 }

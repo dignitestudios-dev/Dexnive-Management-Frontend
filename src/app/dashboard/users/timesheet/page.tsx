@@ -403,7 +403,7 @@ function TimesheetContent() {
                           </span>
                         </div>
                       </div>
-                      <WorklogDescription tasks={p.tasks} description={p.description} />
+                      <WorklogDescription categoryEntries={p.categoryEntries} />
                     </div>
                   ))}
                 </div>

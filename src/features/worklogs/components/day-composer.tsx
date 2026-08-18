@@ -48,7 +48,12 @@ import {
   useSubmitMissingReasonMutation,
   useSubmitWorklogMutation,
 } from "../api/worklogs.mutations";
-import { MAX_TASKS_PER_ENTRY, type SaveDraftPayload, type WorklogSubmission } from "../types";
+import {
+  MAX_CATEGORY_ENTRIES,
+  MAX_TASKS_PER_CATEGORY,
+  type SaveDraftPayload,
+  type WorklogSubmission,
+} from "../types";
 import {
   STANDARD_WORK_MINUTES,
   clampNonProjectTime,
@@ -56,13 +61,8 @@ import {
   formatMinutes,
   validateDayBalance,
 } from "../lib/day-balance";
-import { TaskBreakdownFields, EMPTY_TASK } from "./task-breakdown-fields";
-import { EntryFormatToggle } from "./entry-format-toggle";
-import {
-  canUseFreeForm,
-  useEntryFormatPreference,
-  type EntryFormat,
-} from "../lib/entry-format";
+import { CategoryEntriesField, emptyCategoryEntry } from "./category-entries-field";
+import { entryFormatForUser, type EntryFormat } from "../lib/entry-format";
 import { DayBudgetBar } from "./day-budget-bar";
 import { NonProjectTimeCard } from "./non-project-time-card";
 import { ProjectSelectCombobox } from "./project-select-combobox";
@@ -79,35 +79,37 @@ import {
  * checked by the same function the UI displays from.
  * ========================================================================== */
 
+const taskLineSchema = z.object({
+  module: z.string().min(1, "Pick a module"),
+  task: z.string().trim().min(1, "Describe the task").max(500),
+  difficulty: z.enum(["LOW", "MEDIUM", "HIGH"]),
+});
+
 const entrySchema = z.object({
   project: z.string().min(1, "Pick a project"),
   hours: z.coerce.number().min(0).max(24),
   minutes: z.coerce.number().min(0).max(59),
-  tasks: z
+  categoryEntries: z
     .array(
       z.object({
-        module: z.string().trim().max(200),
-        task: z.string().trim().max(500),
-        difficulty: z.enum(["LOW", "MEDIUM", "HIGH"]),
+        category: z.string().min(1, "Pick a category"),
+        description: z.string().trim().max(2000).default(""),
+        tasks: z.array(taskLineSchema).max(MAX_TASKS_PER_CATEGORY).default([]),
       }),
     )
-    .max(MAX_TASKS_PER_ENTRY, `Up to ${MAX_TASKS_PER_ENTRY} tasks per project`)
-    .default([]),
-  description: z.string().trim().max(2000).default(""),
+    .min(1, "Add at least one category")
+    .max(MAX_CATEGORY_ENTRIES),
 });
 
 /**
- * Built per-user rather than at module scope: the balance message wording
- * depends on whether this user can log lead work, and non-Leads must never see
- * the term.
+ * Built per user: the balance wording depends on whether they can log lead
+ * work, and the department decides whether a category block is filled in as a
+ * task breakdown or a description.
  */
-const makeComposerSchema = (canLogLeadWork: boolean) =>
+const makeComposerSchema = (canLogLeadWork: boolean, format: EntryFormat) =>
   z
     .object({
       entries: z.array(entrySchema).default([]),
-      // One format for the whole day — the control sits above the project list,
-      // not on each row.
-      format: z.enum(["tasks", "notes"]),
       freeMinutes: z.coerce.number().min(0).default(0),
       leadWorkMinutes: z.coerce.number().min(0).default(0),
     })
@@ -122,39 +124,39 @@ const makeComposerSchema = (canLogLeadWork: boolean) =>
           });
         }
 
-        // The server's rule is per entry; the UI applies one format to them all.
-        if (values.format === "notes") {
-          if (!entry.description?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Describe what you worked on",
-              path: ["entries", index, "description"],
-            });
-          }
-          return;
-        }
-
-        const tasks = entry.tasks ?? [];
-        if (tasks.length === 0) {
+        // No repeating a category within one project entry — the API rejects it.
+        const categoryIds = entry.categoryEntries
+          .map((block) => block.category)
+          .filter(Boolean);
+        if (new Set(categoryIds).size !== categoryIds.length) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "Add at least one task",
-            path: ["entries", index, "tasks"],
+            message: "Each category can only be added once per project",
+            path: ["entries", index, "categoryEntries"],
           });
         }
-        tasks.forEach((task, taskIndex) => {
-          if (!task.module?.trim()) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Module is required",
-              path: ["entries", index, "tasks", taskIndex, "module"],
-            });
+
+        // Mirrors the server's per-block either/or, with the side chosen by
+        // the user's department rather than by the user.
+        entry.categoryEntries.forEach((block, blockIndex) => {
+          const base = ["entries", index, "categoryEntries", blockIndex] as const;
+
+          if (format === "notes") {
+            if (!block.description?.trim()) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Describe what you worked on",
+                path: [...base, "description"],
+              });
+            }
+            return;
           }
-          if (!task.task?.trim()) {
+
+          if ((block.tasks ?? []).length === 0) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: "Task is required",
-              path: ["entries", index, "tasks", taskIndex, "task"],
+              message: "Add at least one task",
+              path: [...base, "tasks"],
             });
           }
         });
@@ -174,8 +176,7 @@ const makeComposerSchema = (canLogLeadWork: boolean) =>
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: balance.message,
-          // Matches where the API reports balance failures, so server-side and
-          // client-side rejections surface in the same place.
+          // Matches where the API reports balance failures.
           path: ["freeMinutes"],
         });
       }
@@ -183,21 +184,13 @@ const makeComposerSchema = (canLogLeadWork: boolean) =>
 
 type ComposerValues = z.input<ReturnType<typeof makeComposerSchema>>;
 
-const blankEntry = () => ({
+const blankEntry = (format: EntryFormat) => ({
   project: "",
   hours: 0,
   minutes: 0,
-  tasks: [{ ...EMPTY_TASK }],
-  description: "",
+  categoryEntries: [emptyCategoryEntry(format)],
 });
 
-/** True when an entry holds anything the user typed in the given format. */
-function entryHasContent(entry: any, format: EntryFormat): boolean {
-  if (format === "notes") return Boolean(entry?.description?.trim());
-  return (entry?.tasks ?? []).some(
-    (task: any) => task?.module?.trim() || task?.task?.trim(),
-  );
-}
 
 /* ==========================================================================
  * Composer
@@ -217,9 +210,6 @@ export function DayComposer({
 
   // Web and Backend always log a structured breakdown; everyone else, and any
   // Lead whatever their department, may choose free-form notes instead.
-  const allowFreeForm = canUseFreeForm(user, isLead);
-  const [preferredFormat, rememberFormat] = useEntryFormatPreference();
-  const defaultFormat: EntryFormat = allowFreeForm ? preferredFormat : "tasks";
 
   const day = dayKey(shiftDate) || todayKey();
   const isToday = day === todayKey();
@@ -284,19 +274,21 @@ export function DayComposer({
    */
   const [mode, setMode] = useState<DayMode | null>(null);
 
-  /** Format the user is switching to, held while the confirmation is open. */
-  const [pendingFormat, setPendingFormat] = useState<EntryFormat | null>(null);
-
   /* ── Form ──────────────────────────────────────────────────────────────── */
 
-  const composerSchema = useMemo(() => makeComposerSchema(isLead), [isLead]);
+  /** Decided by department, not by the user — see lib/entry-format.ts. */
+  const entryFormat = entryFormatForUser(user);
+
+  const composerSchema = useMemo(
+    () => makeComposerSchema(isLead, entryFormat),
+    [isLead, entryFormat],
+  );
 
   const form = useForm<ComposerValues>({
     resolver: zodResolver(composerSchema) as any,
     mode: "onChange",
     defaultValues: {
-      entries: [blankEntry()],
-      format: defaultFormat,
+      entries: [blankEntry(entryFormat)],
       freeMinutes: 0,
       leadWorkMinutes: 0,
     },
@@ -308,8 +300,6 @@ export function DayComposer({
   });
 
   const watchedEntries = useWatch({ control: form.control, name: "entries" }) ?? [];
-  const currentFormat = (useWatch({ control: form.control, name: "format" }) ??
-    defaultFormat) as EntryFormat;
   const watchedFree = Number(useWatch({ control: form.control, name: "freeMinutes" })) || 0;
   const watchedLead =
     Number(useWatch({ control: form.control, name: "leadWorkMinutes" })) || 0;
@@ -357,43 +347,43 @@ export function DayComposer({
 
     if (!worklog) {
       form.reset({
-        entries: [blankEntry()],
-        format: defaultFormat,
+        entries: [blankEntry(entryFormat)],
         freeMinutes: 0,
         leadWorkMinutes: 0,
       });
       return;
     }
 
+    // Reads come back with category and module populated as {_id, name};
+    // the form works in bare ids, so unwrap them here.
+    const idOf = (value: any) =>
+      typeof value === "string" ? value : (value?._id ?? "");
+
     const entries = (worklog.entries || []).map((entry: any) => {
-      const hasTasks = Array.isArray(entry.tasks) && entry.tasks.length > 0;
+      const blocks = Array.isArray(entry.categoryEntries) ? entry.categoryEntries : [];
       return {
-        project: typeof entry.project === "string" ? entry.project : entry.project?._id,
+        project: idOf(entry.project),
         hours: Math.floor((entry.loggedMinutes ?? 0) / 60),
         minutes: (entry.loggedMinutes ?? 0) % 60,
-        tasks: hasTasks
-          ? entry.tasks.map((t: any) => ({
-              module: t.module ?? "",
-              task: t.task ?? "",
-              difficulty: t.difficulty ?? "LOW",
-            }))
-          : [{ ...EMPTY_TASK }],
-        description: entry.description ?? "",
+        categoryEntries:
+          blocks.length > 0
+            ? blocks.map((block: any) => ({
+                category: idOf(block.category),
+                description: block.description ?? "",
+                tasks: (block.tasks ?? []).map((task: any) => ({
+                  module: idOf(task.module),
+                  task: task.task ?? "",
+                  difficulty: task.difficulty ?? "LOW",
+                })),
+              }))
+            : // Entries predating categories come back empty — start a fresh
+              // block so the day can be re-saved in the current shape.
+              [emptyCategoryEntry(entryFormat)],
       };
     });
 
-    // A saved day reopens in whichever format it was written in.
-    const savedFormat: EntryFormat = (worklog.entries || []).some(
-      (entry: any) => Array.isArray(entry.tasks) && entry.tasks.length > 0,
-    )
-      ? "tasks"
-      : (worklog.entries || []).some((entry: any) => entry.description)
-        ? "notes"
-        : defaultFormat;
-
     form.reset({
-      entries: entries.length > 0 ? entries : [blankEntry()],
-      format: savedFormat,
+      entries: entries.length > 0 ? entries : [blankEntry(entryFormat)],
       freeMinutes: worklog.freeMinutes ?? 0,
       leadWorkMinutes: worklog.leadWorkMinutes ?? 0,
     });
@@ -406,14 +396,13 @@ export function DayComposer({
           ? "leadWork"
           : "free",
     );
-  }, [worklogResponse, worklog, form, defaultFormat]);
+  }, [worklogResponse, worklog, form, entryFormat]);
 
   /** Answer the chooser and seed the form for that shape of day. */
   const chooseMode = (next: DayMode) => {
     if (next === "projects") {
       form.reset({
-        entries: [blankEntry()],
-        format: defaultFormat,
+        entries: [blankEntry(entryFormat)],
         freeMinutes: 0,
         leadWorkMinutes: 0,
       });
@@ -421,7 +410,6 @@ export function DayComposer({
       // A whole day with no project work: the chosen bucket carries all 480.
       form.reset({
         entries: [],
-        format: defaultFormat,
         freeMinutes: next === "free" ? STANDARD_WORK_MINUTES : 0,
         leadWorkMinutes: next === "leadWork" ? STANDARD_WORK_MINUTES : 0,
       });
@@ -429,64 +417,29 @@ export function DayComposer({
     setMode(next);
   };
 
-  /**
-   * Apply a format to the whole day, clearing what the other format held.
-   *
-   * The two are mutually exclusive per entry on the server, and carrying stale
-   * text in the abandoned field would be sent on a later switch back, so the
-   * change is destructive by design — which is why it is confirmed first.
-   */
-  const applyFormat = (next: EntryFormat) => {
-    const entries = (form.getValues("entries") ?? []) as any[];
-    form.setValue(
-      "entries",
-      entries.map((entry) => ({
-        ...entry,
-        tasks: [{ ...EMPTY_TASK }],
-        description: "",
-      })) as any,
-      { shouldValidate: false },
-    );
-    form.setValue("format", next, { shouldValidate: true });
-    rememberFormat(next);
-    setPendingFormat(null);
-  };
-
-  /** Confirm before switching only when there is something to lose. */
-  const requestFormatChange = (next: EntryFormat) => {
-    if (next === currentFormat) return;
-
-    const entries = (form.getValues("entries") ?? []) as any[];
-    const hasContent = entries.some((entry) => entryHasContent(entry, currentFormat));
-
-    if (hasContent) {
-      setPendingFormat(next);
-      return;
-    }
-    applyFormat(next);
-  };
 
   /* ── Payload ───────────────────────────────────────────────────────────── */
 
   const buildPayload = (values: ComposerValues): SaveDraftPayload => ({
     shiftDate: day,
-    entries: (values.entries ?? []).map((entry: any) => {
-      const base = {
-        project: entry.project,
-        minutes: combineMinutes(entry.hours, entry.minutes),
-      };
-      // Exactly one of the two — sending both is a 422.
-      return values.format === "notes"
-        ? { ...base, description: String(entry.description ?? "").trim() }
-        : {
-            ...base,
-            tasks: (entry.tasks ?? []).map((t: any) => ({
-              module: String(t.module ?? "").trim().toUpperCase(),
-              task: String(t.task ?? "").trim(),
-              difficulty: t.difficulty,
-            })),
-          };
-    }),
+    entries: (values.entries ?? []).map((entry: any) => ({
+      project: entry.project,
+      minutes: combineMinutes(entry.hours, entry.minutes),
+      // Only the side of the either/or this department uses is sent; the API
+      // rejects a block carrying both.
+      categoryEntries: (entry.categoryEntries ?? []).map((block: any) =>
+        entryFormat === "notes"
+          ? { category: block.category, description: String(block.description ?? "").trim() }
+          : {
+              category: block.category,
+              tasks: (block.tasks ?? []).map((task: any) => ({
+                module: task.module,
+                task: String(task.task ?? "").trim(),
+                difficulty: task.difficulty,
+              })),
+            },
+      ),
+    })),
     freeMinutes: Number(values.freeMinutes) || 0,
     leadWorkMinutes: Number(values.leadWorkMinutes) || 0,
   });
@@ -681,19 +634,6 @@ export function DayComposer({
                 </span>
               </div>
 
-              {allowFreeForm && (
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50/60 px-3 py-2">
-                  <span className="text-xs text-gray-600">
-                    How you describe your work, for every project today
-                  </span>
-                  <EntryFormatToggle
-                    value={currentFormat}
-                    onChange={requestFormatChange}
-                    disabled={isBusy}
-                  />
-                </div>
-              )}
-
               <div className="space-y-3">
                 {fields.map((field, index) => (
                   <EntryRow
@@ -707,7 +647,8 @@ export function DayComposer({
                     projectSearch={projectSearch}
                     onProjectSearch={setProjectSearch}
                     watchedEntries={watchedEntries as any[]}
-                    format={currentFormat}
+                    format={entryFormat}
+                    projectId={(watchedEntries as any[])[index]?.project}
                     onRemove={() => remove(index)}
                     canRemove={fields.length > 1}
                   />
@@ -719,7 +660,7 @@ export function DayComposer({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => append(blankEntry() as any)}
+                  onClick={() => append(blankEntry(entryFormat) as any)}
                   className="h-8 text-xs font-medium border-dashed border-gray-300 text-gray-600 hover:text-primary-700 hover:border-primary-300"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" /> Add project
@@ -793,54 +734,6 @@ export function DayComposer({
         </form>
       </Form>
 
-      <Dialog
-        open={pendingFormat !== null}
-        onOpenChange={(open) => {
-          if (!open) setPendingFormat(null);
-        }}
-      >
-        <DialogContent className="sm:max-w-[460px]">
-          <DialogHeader>
-            <DialogTitle>Switch format?</DialogTitle>
-          </DialogHeader>
-
-          <div className="py-2 space-y-3">
-            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3.5">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-sm text-amber-900">
-                What you&apos;ve already entered will be cleared. Switching to{" "}
-                <span className="font-semibold">
-                  {pendingFormat === "notes" ? "notes" : "a task breakdown"}
-                </span>{" "}
-                empties the{" "}
-                {currentFormat === "notes" ? "notes" : "task rows"} on every
-                project for this day.
-              </p>
-            </div>
-            <p className="text-xs text-gray-500">
-              Hours, projects and free time are kept — only the description of the
-              work is reset.
-            </p>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPendingFormat(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={() => pendingFormat && applyFormat(pendingFormat)}
-              className="bg-primary-600 hover:bg-primary-700 text-white min-w-[130px]"
-            >
-              Yes, switch
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <UnassignedNoteDialog
         open={noteDialogOpen}
@@ -893,6 +786,7 @@ function EntryRow({
   index,
   form,
   format,
+  projectId,
   projects,
   allProjectsMap,
   isProjectsLoading,
@@ -996,28 +890,12 @@ function EntryRow({
         </div>
       </div>
 
-      {format === "notes" ? (
-        <FormField
-          control={form.control}
-          name={`entries.${index}.description`}
-          render={({ field }) => (
-            <FormItem className="space-y-1">
-              <FormControl>
-                <Textarea
-                  placeholder="What did you work on?"
-                  rows={3}
-                  maxLength={2000}
-                  className="bg-white border-gray-200 text-sm resize-none"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage className="text-[11px] font-normal" />
-            </FormItem>
-          )}
-        />
-      ) : (
-        <TaskBreakdownFields control={form.control} entryIndex={index} />
-      )}
+      <CategoryEntriesField
+        control={form.control}
+        entryIndex={index}
+        format={format}
+        projectId={projectId}
+      />
     </div>
   );
 }

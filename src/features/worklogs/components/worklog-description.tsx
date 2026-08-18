@@ -1,138 +1,106 @@
 "use client";
 
 import React from "react";
+import { Layers } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { TaskBreakdown } from "../types";
+import type { CategoryEntry, TaskBreakdown } from "../types";
 
-/** `1.) Auth | Fix login | HIGH` — the pre-structured-tasks description format. */
-const LEGACY_LINE =
-  /^(\d+\.\))\s*(.+?)\s*\|\s*(.+?)(?:\s*\|\s*(HIGH|MEDIUM|LOW))?$/i;
-
-interface WorklogDescriptionProps {
-  /** Structured breakdown — the format everything is logged in now. */
-  tasks?: TaskBreakdown[];
-  /** Legacy freeform note, only present on entries created before the switch. */
-  description?: string | null;
-  className?: string;
-  lineClamp?: number;
+/** Populated refs come back as {_id, name}; older payloads may be bare ids. */
+function refName(value: unknown): string {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  return (value as { name?: string }).name ?? "";
 }
 
 /**
- * Renders what was worked on for a single project entry.
+ * What was worked on for one project entry, grouped by category.
  *
- * Prefers the structured `tasks` array. Entries predating the structured API
- * carry a `description` instead — those are still parsed for the old
- * `1.) Module | Task | HIGH` shape so historical worklogs keep rendering as
- * task rows rather than degrading to a wall of text.
+ * Each block holds either a task breakdown or a description — never both.
+ * Entries logged before categories existed arrive with an empty array; those
+ * render an explicit note rather than blank space, since their original text is
+ * no longer surfaced by the API.
  */
 export function WorklogDescription({
-  tasks,
-  description,
+  categoryEntries,
   className,
   lineClamp,
-}: WorklogDescriptionProps) {
-  if (tasks && tasks.length > 0) {
-    return <TaskList tasks={tasks} className={className} />;
-  }
-
-  if (!description) return null;
-
-  const legacy = parseLegacyDescription(description);
-  if (legacy.length > 0) {
-    return <TaskList tasks={legacy} className={className} />;
-  }
-
-  return (
-    <div className={`${cn("", className)} p-2`}>
-      <p
-        className={cn(
-          "text-xs text-gray-700 leading-relaxed whitespace-pre-wrap",
-          lineClamp && `line-clamp-${lineClamp}`,
-        )}
-      >
-        {description}
-      </p>
-    </div>
-  );
-}
-
-function TaskList({
-  tasks,
-  className,
 }: {
-  tasks: TaskBreakdown[];
+  categoryEntries?: CategoryEntry[];
   className?: string;
+  lineClamp?: number;
 }) {
+  if (!categoryEntries || categoryEntries.length === 0) {
+    return (
+      <p className={cn("text-xs text-gray-400 italic", className)}>
+        No breakdown recorded
+      </p>
+    );
+  }
+
   return (
-    <div className={`${cn("space-y-2", className)} p-2`}>
-      <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 block mb-1">
-        Tasks &amp; Modules
-      </span>
-      <div className="space-y-2">
-        {tasks.map((t, idx) => (
-          <div
-            key={idx}
-            className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-gray-50/90 border border-gray-200/60 text-xs"
-          >
-            <div className="flex items-start sm:items-center gap-2 min-w-0 flex-1">
-              <span className="font-mono text-gray-400 shrink-0 font-medium text-[11px]">
-                {idx + 1}.
-              </span>
-              {t.module && (
-                <span className="font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded border border-primary-100 shrink-0">
-                  {t.module}
-                </span>
+    <div className={cn("space-y-3", className)}>
+      {categoryEntries.map((block, index) => (
+        <div key={index} className="rounded-lg border border-gray-200/70 bg-gray-50/60 p-3">
+          <span className="inline-flex items-center gap-1.5 mb-2">
+            <Layers className="w-3 h-3 text-gray-400 shrink-0" />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">
+              {refName(block.category) || "Uncategorised"}
+            </span>
+          </span>
+
+          {block.tasks && block.tasks.length > 0 ? (
+            <TaskList tasks={block.tasks} />
+          ) : block.description ? (
+            <p
+              className={cn(
+                "text-xs text-gray-700 leading-relaxed whitespace-pre-wrap",
+                lineClamp && `line-clamp-${lineClamp}`,
               )}
-              <span className="text-gray-800 leading-normal break-words">
-                {t.task}
-              </span>
-            </div>
-            {t.difficulty && (
-              <Badge
-                variant="outline"
-                className={cn(
-                  "shrink-0 text-[10px] font-semibold px-2 py-0.5 border self-start sm:self-auto",
-                  t.difficulty === "HIGH" &&
-                    "bg-red-50 text-red-700 border-red-200",
-                  t.difficulty === "MEDIUM" &&
-                    "bg-amber-50 text-amber-700 border-amber-200",
-                  t.difficulty === "LOW" &&
-                    "bg-emerald-50 text-emerald-700 border-emerald-200",
-                )}
-              >
-                {t.difficulty}
-              </Badge>
-            )}
-          </div>
-        ))}
-      </div>
+            >
+              {block.description}
+            </p>
+          ) : null}
+        </div>
+      ))}
     </div>
   );
 }
 
-/**
- * Pull task rows out of a legacy description. Returns [] unless every non-empty
- * line parses, so an ordinary note is never mangled into half-rows.
- */
-function parseLegacyDescription(description: string): TaskBreakdown[] {
-  const lines = description
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-  if (lines.length === 0) return [];
-
-  const parsed: TaskBreakdown[] = [];
-  for (const line of lines) {
-    const match = line.match(LEGACY_LINE);
-    if (!match) return [];
-    parsed.push({
-      module: match[2].trim().toUpperCase(),
-      task: match[3].trim(),
-      difficulty: (match[4]?.toUpperCase().trim() ??
-        "LOW") as TaskBreakdown["difficulty"],
-    });
-  }
-  return parsed;
+function TaskList({ tasks }: { tasks: TaskBreakdown[] }) {
+  return (
+    <div className="space-y-1.5">
+      {tasks.map((task, index) => (
+        <div
+          key={index}
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-md bg-white border border-gray-200/70 text-xs"
+        >
+          <div className="flex items-start sm:items-center gap-2 min-w-0 flex-1">
+            <span className="font-mono text-gray-400 shrink-0 font-medium text-[11px]">
+              {index + 1}.
+            </span>
+            {refName(task.module) && (
+              <span className="font-semibold text-primary-700 bg-primary-50 px-2 py-0.5 rounded border border-primary-100 shrink-0">
+                {refName(task.module)}
+              </span>
+            )}
+            <span className="text-gray-800 leading-normal break-words">{task.task}</span>
+          </div>
+          {task.difficulty && (
+            <Badge
+              variant="outline"
+              className={cn(
+                "shrink-0 text-[10px] font-semibold px-2 py-0.5 border self-start sm:self-auto",
+                task.difficulty === "HIGH" && "bg-red-50 text-red-700 border-red-200",
+                task.difficulty === "MEDIUM" && "bg-amber-50 text-amber-700 border-amber-200",
+                task.difficulty === "LOW" && "bg-emerald-50 text-emerald-700 border-emerald-200",
+              )}
+            >
+              {task.difficulty}
+            </Badge>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }

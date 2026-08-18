@@ -50,20 +50,57 @@ export interface UserRef {
 export const TASK_DIFFICULTIES = ["LOW", "MEDIUM", "HIGH"] as const;
 export type TaskDifficulty = (typeof TASK_DIFFICULTIES)[number];
 
-/** Most tasks the API accepts on one entry. */
-export const MAX_TASKS_PER_ENTRY = 50;
+/** Most tasks the API accepts in one category block. */
+export const MAX_TASKS_PER_CATEGORY = 50;
+/** Most category blocks the API accepts on one project entry. */
+export const MAX_CATEGORY_ENTRIES = 50;
+
+/** Populated references returned on a read. */
+export interface ModuleRef {
+  _id: string;
+  name: string;
+}
+export interface CategoryRef {
+  _id: string;
+  name: string;
+}
+
+/* -- read shapes (module/category populated) ------------------------------ */
+
+export interface TaskBreakdown {
+  module: ModuleRef | string;
+  task: string;
+  difficulty: TaskDifficulty;
+}
 
 /**
- * One row of a project entry's structured breakdown.
+ * One category worked on within a project entry — either a plain description
+ * or a task breakdown, never both and never neither.
  *
- * `module` is uppercased server-side on every write (a zod transform plus the
- * Mongoose schema), so a response never echoes back the casing that was sent —
- * treat module names as uppercase throughout the UI.
+ * A project entry can hold several of these. Which side of the either/or is
+ * used is decided by the logging user's department, not by the user; see
+ * features/worklogs/lib/entry-format.ts.
  */
-export interface TaskBreakdown {
+export interface CategoryEntry {
+  category: CategoryRef | string;
+  description?: string | null;
+  tasks?: TaskBreakdown[];
+}
+
+/* -- write shapes (bare ids) ---------------------------------------------- */
+
+export interface TaskBreakdownPayload {
+  /** Module _id, scoped to this entry's project. */
   module: string;
   task: string;
   difficulty: TaskDifficulty;
+}
+
+export interface CategoryEntryPayload {
+  /** Category _id, must belong to the logging user's department. */
+  category: string;
+  description?: string;
+  tasks?: TaskBreakdownPayload[];
 }
 
 /* ==========================================================================
@@ -88,9 +125,14 @@ export interface WorklogEntry {
   nonBillableHours?: number;
   overtimeMinutes: number;
   overtimeHours?: number;
-  tasks?: TaskBreakdown[];
-  /** Free-form notes — the alternative to `tasks`, never present alongside it. */
-  description?: string | null;
+  /**
+   * This project's work, grouped by category. Each block holds either a task
+   * breakdown or a description.
+   *
+   * Entries logged before categories existed come back with an empty array —
+   * their original text is still in the database but is no longer surfaced.
+   */
+  categoryEntries?: CategoryEntry[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -137,34 +179,19 @@ export interface WorklogSubmission {
  * Requests — draft & submit
  * ========================================================================== */
 
-interface WorklogEntryBase {
-  project: string;
-  minutes: number;
-}
-
-/** A structured breakdown — module / task / difficulty rows. */
-export interface WorklogEntryTasksPayload extends WorklogEntryBase {
-  tasks: TaskBreakdown[];
-  description?: never;
-}
-
-/** Free-form notes, for work that doesn't decompose into modules. */
-export interface WorklogEntryNotesPayload extends WorklogEntryBase {
-  description: string;
-  tasks?: never;
-}
-
 /**
  * One project's time on the wire.
  *
- * The API requires exactly one of `description` or a non-empty `tasks` per
- * entry, rejecting both-or-neither with a 422. Modelling that as a union with
- * `never` on the opposite field makes the constraint a compile error rather
- * than a runtime surprise — you cannot construct a payload carrying both.
+ * `categoryEntries` is required with at least one block, and no category may
+ * repeat within a single entry. Each block carries exactly one of
+ * `description` or `tasks` — which side is used is decided by the logging
+ * user's department, see features/worklogs/lib/entry-format.ts.
  */
-export type WorklogEntryPayload =
-  | WorklogEntryTasksPayload
-  | WorklogEntryNotesPayload;
+export interface WorklogEntryPayload {
+  project: string;
+  minutes: number;
+  categoryEntries: CategoryEntryPayload[];
+}
 
 /**
  * POST /worklogs/draft — save/overwrite a day. Does not lock it.
