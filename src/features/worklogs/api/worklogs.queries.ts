@@ -7,7 +7,6 @@ import {
   getMyTimesheet,
   getMyWorklogByDate,
   getMyWorklogs,
-  getModules,
   getSummary,
   getUserTimesheet,
 } from "./worklogs.service";
@@ -20,24 +19,9 @@ export const worklogKeys = {
   myMissing: (params?: GetMissingEntriesParams) => [...worklogKeys.all, "myMissing", params] as const,
   summary: (params?: WorklogSummaryParams) => [...worklogKeys.all, "summary", params] as const,
   my: (shiftDate: string) => [...worklogKeys.all, "my", shiftDate] as const,
-  modules: () => [...worklogKeys.all, "modules"] as const,
   timesheet: (params?: unknown) => [...worklogKeys.all, "timesheet", params] as const,
   userTimesheet: (params?: unknown) => [...worklogKeys.all, "userTimesheet", params] as const,
 };
-
-/**
- * Module names for the task breakdown combobox.
- *
- * Held longer than the default staleTime: the list only grows when someone
- * coins a genuinely new module, and it is read on every task row.
- */
-export function useGetModulesQuery() {
-  return useQuery({
-    queryKey: worklogKeys.modules(),
-    queryFn: () => getModules(),
-    staleTime: 5 * 60 * 1000,
-  });
-}
 
 export function useMissingEntriesQuery(params?: GetMissingEntriesParams) {
   return useQuery({

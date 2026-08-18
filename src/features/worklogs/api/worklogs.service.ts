@@ -59,20 +59,6 @@ export async function submitMissingReason(payload: MissingReasonPayload): Promis
   return data;
 }
 
-/**
- * Distinct module names already in use, uppercase and sorted.
- *
- * Open to any authenticated user. Backs the module combobox — the server
- * normalises casing but cannot tell a typo from a new module, so offering the
- * existing list is the only thing that prevents AUTHHHH becoming its own value.
- */
-export async function getModules(): Promise<{ message: string; data: string[] }> {
-  const { data } = await axiosInstance.get<{ message: string; data: string[] }>(
-    "/worklogs/modules",
-  );
-  return data;
-}
-
 /* ── Management (Admin/Lead) ────────────────────────────────────────────── */
 
 export async function getAllWorklogs(params?: WorklogQueryParams): Promise<WorklogsResponse> {
