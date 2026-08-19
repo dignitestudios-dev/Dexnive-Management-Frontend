@@ -81,9 +81,9 @@ import {
  * ========================================================================== */
 
 const taskLineSchema = z.object({
-  module: z.string().min(1, "Pick a module"),
-  task: z.string().trim().min(1, "Describe the task").max(500),
-  difficulty: z.enum(["LOW", "MEDIUM", "HIGH"]),
+  module: z.string().default(""),
+  task: z.string().trim().max(500).default(""),
+  difficulty: z.enum(["LOW", "MEDIUM", "HIGH"]).default("LOW"),
 });
 
 const entrySchema = z.object({
@@ -159,6 +159,23 @@ const makeComposerSchema = (canLogLeadWork: boolean, format: EntryFormat) =>
                 code: z.ZodIssueCode.custom,
                 message: "Add at least one task",
                 path: [...base, "tasks"],
+              });
+            } else {
+              block.tasks?.forEach((task, taskIndex) => {
+                if (!task.module?.trim()) {
+                  ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "Pick a module",
+                    path: [...base, "tasks", taskIndex, "module"],
+                  });
+                }
+                if (!task.task?.trim()) {
+                  ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "Describe the task",
+                    path: [...base, "tasks", taskIndex, "task"],
+                  });
+                }
               });
             }
           }
