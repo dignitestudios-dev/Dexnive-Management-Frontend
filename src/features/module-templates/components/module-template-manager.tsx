@@ -49,6 +49,30 @@ export function ModuleTemplateManager({ canManage }: { canManage: boolean }) {
   const [editing, setEditing] = useState<ModuleTemplate | null>(null);
   const [name, setName] = useState("");
   const [toDelete, setToDelete] = useState<ModuleTemplate | null>(null);
+  /**
+   * Which row's toggle is in flight. Tracked per id rather than using the
+   * mutation's own isPending, which is shared by every row and by the rename
+   * dialog — that would show all of them busy at once.
+   */
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const toggleActive = (template: ModuleTemplate, isActive: boolean) => {
+    setTogglingId(template._id);
+    updateMutation.mutate(
+      { id: template._id, isActive },
+      {
+        onSuccess: () =>
+          toast.success(
+            isActive
+              ? `${template.name} will be added to new projects`
+              : `${template.name} will no longer be added to new projects`,
+          ),
+        onError: (error: any) =>
+          toast.error(error?.message || `Failed to update ${template.name}`),
+        onSettled: () => setTogglingId(null),
+      },
+    );
+  };
 
   const save = () => {
     const trimmed = name.trim();
@@ -133,19 +157,22 @@ export function ModuleTemplateManager({ canManage }: { canManage: boolean }) {
               </span>
               {canManage && (
               <span className="flex items-center gap-1 shrink-0">
-                <Switch
-                  checked={template.isActive !== false}
-                  onCheckedChange={(checked) =>
-                    updateMutation.mutate(
-                      { id: template._id, isActive: checked },
-                      {
-                        onError: (error: any) =>
-                          toast.error(error?.message || "Failed to update template"),
-                      },
-                    )
-                  }
-                  aria-label={`Toggle ${template.name}`}
-                />
+                {togglingId === template._id ? (
+                  <span
+                    className="w-8 flex items-center justify-center"
+                    role="status"
+                    aria-label={`Updating ${template.name}`}
+                  >
+                    <Loader className="w-4 h-4 text-primary-600" />
+                  </span>
+                ) : (
+                  <Switch
+                    checked={template.isActive !== false}
+                    disabled={!!togglingId}
+                    onCheckedChange={(checked) => toggleActive(template, checked)}
+                    aria-label={`Toggle ${template.name}`}
+                  />
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
