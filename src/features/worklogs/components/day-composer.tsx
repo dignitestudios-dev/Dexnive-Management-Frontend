@@ -389,6 +389,7 @@ export function DayComposer({
           blocks.length > 0
             ? blocks.map((block: any) => ({
                 category: idOf(block.category),
+                _format: (block.description ?? "") !== "" ? "notes" : "tasks",
                 description: block.description ?? "",
                 tasks: (block.tasks ?? []).map((task: any) => ({
                   module: idOf(task.module),
@@ -574,7 +575,7 @@ export function DayComposer({
 
   /* ── Render ────────────────────────────────────────────────────────────── */
 
-  if (isLoadingWorklog) {
+  if (isLoadingWorklog || isProjectsLoading) {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader className="w-6 h-6 text-primary-600" />
