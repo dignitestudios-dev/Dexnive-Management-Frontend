@@ -304,7 +304,7 @@ export function Sidebar() {
             isActive={isGroupActive([
               "/dashboard/reports",
               "/dashboard/reports/breakdown",
-              "/dashboard/reports/category-modules",
+              // "/dashboard/reports/category-modules",
             ])}
           >
             <SidebarLink
@@ -323,6 +323,7 @@ export function Sidebar() {
               isCollapsed={isCollapsed}
               nested
             />
+            {/* Hidden for now — the page itself is still routable.
             <SidebarLink
               icon={<Layers className="w-4 h-4" />}
               label="Category & Modules"
@@ -331,6 +332,7 @@ export function Sidebar() {
               isCollapsed={isCollapsed}
               nested
             />
+            */}
           </SidebarGroup>
         )}
 

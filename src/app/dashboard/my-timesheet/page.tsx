@@ -9,6 +9,7 @@ import {
   isNoProjectWorkDay,
 } from "@/features/worklogs/lib/timesheet-status";
 import { TimesheetDayExtras } from "@/features/worklogs/components/timesheet-day-extras";
+import { NonProjectDayPanel } from "@/features/worklogs/components/non-project-day-panel";
 import { 
   CalendarDays, 
   ChevronLeft, 
@@ -19,7 +20,6 @@ import {
   Coffee,
   CalendarCheck,
   Palmtree,
-  Hourglass,
   FileQuestion
 } from "lucide-react";
 
@@ -184,6 +184,23 @@ export default function MyTimesheetPage() {
                             {dayData.projects.length} project{dayData.projects.length > 1 ? 's' : ''}
                           </span>
                         )}
+                        {/*
+                          Lead work sits outside the project total, so a day of
+                          5h project + 3h lead work would otherwise read as a
+                          half-empty day. Only rendered when non-zero, and only
+                          alongside project work — a day that was *entirely*
+                          lead work already says so in its status badge.
+                        */}
+                        {dayData.leadWorkMinutes > 0 && dayData.projects?.length > 0 && (
+                          <span className="text-[10px] text-violet-600 font-medium truncate">
+                            +{formatMins(dayData.leadWorkMinutes)} lead work
+                          </span>
+                        )}
+                        {dayData.freeMinutes > 0 && dayData.projects?.length > 0 && (
+                          <span className="text-[10px] text-sky-600 font-medium truncate">
+                            +{formatMins(dayData.freeMinutes)} free
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -230,15 +247,7 @@ export default function MyTimesheetPage() {
               <TimesheetDayExtras day={selectedDay} />
 
               {isNoProjectWorkDay(selectedDay) ? (
-                <div className="bg-sky-50 border border-sky-100 p-4 rounded-lg flex items-start gap-3">
-                  <Hourglass className="w-5 h-5 text-sky-500 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="font-medium text-sky-900">Free day</p>
-                    <p className="text-sm text-sky-700 mt-1">
-                      A full day was logged with no project work assigned.
-                    </p>
-                  </div>
-                </div>
+                <NonProjectDayPanel day={selectedDay} />
               ) : selectedDay.projects?.length > 0 ? (
                 <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
                   <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Projects Worked</p>

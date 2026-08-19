@@ -41,9 +41,17 @@ export function useGetUserByIdQuery(id: string) {
   });
 }
 
-export function useGetMyUserQuery() {
+/**
+ * The signed-in user, straight from the server.
+ *
+ * `enabled` exists so the app shell can hold this back until a token is in
+ * localStorage — firing it without one 401s, and the axios interceptor turns a
+ * 401 into a hard redirect to the login page.
+ */
+export function useGetMyUserQuery({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: usersKeys.me(),
     queryFn: () => getMyUser(),
+    enabled,
   });
 }

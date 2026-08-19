@@ -6,6 +6,7 @@ import {
   FileQuestion,
   Hourglass,
   Palmtree,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -73,33 +74,71 @@ const CONFIG: Record<string, DayStatusConfig> = {
 };
 
 /**
- * A submitted day with no project entries and no worked minutes: the whole day
- * went to freeMinutes / leadWorkMinutes.
+ * A submitted day that carries no project work at all — the whole day went to
+ * `freeMinutes`, `leadWorkMinutes`, or both.
  *
- * Derived rather than read from a field — the timesheet endpoint returns
- * neither freeMinutes nor leadWorkMinutes on a day, so an empty `projects`
- * with zero `workedMinutes` on a submitted day is the only available signal.
- * That also means a Lead's full lead-work day is indistinguishable from a free
- * day here; both surface as "Free day" until the API exposes the split.
+ * Returns which kind it was, so a Lead who spent the day on lead work is not
+ * labelled as having taken a free day.
+ *
+ * `null` means the day is not one of these (or is not submitted), and the
+ * ordinary status badge applies.
+ *
+ * The "free" fallback covers days from before the timesheet endpoint returned
+ * the split, where both fields come back as 0 — those still read as a free day
+ * exactly as they did previously, rather than losing their label.
  */
-export function isNoProjectWorkDay(day?: {
+export type NonProjectDayKind = "free" | "lead" | "mixed";
+
+export function nonProjectDayKind(day?: {
   status?: string | null;
   projects?: unknown[] | null;
   workedMinutes?: number | null;
-}): boolean {
-  if (!day) return false;
+  freeMinutes?: number | null;
+  leadWorkMinutes?: number | null;
+}): NonProjectDayKind | null {
+  if (!day) return null;
+
   const submitted = day.status === "present" || day.status === "submitted";
-  return (
-    submitted &&
-    (day.projects?.length ?? 0) === 0 &&
-    (day.workedMinutes ?? 0) === 0
-  );
+  if (!submitted) return null;
+  if ((day.projects?.length ?? 0) !== 0) return null;
+  if ((day.workedMinutes ?? 0) !== 0) return null;
+
+  const lead = day.leadWorkMinutes ?? 0;
+  const free = day.freeMinutes ?? 0;
+
+  if (lead > 0 && free > 0) return "mixed";
+  if (lead > 0) return "lead";
+  return "free";
 }
 
-const FREE_DAY: DayStatusConfig = {
-  color: "bg-sky-50 text-sky-700 border-sky-200",
-  icon: Hourglass,
-  label: "Free day",
+/** Kept as the boolean form for callers that only need "is it one of these". */
+export function isNoProjectWorkDay(
+  day?: Parameters<typeof nonProjectDayKind>[0],
+): boolean {
+  return nonProjectDayKind(day) !== null;
+}
+
+/**
+ * Violet for lead work throughout — it matches the lead-work segment on the
+ * day budget bar and the lead-work chip in the day details, so the colour
+ * means the same thing wherever it appears.
+ */
+const NON_PROJECT_DAY: Record<NonProjectDayKind, DayStatusConfig> = {
+  free: {
+    color: "bg-sky-50 text-sky-700 border-sky-200",
+    icon: Hourglass,
+    label: "Free day",
+  },
+  lead: {
+    color: "bg-violet-50 text-violet-700 border-violet-200",
+    icon: ShieldCheck,
+    label: "Lead work",
+  },
+  mixed: {
+    color: "bg-violet-50 text-violet-700 border-violet-200",
+    icon: ShieldCheck,
+    label: "Non-project",
+  },
 };
 
 /**
@@ -111,7 +150,8 @@ export function getDayStatusConfig(
   day?: Parameters<typeof isNoProjectWorkDay>[0],
 ): DayStatusConfig {
   if (!status) return EMPTY;
-  if (isNoProjectWorkDay(day)) return FREE_DAY;
+  const nonProject = nonProjectDayKind(day);
+  if (nonProject) return NON_PROJECT_DAY[nonProject];
   return (
     CONFIG[status] ?? {
       color: "bg-gray-50 text-gray-600 border-gray-200",

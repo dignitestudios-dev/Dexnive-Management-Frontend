@@ -322,6 +322,27 @@ export interface TimesheetDay {
   missingReason?: MissingReasonType | null;
   missingNote?: string | null;
   holidayReason?: string | null;
+  /**
+   * Day-level totals from the submission, alongside the per-project rows.
+   *
+   * `freeMinutes` and `leadWorkMinutes` are the direct day-level carve-outs the
+   * user entered — they sit *outside* `workedMinutes`, so a day can show 0
+   * worked minutes and still be a full accounted-for day. `leadWorkMinutes` is
+   * only ever non-zero for a Lead.
+   *
+   * Optional because days from before the endpoint returned them come back
+   * without the fields entirely.
+   */
+  totalBillableMinutes?: number;
+  totalBillableHours?: number;
+  totalNonBillableMinutes?: number;
+  totalNonBillableHours?: number;
+  totalOvertimeMinutes?: number;
+  totalOvertimeHours?: number;
+  freeMinutes?: number;
+  freeHours?: number;
+  leadWorkMinutes?: number;
+  leadWorkHours?: number;
   unassignedNonBillableMinutes?: number;
   unassignedNonBillableHours?: number;
   unassignedNonBillableNote?: string | null;
