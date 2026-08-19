@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { DeleteDialog } from "@/components/ui/delete-dialog";
 import { Input } from "@/components/ui/input";
+import { UppercaseInput } from "@/components/ui/uppercase-input";
 import { Loader } from "@/components/ui/loader";
 import { Switch } from "@/components/ui/switch";
 
@@ -31,8 +32,12 @@ import type { ModuleTemplate } from "../types";
  *
  * Editing a template does not touch projects already created — their modules
  * were copied at creation time and are managed on the project itself.
+ *
+ * `canManage` should be Admin only: the API allows any authenticated user to
+ * read this list but restricts every write verb, so Lead and Project Manager
+ * see it read-only rather than being offered controls that would 403.
  */
-export function ModuleTemplateManager() {
+export function ModuleTemplateManager({ canManage }: { canManage: boolean }) {
   const { data, isLoading } = useGetModuleTemplatesQuery();
   const templates = data?.data ?? [];
 
@@ -76,17 +81,19 @@ export function ModuleTemplateManager() {
           does not affect projects that already exist — those are managed on the
           project itself.
         </p>
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setName("");
-            setDialogOpen(true);
-          }}
-          className="gap-2 bg-primary-600 hover:bg-primary-700 text-white shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          Add template
-        </Button>
+        {canManage && (
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setName("");
+              setDialogOpen(true);
+            }}
+            className="gap-2 bg-primary-600 hover:bg-primary-700 text-white shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Add template
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -98,7 +105,9 @@ export function ModuleTemplateManager() {
           <Boxes className="w-7 h-7 mb-2 text-gray-400" />
           <p className="text-sm">No module templates yet</p>
           <p className="text-xs text-gray-400 mt-1">
-            New projects will start with an empty module list.
+            {canManage
+              ? "New projects will start with an empty module list."
+              : "An admin needs to add them before new projects get a module list."}
           </p>
         </div>
       ) : (
@@ -122,6 +131,7 @@ export function ModuleTemplateManager() {
                   </Badge>
                 )}
               </span>
+              {canManage && (
               <span className="flex items-center gap-1 shrink-0">
                 <Switch
                   checked={template.isActive !== false}
@@ -159,6 +169,7 @@ export function ModuleTemplateManager() {
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </span>
+              )}
             </div>
           ))}
         </div>
@@ -173,16 +184,16 @@ export function ModuleTemplateManager() {
             <label htmlFor="template-name" className="text-sm font-medium text-gray-700">
               Name
             </label>
-            <Input
+            <UppercaseInput
               id="template-name"
               autoFocus
               value={name}
               maxLength={100}
-              onChange={(e) => setName(e.target.value)}
+              onChange={setName}
               onKeyDown={(e) => {
                 if (e.key === "Enter") save();
               }}
-              placeholder="e.g. Auth"
+              placeholder="e.g. AUTH"
               className="bg-white border-gray-200"
             />
           </div>

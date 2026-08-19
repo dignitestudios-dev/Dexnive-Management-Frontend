@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { DeleteDialog } from "@/components/ui/delete-dialog";
 import { Input } from "@/components/ui/input";
+import { UppercaseInput } from "@/components/ui/uppercase-input";
 import { Loader } from "@/components/ui/loader";
 
 import { useGetCategoriesQuery } from "../api/categories.queries";
@@ -163,19 +164,18 @@ export function CategoryManager({ departmentId }: { departmentId?: string }) {
             <label htmlFor="category-name" className="text-sm font-medium text-gray-700">
               Name
             </label>
-            <Input
+            <UppercaseInput
               id="category-name"
               autoFocus
               value={name}
               maxLength={100}
-              onChange={(e) => setName(e.target.value)}
+              onChange={setName}
               onKeyDown={(e) => {
                 if (e.key === "Enter") save();
               }}
               placeholder="e.g. API"
               className="bg-white border-gray-200"
             />
-            <p className="text-[11px] text-gray-400">Stored in uppercase.</p>
           </div>
           <DialogFooter>
             <Button

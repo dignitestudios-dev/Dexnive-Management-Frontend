@@ -8,18 +8,24 @@ import { Loader } from "@/components/ui/loader";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { ModuleTemplateManager } from "@/features/module-templates/components/module-template-manager";
 
-/** Admin-only: the module list every new project is seeded with. */
+/**
+ * The module list every new project is seeded with.
+ *
+ * Visible to Admin, Lead and Project Manager; only Admin can change it, which
+ * is what the API enforces — GET is open to any authenticated user while the
+ * write verbs are Admin-only.
+ */
 export default function ModuleTemplatesPage() {
   const router = useRouter();
-  const { isAdmin, isInitialized } = useAuth();
+  const { isAdmin, canManageProjects, isInitialized } = useAuth();
 
   useEffect(() => {
-    if (isInitialized && !isAdmin) {
+    if (isInitialized && !canManageProjects) {
       router.push("/dashboard");
     }
-  }, [isInitialized, isAdmin, router]);
+  }, [isInitialized, canManageProjects, router]);
 
-  if (!isInitialized || !isAdmin) {
+  if (!isInitialized || !canManageProjects) {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader className="w-6 h-6 text-primary-600" />
@@ -36,11 +42,12 @@ export default function ModuleTemplatesPage() {
         </h1>
         <p className="text-sm text-gray-500 mt-1">
           The starting module list for every new project.
+          {!isAdmin && " Managed by an admin."}
         </p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-        <ModuleTemplateManager />
+        <ModuleTemplateManager canManage={isAdmin} />
       </div>
     </div>
   );

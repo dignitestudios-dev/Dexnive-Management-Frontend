@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { DeleteDialog } from "@/components/ui/delete-dialog";
 import { Input } from "@/components/ui/input";
+import { UppercaseInput } from "@/components/ui/uppercase-input";
 import { Loader } from "@/components/ui/loader";
 
 import { useGetModulesQuery } from "../api/modules.queries";
@@ -166,16 +167,16 @@ export function ProjectModulesCard({
             <label htmlFor="module-name" className="text-sm font-medium text-gray-700">
               Name
             </label>
-            <Input
+            <UppercaseInput
               id="module-name"
               autoFocus
               value={name}
               maxLength={100}
-              onChange={(e) => setName(e.target.value)}
+              onChange={setName}
               onKeyDown={(e) => {
                 if (e.key === "Enter") save();
               }}
-              placeholder="e.g. Auth"
+              placeholder="e.g. AUTH"
               className="bg-white border-gray-200"
             />
           </div>

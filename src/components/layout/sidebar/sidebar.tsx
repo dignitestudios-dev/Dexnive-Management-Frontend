@@ -281,7 +281,7 @@ export function Sidebar() {
                 nested
               />
             )}
-            {isAdmin && (
+            {canManageProjects && (
               <SidebarLink
                 icon={<Boxes className="w-4 h-4" />}
                 label="Modules Template"
