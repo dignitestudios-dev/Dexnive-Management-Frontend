@@ -52,15 +52,15 @@ export function CategorySelect({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "w-full sm:w-[220px] justify-between h-9 bg-white border-gray-200 text-sm font-normal",
+            "w-full sm:w-[280px] justify-between h-9 bg-white border-gray-200 text-sm font-normal",
             !value && "text-gray-400",
           )}
         >
-          <span className="truncate">{selected?.name ?? "Select category"}</span>
+          <span className="truncate" title={selected?.name ?? ""}>{selected?.name ?? "Select category"}</span>
           <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>
       } />
-      <PopoverContent className="w-[240px] p-0 z-[100]" align="start">
+      <PopoverContent className="w-[320px] p-0 z-[100]" align="start">
         <Command>
           <CommandInput placeholder="Search category..." className="h-9 text-sm" />
           <CommandList>
@@ -91,6 +91,7 @@ export function CategorySelect({
                       "cursor-pointer flex items-center justify-between text-sm py-2 px-2.5 rounded-md",
                       usedElsewhere && "opacity-40 cursor-not-allowed",
                     )}
+                    title={category.name}
                   >
                     <span className="flex items-center gap-2 min-w-0">
                       <Check

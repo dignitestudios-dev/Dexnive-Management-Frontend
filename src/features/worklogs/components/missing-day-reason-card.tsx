@@ -117,6 +117,22 @@ export function MissingDayReasonCard({
             key={option.value}
             type="button"
             onClick={() => setChoice(option.value)}
+            onDoubleClick={() => {
+              if (mutation.isPending) return;
+              setChoice(option.value);
+              if (option.value === "forgot") {
+                onBackfill();
+              } else if (option.value === "absent") {
+                mutation.mutate(
+                  { shiftDate, reason: "absent" },
+                  {
+                    onSuccess: () => onResolved?.(),
+                    onError: (error: any) =>
+                      toast.error(error?.message || "Failed to save reason"),
+                  },
+                );
+              }
+            }}
             className={cn(
               "w-full text-left rounded-xl border p-4 transition-all flex items-start gap-3",
               choice === option.value

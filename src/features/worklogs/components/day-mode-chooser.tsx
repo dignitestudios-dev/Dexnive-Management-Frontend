@@ -112,6 +112,15 @@ export function DayModeChooser({
               key={option.value}
               type="button"
               onClick={() => setSelected(option.value)}
+              onDoubleClick={() => {
+                if (isSubmitting) return;
+                setSelected(option.value);
+                if (option.value === "projects") {
+                  onChooseProjects();
+                } else {
+                  setConfirming(true);
+                }
+              }}
               aria-pressed={selected === option.value}
               className={cn(
                 "w-full text-left rounded-xl border p-4 flex items-start gap-3.5 transition-all",

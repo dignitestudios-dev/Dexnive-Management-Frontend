@@ -56,13 +56,13 @@ export function ModuleSelect({
             !value && "text-gray-400",
           )}
         >
-          <span className="truncate">
+          <span className="truncate" title={noProject ? "Pick a project first" : (selected?.name ?? "")}>
             {noProject ? "Pick a project first" : (selected?.name ?? "Module")}
           </span>
           <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>
       } />
-      <PopoverContent className="w-[240px] p-0 z-[100]" align="start">
+      <PopoverContent className="w-[320px] p-0 z-[100]" align="start">
         <Command>
           <CommandInput placeholder="Search module..." className="h-9 text-sm" />
           <CommandList>
@@ -87,6 +87,7 @@ export function ModuleSelect({
                     setOpen(false);
                   }}
                   className="cursor-pointer text-sm py-2 px-2.5 rounded-md"
+                  title={module.name}
                 >
                   <Check
                     className={cn(
