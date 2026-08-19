@@ -62,6 +62,7 @@ import {
   validateDayBalance,
 } from "../lib/day-balance";
 import { CategoryEntriesField, emptyCategoryEntry } from "./category-entries-field";
+import { NumericInput } from "./numeric-input";
 import { entryFormatForUser, type EntryFormat } from "../lib/entry-format";
 import { DayBudgetBar } from "./day-budget-bar";
 import { NonProjectTimeCard } from "./non-project-time-card";
@@ -833,17 +834,15 @@ function EntryRow({
             render={({ field }) => (
               <FormItem className="space-y-1">
                 <FormControl>
-                  <Input
-                    type="number"
-                    min={0}
+                  <NumericInput
                     max={24}
-                    inputMode="numeric"
                     aria-label="Hours"
-                    placeholder="0"
-                    className="w-16 h-10 text-center text-sm font-semibold tabular-nums bg-white border-gray-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    {...field}
-                    value={field.value === 0 ? "" : field.value}
-                    onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                    className="w-16 h-10"
+                    name={field.name}
+                    ref={field.ref}
+                    onBlur={field.onBlur}
+                    value={Number(field.value) || 0}
+                    onChange={field.onChange}
                   />
                 </FormControl>
               </FormItem>
@@ -856,17 +855,15 @@ function EntryRow({
             render={({ field }) => (
               <FormItem className="space-y-1">
                 <FormControl>
-                  <Input
-                    type="number"
-                    min={0}
+                  <NumericInput
                     max={59}
-                    inputMode="numeric"
                     aria-label="Minutes"
-                    placeholder="0"
-                    className="w-16 h-10 text-center text-sm font-semibold tabular-nums bg-white border-gray-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    {...field}
-                    value={field.value === 0 ? "" : field.value}
-                    onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                    className="w-16 h-10"
+                    name={field.name}
+                    ref={field.ref}
+                    onBlur={field.onBlur}
+                    value={Number(field.value) || 0}
+                    onChange={field.onChange}
                   />
                 </FormControl>
                 <FormMessage className="text-[11px] font-normal" />

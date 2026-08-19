@@ -5,6 +5,7 @@ import { Coffee, Info, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "./numeric-input";
 import { cn } from "@/lib/utils";
 import {
   STANDARD_WORK_MINUTES,
@@ -222,20 +223,14 @@ function NumberBox({
   min: number;
   max: number;
   onChange: (value: number) => void;
-} & Omit<React.ComponentProps<typeof Input>, "value" | "min" | "max" | "onChange">) {
+} & Omit<React.ComponentProps<typeof Input>, "value" | "min" | "max" | "onChange" | "type">) {
   return (
-    <Input
-      type="number"
-      inputMode="numeric"
+    <NumericInput
+      value={value}
       min={min}
       max={max}
-      value={value === 0 ? "" : String(value)}
-      placeholder="0"
-      onChange={(e) => {
-        const parsed = parseInt(e.target.value, 10);
-        onChange(Number.isNaN(parsed) ? 0 : Math.max(min, Math.min(parsed, max)));
-      }}
-      className="w-14 h-9 text-center text-sm font-semibold tabular-nums bg-white border-gray-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+      onChange={onChange}
+      className="w-14 h-9"
       {...rest}
     />
   );
