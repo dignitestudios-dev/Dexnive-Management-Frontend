@@ -94,6 +94,7 @@ const entrySchema = z.object({
     .array(
       z.object({
         category: z.string().min(1, "Pick a category"),
+        _format: z.enum(["tasks", "notes"]).optional(),
         description: z.string().trim().max(2000).default(""),
         tasks: z.array(taskLineSchema).max(MAX_TASKS_PER_CATEGORY).default([]),
       }),
@@ -138,11 +139,13 @@ const makeComposerSchema = (canLogLeadWork: boolean, format: EntryFormat) =>
         }
 
         // Mirrors the server's per-block either/or, with the side chosen by
-        // the user's department rather than by the user.
+        // the user's department, but optionally overridden per category block.
         entry.categoryEntries.forEach((block, blockIndex) => {
           const base = ["entries", index, "categoryEntries", blockIndex] as const;
+          
+          const blockFormat = block._format ?? format;
 
-          if (format === "notes") {
+          if (blockFormat === "notes") {
             if (!block.description?.trim()) {
               ctx.addIssue({
                 code: z.ZodIssueCode.custom,
@@ -150,15 +153,14 @@ const makeComposerSchema = (canLogLeadWork: boolean, format: EntryFormat) =>
                 path: [...base, "description"],
               });
             }
-            return;
-          }
-
-          if ((block.tasks ?? []).length === 0) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Add at least one task",
-              path: [...base, "tasks"],
-            });
+          } else {
+            if ((block.tasks ?? []).length === 0) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Add at least one task",
+                path: [...base, "tasks"],
+              });
+            }
           }
         });
       });
@@ -426,10 +428,10 @@ export function DayComposer({
     entries: (values.entries ?? []).map((entry: any) => ({
       project: entry.project,
       minutes: combineMinutes(entry.hours, entry.minutes),
-      // Only the side of the either/or this department uses is sent; the API
-      // rejects a block carrying both.
+      // Only the side of the either/or selected via the format toggle is sent;
+      // the API rejects a block carrying both.
       categoryEntries: (entry.categoryEntries ?? []).map((block: any) =>
-        entryFormat === "notes"
+        (block._format ?? entryFormat) === "notes"
           ? { category: block.category, description: String(block.description ?? "").trim() }
           : {
               category: block.category,

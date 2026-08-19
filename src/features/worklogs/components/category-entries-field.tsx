@@ -4,6 +4,7 @@ import React from "react";
 import { useFieldArray, useWatch } from "react-hook-form";
 import { Layers, Plus, Trash2 } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +16,7 @@ import { EMPTY_TASK, TaskRows } from "./task-rows";
 /** A blank category block in the given format. */
 export const emptyCategoryEntry = (format: EntryFormat) => ({
   category: "",
+  _format: format,
   ...(format === "tasks" ? { tasks: [{ ...EMPTY_TASK }] } : { description: "" }),
 });
 
@@ -79,22 +81,59 @@ export function CategoryEntriesField({
               />
             </div>
 
-            {fields.length > 1 && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={disabled}
-                onClick={() => remove(index)}
-                className="h-7 px-2 text-xs text-gray-400 hover:text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="w-3.5 h-3.5 mr-1" />
-                Remove
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              <FormField
+                control={control}
+                name={`${name}.${index}._format`}
+                render={({ field }) => (
+                  <div className="flex items-center rounded-md border border-gray-200 p-0.5 bg-gray-50">
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => field.onChange("notes")}
+                      className={cn(
+                        "px-2.5 py-1 text-xs font-medium rounded-sm transition-colors",
+                        (field.value ?? format) === "notes"
+                          ? "bg-white text-gray-900 shadow-sm border border-gray-200/50"
+                          : "text-gray-500 hover:text-gray-900"
+                      )}
+                    >
+                      Free Form
+                    </button>
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => field.onChange("tasks")}
+                      className={cn(
+                        "px-2.5 py-1 text-xs font-medium rounded-sm transition-colors",
+                        (field.value ?? format) === "tasks"
+                          ? "bg-white text-gray-900 shadow-sm border border-gray-200/50"
+                          : "text-gray-500 hover:text-gray-900"
+                      )}
+                    >
+                      Module Based
+                    </button>
+                  </div>
+                )}
+              />
+
+              {fields.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={disabled}
+                  onClick={() => remove(index)}
+                  className="h-7 px-2 text-xs text-gray-400 hover:text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-1" />
+                  Remove
+                </Button>
+              )}
+            </div>
           </div>
 
-          {format === "tasks" ? (
+          {(blocks[index]?._format ?? format) === "tasks" ? (
             <TaskRows
               control={control}
               entryIndex={entryIndex}

@@ -45,6 +45,13 @@ These rules govern how the coding agent operates on this MERN stack codebase (Mo
 - **Node.js/API layer:** Validate request payloads before processing. Keep async/await error handling consistent (try/catch or centralized handler, matching the project's existing style) — never leave unhandled promise rejections.
 - **Full-stack consistency:** When an API contract changes (request/response shape, route, status codes), update both backend and frontend together, and check for any other consumers of that endpoint.
 
+### Dexnive-Specific Rules
+
+- **Timezones (CRITICAL):** The platform runs on a fixed business timezone (`APP_TIMEZONE`). **Never** call `new Date()`, date-fns `format()`, or `toLocale*Date/Time` directly. Always use the helpers in `src/lib/datetime.ts` (`formatDay`, `dayKey`, `parseDay`, `appNow`, etc.).
+- **Worklog Payload Strictness:** Worklog DTOs are Zod `.strict()`. Extra body keys will cause a 422 error. The `WorklogEntry` uses `categoryEntries[]` instead of direct `description`/`tasks`. 
+- **Non-Billable Time:** Non-billable time is **system-derived** on the backend and **never** a user input. Do not compute it or submit it from the frontend.
+- **Role Gating:** Always use `useAuth()` (`hasFinancialAccess`, `isFullManager`, `canManageProjects`) instead of raw string comparison against `user.role`.
+
 ## 5. Optimized, Deliberate Work
 
 - Don't add dependencies, files, or abstractions that aren't needed to solve the task at hand.
