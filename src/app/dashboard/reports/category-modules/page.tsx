@@ -83,7 +83,10 @@ export default function CategoryModuleReportPage() {
               onValueChange={(value) => value && setMonth(Number(value))}
             >
               <SelectTrigger className="w-36 h-9 bg-white">
-                <SelectValue />
+                {/* Value is the month number; show its name. */}
+                <SelectValue>
+                  {(value) => MONTHS[Number(value) - 1] ?? "Month"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {MONTHS.map((label, index) => (

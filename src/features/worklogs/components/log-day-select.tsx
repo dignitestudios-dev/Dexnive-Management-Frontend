@@ -54,7 +54,14 @@ export function LogDaySelect({
     <div className="flex flex-col items-stretch sm:items-end gap-1.5">
       <Select value={selected} onValueChange={(next) => next && onChange(next)}>
         <SelectTrigger className="w-full sm:w-[260px] h-10 bg-white border-gray-200">
-          <SelectValue />
+          {/* Value is a yyyy-MM-dd key; show the readable label instead. */}
+          <SelectValue>
+            {(value) =>
+              value === today
+                ? `Today — ${formatDay(today, DATE_FORMATS.DAY_SHORT)}`
+                : `Missing — ${formatDay(String(value), DATE_FORMATS.DAY_SHORT)}`
+            }
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={today}>

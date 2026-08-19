@@ -82,7 +82,16 @@ export default function CategoriesPage() {
         {isAdmin && departments.length > 0 && (
           <Select value={selected} onValueChange={(value) => value && setSelected(value)}>
             <SelectTrigger className="w-full sm:w-56 h-9 bg-white">
-              <SelectValue placeholder="Select department" />
+              {/*
+                Base UI renders the raw value unless given a formatter, which
+                would show the department's ObjectId instead of its name.
+              */}
+              <SelectValue placeholder="Select department">
+                {(value) =>
+                  departments.find((d: any) => d._id === value)?.name ??
+                  "Select department"
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {departments.map((department: any) => (
