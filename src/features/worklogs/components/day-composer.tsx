@@ -889,12 +889,14 @@ function EntryRow({
         </div>
       </div>
 
-      <CategoryEntriesField
-        control={form.control}
-        entryIndex={index}
-        format={format}
-        projectId={projectId}
-      />
+      {projectId && (
+        <CategoryEntriesField
+          control={form.control}
+          entryIndex={index}
+          format={format}
+          projectId={projectId}
+        />
+      )}
     </div>
   );
 }

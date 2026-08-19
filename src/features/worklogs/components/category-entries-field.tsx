@@ -133,34 +133,36 @@ export function CategoryEntriesField({
             </div>
           </div>
 
-          {(blocks[index]?._format ?? format) === "tasks" ? (
-            <TaskRows
-              control={control}
-              entryIndex={entryIndex}
-              categoryIndex={index}
-              projectId={projectId}
-              disabled={disabled}
-            />
-          ) : (
-            <FormField
-              control={control}
-              name={`${name}.${index}.description`}
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormControl>
-                    <Textarea
-                      placeholder="What did you work on in this category?"
-                      rows={3}
-                      maxLength={2000}
-                      disabled={disabled}
-                      className="bg-white border-gray-200 text-sm resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-[11px] font-normal" />
-                </FormItem>
-              )}
-            />
+          {blocks[index]?.category && (
+            (blocks[index]?._format ?? format) === "tasks" ? (
+              <TaskRows
+                control={control}
+                entryIndex={entryIndex}
+                categoryIndex={index}
+                projectId={projectId}
+                disabled={disabled}
+              />
+            ) : (
+              <FormField
+                control={control}
+                name={`${name}.${index}.description`}
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormControl>
+                      <Textarea
+                        placeholder="What did you work on in this category?"
+                        rows={3}
+                        maxLength={2000}
+                        disabled={disabled}
+                        className="bg-white border-gray-200 text-sm resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-[11px] font-normal" />
+                  </FormItem>
+                )}
+              />
+            )
           )}
         </div>
       ))}
