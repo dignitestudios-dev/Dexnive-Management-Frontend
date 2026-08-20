@@ -49,11 +49,19 @@ export function DailyWorklog({ defaultDate }: { defaultDate?: string }) {
   }, [day]);
 
   const goToDay = (next: string) => {
-    router.push(
-      next === todayKey()
-        ? "/dashboard/daily-log"
-        : `/dashboard/daily-log?date=${next}`,
-    );
+    const nextUrl = next === todayKey()
+      ? "/dashboard/daily-log"
+      : `/dashboard/daily-log?date=${next}`;
+      
+    router.push(nextUrl);
+
+    // Fallback: If the RSC fetch fails silently due to network instability (e.g., laptop just woke from sleep),
+    // the URL won't change. Force a hard reload if we haven't navigated after a short timeout.
+    setTimeout(() => {
+      if (window.location.pathname + window.location.search !== nextUrl) {
+        window.location.href = nextUrl;
+      }
+    }, 1500);
   };
 
   /** Chain to the next outstanding day, or finish up on the dashboard. */

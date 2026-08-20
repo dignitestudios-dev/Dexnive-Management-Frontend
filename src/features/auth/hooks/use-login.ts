@@ -28,8 +28,8 @@ export function useLogin() {
         // Persist token for axios interceptor + Redux rehydration
         localStorage.setItem("auth-token", token);
         localStorage.setItem("auth-user", JSON.stringify(user));
-        // Cookie for proxy.ts (server-side route protection)
-        document.cookie = `auth-token=${token}; path=/; max-age=86400`; // Adjust max-age as needed
+        // Cookie for proxy.ts (server-side route protection) - No expiry set, relying on API 401
+        document.cookie = `auth-token=${token}; path=/;`; 
         
         dispatch(setCredentials({ user, accessToken: token }));
         const roleName = typeof user?.role === 'object' && user.role !== null ? user.role.name.trim().toLowerCase() : (typeof user?.role === 'string' ? user.role.trim().toLowerCase() : "");
