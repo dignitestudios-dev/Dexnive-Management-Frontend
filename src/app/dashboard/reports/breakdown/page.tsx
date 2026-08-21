@@ -126,7 +126,7 @@ export default function HoursBreakdownPage() {
 
     // Row 1
     const headerRow1 = [
-      "#", "Project", "Type", "Division",
+      "#", "Project", "Date", "Division",
       "Hours", ...Array(H_len - 1).fill(""),
       "Amounts", ...Array(H_len - 1).fill("")
     ];
@@ -161,7 +161,7 @@ export default function HoursBreakdownPage() {
       const rowData = [
         (index + 1).toString(),
         row.name,
-        row.type,
+        appliedStartDate === appliedEndDate ? appliedStartDate : `${appliedStartDate} to ${appliedEndDate}`,
         row.division,
         ...departmentNames.flatMap(dept => {
           const valB = row.hours?.[dept]?.billable ?? 0;
@@ -361,6 +361,7 @@ export default function HoursBreakdownPage() {
                   <Input
                     type="date"
                     value={startDate}
+                    max={endDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     className="w-full h-9 text-xs bg-white"
                   />
@@ -371,6 +372,7 @@ export default function HoursBreakdownPage() {
                   <Input
                     type="date"
                     value={endDate}
+                    min={startDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     className="w-full h-9 text-xs bg-white"
                   />
@@ -528,7 +530,7 @@ export default function HoursBreakdownPage() {
                     <tr className="border-b border-purple-200 bg-purple-50">
                       <th rowSpan={3} className="px-4 py-3 text-left border-r border-purple-200 font-semibold w-10 bg-purple-50 sticky top-0 z-30">#</th>
                       <th rowSpan={3} className="px-6 py-3 text-left border-r border-purple-200 font-semibold w-52 min-w-[180px] bg-purple-50 sticky top-0 z-30">Project</th>
-                      <th rowSpan={3} className="px-4 py-3 text-center border-r border-purple-200 font-semibold w-24 bg-purple-50 sticky top-0 z-30">Type</th>
+                      <th rowSpan={3} className="px-4 py-3 text-center border-r border-purple-200 font-semibold w-24 bg-purple-50 sticky top-0 z-30">Date</th>
                       <th rowSpan={3} className="px-6 py-3 text-left border-r border-purple-200 font-semibold w-40 bg-purple-50 sticky top-0 z-30">Division</th>
                       <th colSpan={(departmentNames.length * 2) + 2} className="px-4 py-2 text-center border-b border-r border-purple-200 font-bold bg-purple-50 sticky top-0 z-30">Hours</th>
                       <th colSpan={(departmentNames.length * 2) + 2} className="px-4 py-2 text-center border-b border-purple-200 font-bold bg-purple-50 sticky top-0 z-30">Amounts</th>
@@ -602,18 +604,8 @@ export default function HoursBreakdownPage() {
                         <tr key={index} className="hover:bg-gray-50/50 transition-colors">
                           <td className="px-4 py-3 border-r border-gray-300 border-b border-gray-300 font-medium text-gray-400 text-center">{index + 1}</td>
                           <td className="px-6 py-3 border-r border-gray-300 border-b border-gray-300 font-semibold text-gray-955 whitespace-nowrap">{row.name}</td>
-                          <td className="px-4 py-3 border-r border-gray-300 border-b border-gray-300 text-center">
-                            <Badge 
-                              variant="outline" 
-                              className={cn(
-                                "px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider",
-                                row.type.toLowerCase() === "external" 
-                                  ? "bg-blue-50 text-blue-700 border-blue-200" 
-                                  : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              )}
-                            >
-                              {row.type}
-                            </Badge>
+                          <td className="px-4 py-3 border-r border-gray-300 border-b border-gray-300 text-center text-xs text-gray-600 whitespace-nowrap">
+                            {appliedStartDate === appliedEndDate ? appliedStartDate : `${appliedStartDate} to ${appliedEndDate}`}
                           </td>
                           <td className="px-6 py-3 border-r border-gray-300 border-b border-gray-300 text-gray-600 whitespace-nowrap">{row.division}</td>
                           

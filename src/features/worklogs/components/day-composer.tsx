@@ -286,6 +286,7 @@ export function DayComposer({
 
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"draft" | "submit" | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   /**
    * null = the chooser has not been answered yet. A day that already has
@@ -371,15 +372,20 @@ export function DayComposer({
         freeMinutes: 0,
         leadWorkMinutes: 0,
       });
+      setIsHydrated(true);
       return;
     }
 
-    // Reads come back with category and module populated as {_id, name};
-    // the form works in bare ids, so unwrap them here.
     const idOf = (value: any) =>
       typeof value === "string" ? value : (value?._id ?? "");
 
+    const newMapEntries = new Map();
+
     const entries = (worklog.entries || []).map((entry: any) => {
+      if (entry.project && typeof entry.project === "object" && entry.project._id) {
+        newMapEntries.set(entry.project._id, entry.project);
+      }
+      
       const blocks = Array.isArray(entry.categoryEntries) ? entry.categoryEntries : [];
       return {
         project: idOf(entry.project),
@@ -389,7 +395,7 @@ export function DayComposer({
           blocks.length > 0
             ? blocks.map((block: any) => ({
                 category: idOf(block.category),
-                _format: (block.description ?? "") !== "" ? "notes" : "tasks",
+                _format: block.description != null ? "notes" : "tasks",
                 description: block.description ?? "",
                 tasks: (block.tasks ?? []).map((task: any) => ({
                   module: idOf(task.module),
@@ -402,6 +408,14 @@ export function DayComposer({
               [emptyCategoryEntry(entryFormat)],
       };
     });
+
+    if (newMapEntries.size > 0) {
+      setAllProjectsMap(prev => {
+        const next = new Map(prev);
+        newMapEntries.forEach((val, key) => next.set(key, val));
+        return next;
+      });
+    }
 
     form.reset({
       entries: entries.length > 0 ? entries : [blankEntry(entryFormat)],
@@ -417,6 +431,7 @@ export function DayComposer({
           ? "leadWork"
           : "free",
     );
+    setIsHydrated(true);
   }, [worklogResponse, worklog, form, entryFormat]);
 
   /** Answer the chooser and seed the form for that shape of day. */
@@ -575,7 +590,7 @@ export function DayComposer({
 
   /* ── Render ────────────────────────────────────────────────────────────── */
 
-  if (isLoadingWorklog || isProjectsLoading) {
+  if (isLoadingWorklog || isProjectsLoading || !isHydrated) {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader className="w-6 h-6 text-primary-600" />
