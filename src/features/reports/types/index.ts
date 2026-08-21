@@ -107,3 +107,79 @@ export interface CategoryModuleBreakdownResponse {
   message: string;
   data: CategoryModuleBreakdownData;
 }
+
+/* ==========================================================================
+ * Shift Drill-Down (Admin & Lead)
+ * ========================================================================== */
+
+export interface ShiftDepartment {
+  _id: string;
+  name: string;
+  billableMinutes: number;
+  billableHours: number;
+  nonBillableMinutes: number;
+  nonBillableHours: number;
+  overtimeMinutes: number;
+  overtimeHours: number;
+  totalMinutes: number;
+  totalHours: number;
+}
+
+export interface ShiftRow {
+  shiftDate: string;
+  departments: ShiftDepartment[];
+  projectCount: number;
+}
+
+export interface ShiftListResponse {
+  message: string;
+  data: ShiftRow[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
+export interface ShiftProjectRow {
+  project: { _id: string; name: string; code?: string };
+  departments: ShiftDepartment[];
+  totalMinutes: number;
+  totalHours: number;
+}
+
+export interface ShiftProjectsResponse {
+  message: string;
+  data: {
+    shiftDate: string;
+    projects: ShiftProjectRow[];
+  };
+}
+
+export interface CategoryTag {
+  _id: string;
+  name: string;
+}
+
+export interface ShiftUserRow {
+  user: { _id: string; name: string; email: string };
+  billableMinutes: number;
+  billableHours: number;
+  nonBillableMinutes: number;
+  nonBillableHours: number;
+  overtimeMinutes: number;
+  overtimeHours: number;
+  totalMinutes: number;
+  totalHours: number;
+  categories: CategoryTag[];
+}
+
+export interface ShiftUsersResponse {
+  message: string;
+  data: {
+    shiftDate: string;
+    project: { _id: string; name: string; code?: string };
+    users: ShiftUserRow[];
+  };
+}

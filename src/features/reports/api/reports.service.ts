@@ -4,6 +4,9 @@ import {
   CategoryModuleBreakdownResponse,
   GetReportsParams,
   ReportsResponse,
+  ShiftListResponse,
+  ShiftProjectsResponse,
+  ShiftUsersResponse,
 } from "../types";
 
 export async function getProjectHoursBreakdown(params?: GetReportsParams): Promise<{ message: string; data: ReportsResponse }> {
@@ -24,5 +27,24 @@ export async function getCategoryModuleBreakdown(
     "/reports/category-module-breakdown",
     { params },
   );
+  return data;
+}
+
+/* ==========================================================================
+ * Shift Drill-Down
+ * ========================================================================== */
+
+export async function getShiftsBreakdown(params: GetReportsParams & { page?: number; limit?: number }): Promise<ShiftListResponse> {
+  const { data } = await axiosInstance.get<ShiftListResponse>("/reports/shifts", { params });
+  return data;
+}
+
+export async function getShiftProjects(shiftDate: string): Promise<ShiftProjectsResponse> {
+  const { data } = await axiosInstance.get<ShiftProjectsResponse>(`/reports/shifts/${shiftDate}/projects`);
+  return data;
+}
+
+export async function getShiftProjectUsers(shiftDate: string, projectId: string): Promise<ShiftUsersResponse> {
+  const { data } = await axiosInstance.get<ShiftUsersResponse>(`/reports/shifts/${shiftDate}/projects/${projectId}/users`);
   return data;
 }

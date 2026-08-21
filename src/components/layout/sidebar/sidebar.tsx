@@ -304,6 +304,7 @@ export function Sidebar() {
             isActive={isGroupActive([
               "/dashboard/reports",
               "/dashboard/reports/breakdown",
+              "/dashboard/reports/shifts",
               // "/dashboard/reports/category-modules",
             ])}
           >
@@ -320,6 +321,14 @@ export function Sidebar() {
               label="Hours Breakdown"
               href="/dashboard/reports/breakdown"
               active={pathname === "/dashboard/reports/breakdown"}
+              isCollapsed={isCollapsed}
+              nested
+            />
+            <SidebarLink
+              icon={<CalendarDays className="w-4 h-4" />}
+              label="Shifts Breakdown"
+              href="/dashboard/reports/shifts"
+              active={pathname === "/dashboard/reports/shifts"}
               isCollapsed={isCollapsed}
               nested
             />
